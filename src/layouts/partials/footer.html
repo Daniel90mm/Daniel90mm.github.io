@@ -1,4 +1,25 @@
 <footer class="foot">
-  <span><span class="ok">[ok]</span> static site · hugo · {{ now.Format "2006-01-02" }}</span>
+  <span>
+    last update
+    <span id="since" data-built="{{ now.Format "2006-01-02T15:04:05Z07:00" }}" class="ok">{{ now.Format "2006-01-02 15:04" }}</span>
+  </span>
   <span>© {{ now.Format "2006" }} daniel — <a href="https://github.com/Daniel90mm/Daniel90mm.github.io" style="color:var(--fg-dim)">source</a></span>
 </footer>
+<script>
+(function(){
+  var el = document.getElementById("since");
+  if(!el) return;
+  var built = new Date(el.dataset.built).getTime();
+  function fmt(ms){
+    var s = Math.floor(ms/1000);
+    var d = Math.floor(s/86400); s -= d*86400;
+    var h = Math.floor(s/3600);  s -= h*3600;
+    var m = Math.floor(s/60);    s -= m*60;
+    var pad = function(n){ return (n<10?"0":"")+n; };
+    if(d>0) return d+"d "+pad(h)+":"+pad(m)+":"+pad(s);
+    return pad(h)+":"+pad(m)+":"+pad(s);
+  }
+  function tick(){ el.textContent = fmt(Date.now()-built) + " ago"; }
+  tick(); setInterval(tick, 1000);
+})();
+</script>
