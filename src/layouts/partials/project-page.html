@@ -17,7 +17,6 @@
     {{ with $started }}<div class="pair"><span class="k">started</span><span class="v">{{ . }}</span></div>{{ end }}
     {{ if $latest }}<div class="pair"><span class="k">last</span><span class="v">{{ $latest.Format "2006-01-02" }}</span></div>{{ end }}
     <div class="pair"><span class="k">entries</span><span class="v accent">{{ printf "%02d" (len .RegularPages) }}</span></div>
-    {{ with .Params.stack }}<div class="pair"><span class="k">stack</span><span class="v">{{ delimit . ", " }}</span></div>{{ end }}
     {{ with .Params.repo }}<div class="pair"><span class="k">repo</span><span class="v"><a href="{{ . }}">{{ . | replaceRE "https?://" "" }}</a></span></div>{{ end }}
   </div>
 
