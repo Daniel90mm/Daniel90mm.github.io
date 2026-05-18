@@ -16,7 +16,8 @@
   --ok:      #98c379;
   --mono: "JetBrains Mono", "IBM Plex Mono", "Fira Code", "Source Code Pro",
           ui-monospace, "DejaVu Sans Mono", monospace;
-  --max:   980px;
+  --max:   100%;
+  --pad:   clamp(1rem, 3vw, 3rem);
   --line:  1.55;
 }
 
@@ -55,8 +56,8 @@ body::before {
 
 .shell {
   max-width: var(--max);
-  margin: 0 auto;
-  padding: 1.25rem 1.5rem 3rem;
+  margin: 0;
+  padding: 1.25rem var(--pad) 3rem;
 }
 
 /* ---------- top bar ---------- */
