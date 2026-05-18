@@ -235,3 +235,58 @@ cd /home/daniel/Documents/Projekter/Daniel90mm.github.io/flightrecorder
 Hand-back:
 - When the tests pass, stop. Do not commit. Daniel verifies before commit.
 
+## S119 - Session round-trip integration test
+
+Where:
+- `flightrecorder/tests/integration/test_session_round_trip.py` (new file;
+  do not edit any source module).
+
+What:
+- Write one integration test that exercises the wired pipeline end-to-end
+  on a fresh session:
+  1. `POST /api/sessions` to create a session.
+  2. `POST /api/sessions/{id}/messages` with a user message that names a
+     known project (e.g. "Let's work on the pulse-oximeter AC/DC ratio").
+     Stub the brainstorm provider with a fixed assistant reply so the
+     stream completes deterministically.
+  3. `POST /api/sessions/{id}/extract` with a stub idea-capture provider
+     whose canned JSON returns one `project_append` to `pulse-oximeter`
+     and one `spaghetti`.
+  4. `GET /api/sessions/{id}` and assert the response now lists both the
+     user and assistant messages and the message_count is 2.
+- Assert in the same test:
+  - The project document file `pulse-oximeter.md` exists and contains the
+    appended bullet from step 3.
+  - The spaghetti directory has exactly one new markdown file.
+  - The sqlite `ideas` table has exactly one row, source_session matches.
+  - The sqlite `api_calls` table has exactly two rows (one brainstorm,
+    one idea_capture) with matching session_id.
+  - The session's sqlite row has `extracted=1` and a populated
+    `extracted_at`.
+- Reuse the stub-provider pattern from
+  `tests/integration/test_chat_endpoint.py` and
+  `tests/integration/test_extraction_endpoint.py`. Copy whatever stub
+  class shape you need into the new test file; do not factor a shared
+  helper this round.
+- Do NOT touch any source module. The whole task is one new test file.
+
+Why:
+- Each of the unit / integration tests today covers one endpoint in
+  isolation. The pipeline that produces public output (chat -> message
+  -> idea capture -> project document + spaghetti + cost log) has no
+  single test exercising the whole chain. Without it, a refactor of any
+  one stage can silently break the contract between stages.
+
+Smoke test:
+
+```sh
+cd /home/daniel/Documents/Projekter/Daniel90mm.github.io/flightrecorder
+.venv/bin/python -m pytest tests/integration/test_session_round_trip.py -q
+.venv/bin/python -m pytest tests/integration/ tests/unit/test_api.py -q
+# Both must pass. The second command catches regressions in the
+# integration suite that the round-trip test might mask.
+```
+
+Hand-back:
+- When the tests pass, stop. Do not commit. Daniel verifies before commit.
+
