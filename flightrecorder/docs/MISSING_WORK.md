@@ -5,8 +5,8 @@ progress.
 
 - Done: **1** of 20 (step 2 session storage)
 - Mostly done: **1** (step 1, backend skeleton)
-- In progress: **2** (step 8 project documents, step 17 budget tracking)
-- Not started: **16**
+- In progress: **3** (step 8 project documents, step 17 budget tracking, step 19 Termux setup)
+- Not started: **15**
 
 ## Not started
 
@@ -26,10 +26,12 @@ progress.
 | 15 | Project registry |
 | 16 | Implementation marking UI |
 | 18 | Polish |
-| 19 | Termux setup checklist |
 | 20 | Ship and dogfood |
 
 ## Open
 
 Step 8 has append-only project document helpers and tests. The idea-capture LLM
 operation parser and documents git auto-commit path are not wired yet.
+
+Step 19 has a documented Termux phone pattern and helper draft. It has not been
+run against pa-server.

@@ -196,3 +196,14 @@ phone deployment pattern. It uses laptop-side SSH/SCP helpers, Termux port
 `8022`, `termux-wake-lock`, `nohup`, pid files, logs in `~/logs`, and
 Termux:Boot scripts under `~/.termux/boot/`. Captured the reusable pattern in
 `docs/TERMUX_PHONE_PATTERN.md`.
+
+## 2026-05-18 - Termux helper draft
+
+Added `scripts/termux-phone.sh` following the dorm-assistant pattern:
+- laptop-side SSH helper with `shell`, `exec`, `status`, `start-backend`,
+  `stop-backend`, and `install-boot`
+- backend process uses `termux-wake-lock`, `nohup`, a pid file, and
+  `~/logs/flightrecorder-backend.log`
+- boot script starts only the backend, not publisher cron
+
+The helper was syntax-checked locally only. It was not run against the phone.

@@ -22,5 +22,5 @@ Rows for spec section 19 build-order steps 1--20.
 | 16 | Implementation marking UI | not started | |
 | 17 | Budget tracking | in progress | Costs module can log calls, sum windows, parse pricing.toml, compute EUR cost, and evaluate warn/hard-stop thresholds. Kill switch not wired yet. |
 | 18 | Polish | not started | |
-| 19 | Termux setup checklist | not started | |
+| 19 | Termux setup checklist | in progress | Dorm-assistant pattern documented and laptop-side helper drafted. Not run on phone. |
 | 20 | Ship and dogfood | not started | |

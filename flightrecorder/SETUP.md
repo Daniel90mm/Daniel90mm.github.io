@@ -17,3 +17,12 @@ Known deployment shape:
 - Do not use systemd.
 
 See `docs/TERMUX_PHONE_PATTERN.md` for the inspected dorm-assistant details.
+
+Initial helper commands:
+
+```sh
+bash -n scripts/termux-phone.sh
+./scripts/termux-phone.sh status
+./scripts/termux-phone.sh install-boot
+./scripts/termux-phone.sh start-backend
+```

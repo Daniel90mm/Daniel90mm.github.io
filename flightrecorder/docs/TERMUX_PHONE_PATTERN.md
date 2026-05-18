@@ -41,3 +41,26 @@ The dorm-assistant repo does not use `termux-services` for these daemons yet.
 It uses Termux:Boot plus pid files. That is probably the lowest-friction first
 flightrecorder deployment too. A later move to `termux-services` can happen
 after the app is stable.
+
+## Helper commands
+
+The initial helper is `scripts/termux-phone.sh`. It is laptop-side and should
+not be run against the phone unless Daniel explicitly wants deployment.
+
+Check syntax locally:
+
+```sh
+bash -n scripts/termux-phone.sh
+```
+
+Install the boot script on the phone:
+
+```sh
+./scripts/termux-phone.sh install-boot
+```
+
+Start the backend manually:
+
+```sh
+./scripts/termux-phone.sh start-backend
+```

@@ -51,36 +51,15 @@ regression is found:
 | S35 | Session API smoke script, completed by senior agent. |
 | S36 | Session API README examples, completed by senior agent. |
 | S37 | API pagination validation tests, completed by senior agent. |
+| S38 | Termux phone helper draft, completed by senior agent. |
 | S39 | Termux docs sync, completed by senior agent. |
 | S40 | Session API smoke command sync, completed by senior agent. |
 | S41 | Missing-work snapshot after API completion, completed by senior agent. |
+| S43 | Termux helper smoke doc, completed by senior agent. |
 
 ## Active queue
 
 Pick from the top unless Daniel or the senior agent says otherwise.
-
-## S38 - Termux phone helper draft
-
-Where:
-- `flightrecorder/scripts/termux-phone.sh`
-
-What:
-- Draft a laptop-side helper inspired by dorm-assistant with commands:
-  `shell`, `exec`, `status`, and `install-boot`.
-- The boot script should start only the backend, not publisher cron.
-- Do not run it against the phone.
-
-Why:
-- The existing phone workflow is SSH/SCP plus Termux:Boot, not systemd.
-
-Smoke test:
-
-```sh
-cd /home/daniel/Documents/Projekter/Daniel90mm.github.io/flightrecorder
-bash -n scripts/termux-phone.sh
-grep -q 'termux-wake-lock' scripts/termux-phone.sh
-LC_ALL=C grep -n '[^ -~]' scripts/termux-phone.sh && exit 1 || true
-```
 
 ## S42 - API smoke route status docs
 
@@ -106,24 +85,46 @@ grep -q 'Done: **1**' docs/MISSING_WORK.md
 LC_ALL=C grep -n '[^ -~]' docs/BUILD_STATUS.md docs/MISSING_WORK.md && exit 1 || true
 ```
 
-## S43 - Termux helper smoke doc
+## S44 - Termux helper command tests
 
 Where:
-- `flightrecorder/docs/TERMUX_PHONE_PATTERN.md`
+- `flightrecorder/tests/smoke/smoke_termux_helper.py`
 
 What:
-- After `scripts/termux-phone.sh` exists, add the exact command for checking
-  its syntax and installing the boot script.
-- Documentation-only; do not run against the phone.
+- Add a smoke script that checks `scripts/termux-phone.sh --help` exits 0 and
+  contains `install-boot`.
+- Do not connect to the phone.
 
 Why:
-- The helper should remain dry-run safe until Daniel explicitly wants phone
-  deployment.
+- The helper is intentionally laptop-side; local smoke should stay offline.
 
 Smoke test:
 
 ```sh
 cd /home/daniel/Documents/Projekter/Daniel90mm.github.io/flightrecorder
-grep -q 'bash -n scripts/termux-phone.sh' docs/TERMUX_PHONE_PATTERN.md
-LC_ALL=C grep -n '[^ -~]' docs/TERMUX_PHONE_PATTERN.md && exit 1 || true
+.venv/bin/python tests/smoke/smoke_termux_helper.py
+```
+
+## S45 - Chat endpoint contract draft
+
+Where:
+- `flightrecorder/docs/CHAT_API_CONTRACT_DRAFT.md`
+- `flightrecorder/docs/NAVIGATION.md`
+
+What:
+- Draft the request/response/SSE event shapes for
+  `POST /api/sessions/{id}/messages`.
+- Mark it as requiring Daniel approval before implementation.
+- Do not edit backend code.
+
+Why:
+- The spec names the chat endpoint but not its exact streaming contract.
+
+Smoke test:
+
+```sh
+cd /home/daniel/Documents/Projekter/Daniel90mm.github.io/flightrecorder
+grep -q 'requires Daniel approval' docs/CHAT_API_CONTRACT_DRAFT.md
+grep -q 'POST /api/sessions/{id}/messages' docs/CHAT_API_CONTRACT_DRAFT.md
+LC_ALL=C grep -n '[^ -~]' docs/CHAT_API_CONTRACT_DRAFT.md docs/NAVIGATION.md && exit 1 || true
 ```
