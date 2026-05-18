@@ -28,6 +28,10 @@ def create_app(
     app = FastAPI(title="flightrecorder", version="0.1.0")
     app.state.runtime = resolved_runtime
 
+    from flightrecorder.api import router as api_router
+
+    app.include_router(api_router)
+
     @app.get("/health")
     async def health() -> dict[str, str]:
         return {"status": "ok"}

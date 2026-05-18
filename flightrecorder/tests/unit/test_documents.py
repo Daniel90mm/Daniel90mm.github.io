@@ -89,7 +89,11 @@ def test_insert_append_block_preserves_other_sections_exactly() -> None:
 
 
 def test_append_rejects_unknown_section(tmp_path: Path) -> None:
-    create_project_document(tmp_path, "fnirs", datetime.fromisoformat("2026-05-18T18:45:00+02:00"))
+    create_project_document(
+        tmp_path,
+        "fnirs",
+        datetime.fromisoformat("2026-05-18T18:45:00+02:00"),
+    )
 
     with pytest.raises(ProjectDocumentError):
         append_to_project_document(
@@ -133,3 +137,23 @@ def test_normalize_bullet_content_strips_one_marker() -> None:
 def test_sanitize_project_ref_rejects_empty_value() -> None:
     with pytest.raises(ProjectDocumentError):
         sanitize_project_ref("...")
+
+
+def test_sanitize_lowercases() -> None:
+    assert sanitize_project_ref("FNIRS") == "fnirs"
+
+
+def test_sanitize_replaces_spaces_with_hyphens() -> None:
+    assert sanitize_project_ref("pulse oximeter") == "pulse-oximeter"
+
+
+def test_sanitize_preserves_hyphens_and_underscores() -> None:
+    assert sanitize_project_ref("pulse_oximeter-v2") == "pulse_oximeter-v2"
+
+
+def test_sanitize_strips_trailing_special_chars() -> None:
+    assert sanitize_project_ref("--fnirs--") == "fnirs"
+
+
+def test_sanitize_squashes_multiple_special_chars() -> None:
+    assert sanitize_project_ref("pulse  oximeter") == "pulse-oximeter"

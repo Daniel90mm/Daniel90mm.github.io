@@ -17,10 +17,17 @@ scripts/dev-backend.sh
 
 ## Status
 
-Backend skeleton, session storage, and cost tracking are built below the API
-boundary. `/api/sessions*` routes are **not yet implemented** -- the API
-contract is drafted in [docs/API_CONTRACT_DRAFT.md](docs/API_CONTRACT_DRAFT.md)
-and awaiting Daniel's approval before route work begins.
+Backend skeleton, session storage, approved `/api/sessions*` routes, and cost
+tracking are built. Append-only project document helpers exist for creating and
+appending to `documents/<project>.md`, but the idea-capture LLM parser that
+feeds them is not yet wired.
+
+## Current API
+
+- `POST /api/sessions`
+- `GET /api/sessions`
+- `GET /api/sessions/{session_id}`
+- `POST /api/sessions/{session_id}/upload`
 
 ## Layout
 

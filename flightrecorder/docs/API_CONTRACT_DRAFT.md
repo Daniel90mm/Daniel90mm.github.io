@@ -1,10 +1,9 @@
 # API Contract Draft
 
-> **DRAFT -- requires Daniel approval before implementation.**
+> **Approved by Daniel on 2026-05-18.**
 >
 > The spec (section 11) names API paths but not exact payload shapes. This
-> document proposes shapes for the first four session endpoints. Nothing here
-> is implemented yet.
+> document defines shapes for the first four session endpoints.
 
 ---
 

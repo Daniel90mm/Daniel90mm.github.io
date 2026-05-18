@@ -1,8 +1,12 @@
 # API contract review checklist
 
-To be approved by Daniel before implementing `/api/sessions*` routes.
+Approved by Daniel on 2026-05-18 before implementing `/api/sessions*` routes.
 
 Extracted from `docs/API_CONTRACT_DRAFT.md`.
+
+**Naming convention:** All response field names are `snake_case`, matching the
+`SessionMetadata` dataclass keys and the internal serializer output. This is
+deliberate -- the frontend consumes the same snake_case shape.
 
 ---
 

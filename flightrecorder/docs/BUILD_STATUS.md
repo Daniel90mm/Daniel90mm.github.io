@@ -5,7 +5,7 @@ Rows for spec section 19 build-order steps 1--20.
 | Step | Name | Status | Notes |
 |------|------|--------|-------|
 | 1 | Backend skeleton | mostly done | FastAPI, sqlite schema, config, providers. Termux verification deferred. |
-| 2 | Session storage | in progress | File reader/writer, sqlite index, image storage, serializers, and edge tests done. API routes blocked on contract approval. |
+| 2 | Session storage | done | File reader/writer, sqlite index, image storage, serializers, and approved `/api/sessions*` routes implemented. |
 | 3 | Chat endpoint | not started | |
 | 4 | Frontend skeleton | not started | |
 | 5 | PWA manifest + service worker | not started | |

@@ -42,135 +42,88 @@ regression is found:
 | S26 | API draft examples consistency pass, completed by senior agent. |
 | S27 | Package import smoke. |
 | S28 | README missing approval warning. |
+| S29 | Project document smoke script. |
+| S30 | Project document README note. |
+| S31 | Small-model queue smoke sync. |
+| S32 | Project document filename tests. |
+| S33 | Missing-work snapshot sync. |
+| S34 | API contract review sync. |
+| S35 | Session API smoke script, completed by senior agent. |
+| S36 | Session API README examples, completed by senior agent. |
+| S37 | API pagination validation tests, completed by senior agent. |
+| S39 | Termux docs sync, completed by senior agent. |
+| S40 | Session API smoke command sync, completed by senior agent. |
+| S41 | Missing-work snapshot after API completion, completed by senior agent. |
 
 ## Active queue
 
 Pick from the top unless Daniel or the senior agent says otherwise.
 
-## S29 - Project document smoke script
+## S38 - Termux phone helper draft
 
 Where:
-- `flightrecorder/tests/smoke/smoke_project_documents.py`
+- `flightrecorder/scripts/termux-phone.sh`
 
 What:
-- Create a temp runtime home, call `create_project_document`, append one TODO
-  with `append_to_project_document`, and print the resulting path.
-- Assert the TODO landed between `## TODOs` and `## Ideas`.
-- Do not invoke git or provider calls.
+- Draft a laptop-side helper inspired by dorm-assistant with commands:
+  `shell`, `exec`, `status`, and `install-boot`.
+- The boot script should start only the backend, not publisher cron.
+- Do not run it against the phone.
 
 Why:
-- The append-only document core is now a critical primitive for idea capture.
+- The existing phone workflow is SSH/SCP plus Termux:Boot, not systemd.
 
 Smoke test:
 
 ```sh
 cd /home/daniel/Documents/Projekter/Daniel90mm.github.io/flightrecorder
-.venv/bin/python tests/smoke/smoke_project_documents.py
+bash -n scripts/termux-phone.sh
+grep -q 'termux-wake-lock' scripts/termux-phone.sh
+LC_ALL=C grep -n '[^ -~]' scripts/termux-phone.sh && exit 1 || true
 ```
 
-## S30 - Project document README note
+## S42 - API smoke route status docs
 
 Where:
-- `flightrecorder/README.md`
-
-What:
-- Add one short status sentence saying append-only project document helpers
-  exist, but idea-capture LLM parsing is not wired.
-- Do not document commands that do not exist.
-
-Why:
-- Future agents should not mistake document helpers for completed step 8.
-
-Smoke test:
-
-```sh
-cd /home/daniel/Documents/Projekter/Daniel90mm.github.io/flightrecorder
-grep -q 'append-only project document helpers' README.md
-LC_ALL=C grep -n '[^ -~]' README.md && exit 1 || true
-```
-
-## S31 - Small-model queue smoke sync
-
-Where:
-- `flightrecorder/docs/SMOKE_COMMANDS.md`
-
-What:
-- Add `tests/smoke/smoke_project_documents.py` to the smoke command index after
-  S29 exists.
-- Keep the all-smoke loop working.
-
-Why:
-- Smoke docs should track new smoke scripts immediately.
-
-Smoke test:
-
-```sh
-cd /home/daniel/Documents/Projekter/Daniel90mm.github.io/flightrecorder
-grep -q 'smoke_project_documents.py' docs/SMOKE_COMMANDS.md
-LC_ALL=C grep -n '[^ -~]' docs/SMOKE_COMMANDS.md && exit 1 || true
-```
-
-## S32 - Project document filename tests
-
-Where:
-- `flightrecorder/tests/unit/test_documents.py`
-
-What:
-- Add tests for `sanitize_project_ref` with spaces, uppercase, underscores,
-  and hyphens.
-- Do not edit backend code.
-
-Why:
-- Project refs become filenames, so filename behavior should stay boring and
-  deterministic.
-
-Smoke test:
-
-```sh
-cd /home/daniel/Documents/Projekter/Daniel90mm.github.io/flightrecorder
-.venv/bin/python -m pytest tests/unit/test_documents.py -q
-```
-
-## S33 - Missing-work snapshot sync
-
-Where:
+- `flightrecorder/docs/BUILD_STATUS.md`
 - `flightrecorder/docs/MISSING_WORK.md`
 
 What:
-- Confirm the counts match `docs/BUILD_STATUS.md` after step 8 moved to in
-  progress.
-- Do not change build status unless it is factually wrong.
+- Confirm step 2 is marked done and `/api/sessions*` is no longer described as
+  blocked.
+- Documentation-only.
 
 Why:
-- Daniel asked "how much is missing"; this doc must not drift.
+- The API contract was approved and implemented; old blocker wording should not
+  survive.
 
 Smoke test:
 
 ```sh
 cd /home/daniel/Documents/Projekter/Daniel90mm.github.io/flightrecorder
-grep -q 'In progress: **3**' docs/MISSING_WORK.md
-grep -q 'Not started: **16**' docs/MISSING_WORK.md
-LC_ALL=C grep -n '[^ -~]' docs/MISSING_WORK.md && exit 1 || true
+grep -q 'Done: **1**' docs/MISSING_WORK.md
+! grep -q 'blocked on Daniel approval' docs/MISSING_WORK.md
+LC_ALL=C grep -n '[^ -~]' docs/BUILD_STATUS.md docs/MISSING_WORK.md && exit 1 || true
 ```
 
-## S34 - API contract review sync
+## S43 - Termux helper smoke doc
 
 Where:
-- `flightrecorder/docs/API_CONTRACT_REVIEW.md`
+- `flightrecorder/docs/TERMUX_PHONE_PATTERN.md`
 
 What:
-- Check whether the review checklist still mentions all open issues from
-  `docs/API_CONTRACT_DRAFT.md`.
-- Add a note that field names are snake_case if missing.
-- Do not edit backend code.
+- After `scripts/termux-phone.sh` exists, add the exact command for checking
+  its syntax and installing the boot script.
+- Documentation-only; do not run against the phone.
 
 Why:
-- API implementation remains blocked on this approval surface.
+- The helper should remain dry-run safe until Daniel explicitly wants phone
+  deployment.
 
 Smoke test:
 
 ```sh
 cd /home/daniel/Documents/Projekter/Daniel90mm.github.io/flightrecorder
-grep -q 'snake_case' docs/API_CONTRACT_REVIEW.md
-LC_ALL=C grep -n '[^ -~]' docs/API_CONTRACT_REVIEW.md && exit 1 || true
+grep -q 'bash -n scripts/termux-phone.sh' docs/TERMUX_PHONE_PATTERN.md
+LC_ALL=C grep -n '[^ -~]' docs/TERMUX_PHONE_PATTERN.md && exit 1 || true
 ```

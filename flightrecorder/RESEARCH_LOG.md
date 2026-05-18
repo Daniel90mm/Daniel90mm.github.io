@@ -177,3 +177,22 @@ omits it.
 
 Still open for step 8: parse and validate idea-capture operations, wire
 documents git auto-commit, and test on hand-rolled sessions before going live.
+
+## 2026-05-18 - Session API and Termux pattern
+
+Daniel approved `docs/API_CONTRACT_DRAFT.md`, so step 2 is no longer blocked.
+Implemented the approved `/api/sessions*` routes:
+- `POST /api/sessions`
+- `GET /api/sessions`
+- `GET /api/sessions/{session_id}`
+- `POST /api/sessions/{session_id}/upload`
+
+The upload route uses multipart form data, so `python-multipart` is now a
+runtime dependency. It is expected to be low Termux risk, but remains part of
+the deferred ARM64 verification.
+
+Inspected `/home/daniel/Documents/Projekter/dorm-assistant` for the existing
+phone deployment pattern. It uses laptop-side SSH/SCP helpers, Termux port
+`8022`, `termux-wake-lock`, `nohup`, pid files, logs in `~/logs`, and
+Termux:Boot scripts under `~/.termux/boot/`. Captured the reusable pattern in
+`docs/TERMUX_PHONE_PATTERN.md`.

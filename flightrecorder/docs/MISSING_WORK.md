@@ -3,9 +3,9 @@
 Snapshot from `docs/BUILD_STATUS.md`. Every step not listed below is done or in
 progress.
 
-- Done: **0** of 20
+- Done: **1** of 20 (step 2 session storage)
 - Mostly done: **1** (step 1, backend skeleton)
-- In progress: **3** (step 2 session storage, step 8 project documents, step 17 budget tracking)
+- In progress: **2** (step 8 project documents, step 17 budget tracking)
 - Not started: **16**
 
 ## Not started
@@ -29,11 +29,7 @@ progress.
 | 19 | Termux setup checklist |
 | 20 | Ship and dogfood |
 
-## Blocked
-
-Step 2 is blocked on Daniel approval of `docs/API_CONTRACT_DRAFT.md` before
-`/api/sessions*` routes can be implemented. All storage primitives below the
-API boundary exist and are tested.
+## Open
 
 Step 8 has append-only project document helpers and tests. The idea-capture LLM
 operation parser and documents git auto-commit path are not wired yet.

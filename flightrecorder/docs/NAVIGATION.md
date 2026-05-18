@@ -18,6 +18,7 @@
 | `docs/SMOKE_COMMANDS.md` | Quick index and one-liner for all smoke scripts. |
 | `docs/PROMPT_DRIFT.md` | Prompt vs spec section 8 drift report. |
 | `docs/TERMUX_DEPENDENCIES.md` | Dependency list and deferred Termux ARM64 verification commands. |
+| `docs/TERMUX_PHONE_PATTERN.md` | Notes from the existing dorm-assistant Termux deployment pattern. |
 | `prompts/` | Versioned LLM prompts from spec section 8. |
 | `src/backend/` | Backend implementation. |
 | `src/frontend/` | Svelte frontend implementation. |

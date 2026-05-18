@@ -11,6 +11,7 @@ Planned Python packages for build order step 1 (backend skeleton). Listed in
 | `fastapi` | >=0.136.1 | Backend HTTP framework |
 | `google-genai` | >=2.4.0 | Google Gemini provider (brainstorm LLM) |
 | `openai` | >=2.37.0 | OpenAI provider (reviewer, whisper) |
+| `python-multipart` | >=0.0.20 | FastAPI multipart upload parser for image uploads |
 | `uvicorn` | >=0.47.0 | ASGI server for FastAPI |
 
 ## Dev dependencies
@@ -27,6 +28,8 @@ Planned Python packages for build order step 1 (backend skeleton). Listed in
   casually; that pulls native extras that are unnecessary for v1.
 - `pydantic-core`, `jiter`, and `cryptography` are transitive dependencies
   worth watching during Termux installation.
+- `python-multipart` is pure Python and expected to be low risk, but still
+  needs the same Termux install check.
 
 Desktop Linux install passed on 2026-05-18. Treat Termux as open until the
 commands below pass on pa-server.
@@ -49,6 +52,7 @@ import anthropic; print('anthropic', anthropic.__version__)
 import fastapi; print('fastapi ok')
 import google.genai; print('google-genai ok')
 import openai; print('openai', openai.__version__)
+import multipart; print('python-multipart ok')
 import uvicorn; print('uvicorn ok')
 import httpx; print('httpx ok')
 import pytest; print('pytest', pytest.__version__)
