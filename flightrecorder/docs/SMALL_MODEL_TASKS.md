@@ -174,10 +174,202 @@ regression is found:
 | S118 | Adversarial robustness sweep for parse_idea_operations. |
 | S119 | Session round-trip integration test. |
 | S122 | Matchmaker API contract doc and NAVIGATION row. |
+| S123 | Hugo path smoke after museum rename. |
 
 ## Active queue
 
 Pick from the top unless Daniel or the senior agent says otherwise.
+
+## S124 - Add local Hugo production build smoke
+
+Where:
+- `flightrecorder/tests/smoke/smoke_hugo_build.py` (new file)
+- `flightrecorder/docs/SMOKE_COMMANDS.md`
+
+What:
+- Add an executable smoke script that proves the Hugo site can build from the
+  current checkout without writing into tracked `museum/public`.
+- The script should:
+  1. Locate the repo root from the script path.
+  2. Verify `museum/hugo.toml` exists.
+  3. Verify the `hugo` executable is available; if missing, print a clear
+     stderr message and exit non-zero.
+  4. Run `hugo --gc --minify --destination <temporary-dir>` with
+     `cwd=museum` and production env vars (`HUGO_ENVIRONMENT=production`,
+     `HUGO_ENV=production`).
+  5. Assert the generated temporary `index.html` exists.
+  6. Assert the generated home page contains `daniel`, `projects`, and at
+     least one `/projects/` link.
+  7. Print `hugo build smoke test passed` on success.
+- Add the new script to `docs/SMOKE_COMMANDS.md`.
+- Do not edit Hugo templates, content, CSS, JS, or the GitHub workflow in
+  this task.
+
+Why:
+- The fastest way to know whether `daniel90mm.github.io` can deploy is to
+  build the same Hugo tree locally and inspect the artifact. This catches
+  broken templates before GitHub Actions does.
+
+Smoke test:
+
+```sh
+cd /home/daniel/Documents/Projekter/Daniel90mm.github.io/flightrecorder
+PYTHONPATH=src/backend python tests/smoke/smoke_hugo_build.py
+PYTHONPATH=src/backend python tests/smoke/smoke_small_model_tasks.py
+```
+
+Hand-back:
+- When both commands pass, stop. Do not commit.
+
+## S125 - Add GitHub Pages workflow smoke
+
+Where:
+- `flightrecorder/tests/smoke/smoke_pages_workflow.py` (new file)
+- `flightrecorder/docs/SMOKE_COMMANDS.md`
+
+What:
+- Add an executable smoke script that validates the GitHub Pages workflow
+  contract using text checks only. Do not add a YAML dependency.
+- The script should read `.github/workflows/hugo.yml` and assert:
+  1. It deploys on pushes to `main`.
+  2. It has `workflow_dispatch`.
+  3. It grants `pages: write` and `id-token: write`.
+  4. It installs Hugo version `0.161.1`.
+  5. It checks out submodules recursively.
+  6. It builds with `working-directory: ./museum`.
+  7. It passes `--baseURL "${{ steps.pages.outputs.base_url }}/"`.
+  8. It uploads `./museum/public`.
+  9. It uses `actions/deploy-pages`.
+- Print one compact success line on success and clear stderr on failure.
+- Add the new script to `docs/SMOKE_COMMANDS.md`.
+- Do not edit the workflow itself in this task.
+
+Why:
+- The workflow is the real deployment path for `https://daniel90mm.github.io/`.
+  A small smoke should catch accidental path/version/permission drift.
+
+Smoke test:
+
+```sh
+cd /home/daniel/Documents/Projekter/Daniel90mm.github.io/flightrecorder
+PYTHONPATH=src/backend python tests/smoke/smoke_pages_workflow.py
+PYTHONPATH=src/backend python tests/smoke/smoke_small_model_tasks.py
+```
+
+Hand-back:
+- When both commands pass, stop. Do not commit.
+
+## S126 - Add generated-site internal link smoke
+
+Where:
+- `flightrecorder/tests/smoke/smoke_hugo_internal_links.py` (new file)
+- `flightrecorder/docs/SMOKE_COMMANDS.md`
+
+What:
+- Add an executable smoke script that builds the Hugo site into a temporary
+  directory and checks generated internal links.
+- The script should:
+  1. Run Hugo from `museum/` into a temporary destination, like S124.
+  2. Walk generated `*.html` files.
+  3. Parse `href="..."` links using Python standard library tools or a
+     small regex.
+  4. Ignore external URLs, `mailto:`, fragments, and query-only links.
+  5. For root-relative internal links such as `/projects/foo/`, assert the
+     destination exists as either `<dest>/projects/foo/index.html` or a file
+     path under the generated destination.
+  6. For relative internal links, resolve them relative to the current HTML
+     file and assert the destination exists.
+  7. Print a count of checked links and `hugo internal link smoke test
+     passed` on success.
+- Add the new script to `docs/SMOKE_COMMANDS.md`.
+- Do not edit Hugo content/templates in this task; this is only a smoke.
+
+Why:
+- The home page is a project index. Broken internal links are one of the
+  easiest ways for the site to look "up" while still being functionally
+  broken.
+
+Smoke test:
+
+```sh
+cd /home/daniel/Documents/Projekter/Daniel90mm.github.io/flightrecorder
+PYTHONPATH=src/backend python tests/smoke/smoke_hugo_internal_links.py
+PYTHONPATH=src/backend python tests/smoke/smoke_small_model_tasks.py
+```
+
+Hand-back:
+- When both commands pass, stop. Do not commit.
+
+## S127 - Add root deployment README
+
+Where:
+- `README.md` (new file at repository root)
+
+What:
+- Add a concise root README for this merged repository.
+- It should explain:
+  1. `museum/` is the Hugo site deployed to GitHub Pages.
+  2. `flightrecorder/` is the brainstorming app under active development.
+  3. Local site build command:
+     `cd museum && hugo --gc --minify`.
+  4. Local site preview command:
+     `cd museum && hugo server --disableFastRender`.
+  5. Deployment path: pushes to `main` run `.github/workflows/hugo.yml`
+     and publish to `https://daniel90mm.github.io/`.
+  6. Do not commit generated `museum/public/`.
+- Keep it short. This is an operator note, not marketing copy.
+- Do not edit Hugo content, workflow, or flightrecorder code in this task.
+
+Why:
+- After merging repos and renaming the Hugo tree to `museum/`, the root has
+  no quick operational entry point. A README prevents future confusion about
+  how the public site is built and deployed.
+
+Smoke test:
+
+```sh
+cd /home/daniel/Documents/Projekter/Daniel90mm.github.io
+test -f README.md
+grep -q "museum/" README.md
+grep -q "flightrecorder/" README.md
+grep -q "hugo --gc --minify" README.md
+grep -q "daniel90mm.github.io" README.md
+```
+
+Hand-back:
+- When the commands pass, stop. Do not commit.
+
+## S128 - Add Hugo smoke commands to one-liner
+
+Where:
+- `flightrecorder/docs/SMOKE_COMMANDS.md`
+
+What:
+- After S123-S126 exist, update the one-liner in `docs/SMOKE_COMMANDS.md`
+  so the new Hugo/Page smoke scripts run with system `python` and
+  `PYTHONPATH=src/backend`.
+- Keep the table alphabetically or grouped consistently with the existing
+  style.
+- Do not create new smoke scripts in this task. If any S123-S126 script is
+  missing, stop and report which one is missing.
+
+Why:
+- A smoke script that is not included in the all-smokes command is easy to
+  forget. The deployment checks should be part of the normal quick sweep.
+
+Smoke test:
+
+```sh
+cd /home/daniel/Documents/Projekter/Daniel90mm.github.io/flightrecorder
+PYTHONPATH=src/backend python tests/smoke/smoke_hugo_paths.py
+PYTHONPATH=src/backend python tests/smoke/smoke_hugo_build.py
+PYTHONPATH=src/backend python tests/smoke/smoke_pages_workflow.py
+PYTHONPATH=src/backend python tests/smoke/smoke_hugo_internal_links.py
+PYTHONPATH=src/backend python tests/smoke/smoke_small_model_tasks.py
+```
+
+Hand-back:
+- When all commands pass, stop. Do not commit.
 
 ## S121 - Adversarial fixture directory resolver smoke
 

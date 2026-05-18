@@ -1,4 +1,4 @@
-"""Smoke test: assert Hugo workflow uses working-directory: ./src and hugo.toml exists."""
+"""Smoke test: assert Hugo workflow and site files point at museum/."""
 
 from __future__ import annotations
 
@@ -17,16 +17,25 @@ def main() -> None:
         sys.exit(1)
 
     content = workflow_path.read_text(encoding="utf-8")
-    if not re.search(r"working-directory:\s*\./src", content):
-        print("ERROR: Hugo workflow does not use working-directory: ./src", file=sys.stderr)
+    if not re.search(r"working-directory:\s*\./museum", content):
+        print("ERROR: Hugo workflow does not use working-directory: ./museum", file=sys.stderr)
         sys.exit(1)
 
-    hugo_toml = REPO_ROOT / "src" / "hugo.toml"
+    if not re.search(r"path:\s*\./museum/public", content):
+        print("ERROR: Hugo workflow does not upload ./museum/public", file=sys.stderr)
+        sys.exit(1)
+
+    hugo_toml = REPO_ROOT / "museum" / "hugo.toml"
     if not hugo_toml.exists():
         print(f"missing: {hugo_toml}", file=sys.stderr)
         sys.exit(1)
 
-    print("Hugo path assertions passed")
+    index_template = REPO_ROOT / "museum" / "layouts" / "index.html"
+    if not index_template.exists():
+        print(f"missing: {index_template}", file=sys.stderr)
+        sys.exit(1)
+
+    print("Hugo museum path assertions passed")
 
 
 if __name__ == "__main__":
