@@ -172,77 +172,11 @@ regression is found:
 | S116 | Chat endpoint per approved contract, verified by senior agent. |
 | S117 | Idea-capture LLM wiring, verified by senior agent. |
 | S118 | Adversarial robustness sweep for parse_idea_operations. |
+| S122 | Matchmaker API contract doc and NAVIGATION row. |
 
 ## Active queue
 
 Pick from the top unless Daniel or the senior agent says otherwise.
-
-## S122 - Matchmaker API contract doc
-
-Where:
-- `flightrecorder/docs/MATCHMAKER_API.md` (new file).
-- `flightrecorder/docs/NAVIGATION.md` (one row appended, in alphabetical
-  position among the `docs/` rows).
-
-What:
-- Read the matchmaker endpoint implementation at
-  `flightrecorder/src/backend/flightrecorder/api.py` (look for the
-  `run_matchmaker` handler and `MatchmakerRunRequest`).
-- Read the matchmaker types at
-  `flightrecorder/src/backend/flightrecorder/matchmaker.py`
-  (MatchBatch, MatchCandidate, ProjectSummary, SpaghettiIdea).
-- Read the integration tests at
-  `flightrecorder/tests/integration/test_matchmaker_endpoint.py` to see
-  the wire shape (request body, response body, status codes).
-- Write `docs/MATCHMAKER_API.md` describing the contract:
-  1. **Endpoint**: `POST /api/matchmaker/run`.
-  2. **Request body**: JSON object with `idea_ids` (list of strings,
-     min length 1).
-  3. **Response 200**: JSON object with `batch_id` (string),
-     `generated_at` (ISO-8601 string), `candidates` (list of objects
-     with `idea_id`, `project_ref`, `confidence`, `rationale`),
-     `rejected_idea_ids` (list of strings). Document each field in a
-     short sentence.
-  4. **Status codes**: 200 happy path, 404 if any `idea_id` is unknown,
-     422 if the request body is malformed or empty.
-  5. **Notes section**: state that the current build uses `NullScorer`
-     and therefore every call returns zero candidates and every idea
-     in `rejected_idea_ids`; the LLM scorer will land in a separate
-     step without changing this contract. State the rejection-bias
-     default explicitly.
-  6. **Example curl invocation** demonstrating a happy-path call.
-  7. **Inputs and side effects**: the endpoint reads from sqlite
-     `ideas` and from `<runtime_home>/projects.json`. If projects.json
-     is missing the project list is treated as empty (fail-closed).
-- Append one row to `docs/NAVIGATION.md` referencing the new file in
-  the existing alphabetical-by-filename position among `docs/*.md`
-  rows. Match the prose style of the surrounding rows.
-- Do NOT touch `api.py` or any source module. Do NOT modify
-  matchmaker.py. The whole task is two doc files.
-
-Why:
-- The matchmaker endpoint just landed but is undocumented outside the
-  source. A future agent reading `docs/NAVIGATION.md` would not find
-  it, and a future client integration would have to read the route
-  handler to learn the wire shape. Both costs are real.
-
-Smoke test:
-
-```sh
-cd /home/daniel/Documents/Projekter/Daniel90mm.github.io/flightrecorder
-.venv/bin/python tests/smoke/smoke_docs_navigation.py
-# Must pass (verifies NAVIGATION.md links resolve).
-test -s docs/MATCHMAKER_API.md
-# Must exit 0 (file exists and is non-empty).
-grep -q 'POST /api/matchmaker/run' docs/MATCHMAKER_API.md
-# Must exit 0 (route line present).
-grep -q 'MATCHMAKER_API.md' docs/NAVIGATION.md
-# Must exit 0 (NAVIGATION row added).
-```
-
-Hand-back:
-- When all four checks pass, stop. Do not commit. Daniel verifies
-  before commit.
 
 ## S119 - Session round-trip integration test
 

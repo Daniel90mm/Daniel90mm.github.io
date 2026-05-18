@@ -22,6 +22,7 @@
 | `docs/CORE_PROGRESS.md` | Percentage estimates for core v1 areas. |
 | `docs/FRONTEND_SCOPE.md` | v1 frontend surfaces and available backend routes. |
 | `docs/IDEA_CAPTURE_RETRY_POLICY.md` | Fail-closed policy for malformed idea-capture LLM output. |
+| `docs/MATCHMAKER_API.md` | Contract for `POST /api/matchmaker/run`: request, response, status codes. |
 | `docs/MATCHMAKER_INPUTS.md` | Files and tables the future matchmaker will read. |
 | `docs/MATCHMAKER_REJECTION_FIXTURES.md` | Scenarios to prove matchmaker rejects by default. |
 | `docs/POKEMON_MAPPING_READINESS.md` | Pre-implementation notes for pokemon pseudonymization step. |
