@@ -232,6 +232,57 @@ cd /home/daniel/Documents/Projekter/Daniel90mm.github.io/flightrecorder
 Hand-back:
 - When the tests pass, stop. Do not commit. Daniel verifies before commit.
 
+## S121 - Adversarial fixture directory resolver smoke
+
+Where:
+- `flightrecorder/tests/smoke/smoke_publisher_fixture_dir.py` (new
+  file; do not edit any source module).
+
+What:
+- Write an executable smoke script that verifies
+  `flightrecorder.publisher.adversarial_fixture_dir()` returns a path
+  that exists, is a directory, and contains the expected fixture files.
+- The script must:
+  1. Import `adversarial_fixture_dir` from `flightrecorder.publisher`.
+  2. Call it, assert the return is a `pathlib.Path`, assert it exists,
+     assert it is a directory.
+  3. Define a constant `EXPECTED = {"names", "emails", "repo_urls",
+     "course_codes", "mixed", "sensitive"}` matching the categories
+     documented in `docs/PUBLISHER_ADVERSARIAL_FIXTURES.md`.
+  4. Walk `*.txt` files under the directory, collect their stems into a
+     set, assert `EXPECTED.issubset(found)`. Extra files are allowed;
+     missing ones are not.
+  5. For each found `.txt` file, assert it is non-empty (more than 0
+     bytes after strip).
+  6. Print one summary line per assertion (or one summary line total)
+     and `publisher fixture dir smoke test passed` on success.
+  7. Exit 0 on success, non-zero with a clear stderr message on
+     failure.
+- The script should run via system `python` (no FastAPI imports
+  needed). Use `PYTHONPATH=src/backend` when running.
+- Do NOT touch any source module. Do NOT modify the fixtures
+  themselves. The whole task is one new smoke file.
+
+Why:
+- `adversarial_fixture_dir()` is the helper the publisher pipeline
+  (and its tests) use to locate the doxxing fixtures. If the path
+  resolution ever drifts (refactor, file move) the publisher's
+  fail-closed sweep silently loses its inputs. A smoke that re-asserts
+  the helper's contract catches that immediately.
+
+Smoke test:
+
+```sh
+cd /home/daniel/Documents/Projekter/Daniel90mm.github.io/flightrecorder
+PYTHONPATH=src/backend python tests/smoke/smoke_publisher_fixture_dir.py
+echo "exit=$?"
+# Expect exit=0 and the success line in the output.
+```
+
+Hand-back:
+- When the smoke exits 0, stop. Do not commit. Daniel verifies before
+  commit.
+
 ## S120 - Publisher pipeline smoke script
 
 Where:
