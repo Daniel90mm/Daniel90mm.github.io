@@ -3,12 +3,11 @@
 {{ if ne $path "/" }}{{ $crumb = printf "~%s" (strings.TrimRight "/" $path) }}{{ end }}
 <header class="bar">
   <div class="lhs">
-    <span class="who">
+    <a href="{{ "/" | relURL }}" class="who" aria-label="home">
       <span>daniel</span><span class="at">@</span><span class="host">log</span><span class="colon">:</span><span class="path">{{ $crumb }}</span><span class="prompt">$</span>
-    </span>
+    </a>
   </div>
   <div class="rhs">
-    <a href="{{ "/" | relURL }}" {{ if .IsHome }}class="active"{{ end }}>home</a>
     <a href="{{ "/projects/" | relURL }}" {{ if hasPrefix .RelPermalink "/projects" }}class="active"{{ end }}>projects</a>
     <a href="{{ "/posts/" | relURL }}" {{ if hasPrefix .RelPermalink "/posts" }}class="active"{{ end }}>notes</a>
     <button id="theme-toggle" class="theme-toggle" type="button" title="cycle theme (dark · dim · light)" aria-label="cycle theme">

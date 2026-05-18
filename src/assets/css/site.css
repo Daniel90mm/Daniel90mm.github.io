@@ -108,6 +108,9 @@ body::before {
 }
 
 .bar .lhs { display: flex; gap: 0.85rem; align-items: center; }
+.bar .who { color: inherit; }
+.bar .who:hover { text-decoration: none; }
+.bar .who:hover .path { color: var(--accent-d); }
 .bar .dot {
   width: 8px; height: 8px; border-radius: 50%;
   background: var(--accent);
