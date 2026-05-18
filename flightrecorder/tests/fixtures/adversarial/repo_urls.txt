@@ -1,0 +1,4 @@
+The private implementation is at github.com/anomalyco/secret-tool.
+Internal docs at gitlab.internal.corp/team/project-alpha.
+My personal fork at bitbucket.org/jensen/private-repo.
+Dependencies from github.com/private-org/internal-lib.

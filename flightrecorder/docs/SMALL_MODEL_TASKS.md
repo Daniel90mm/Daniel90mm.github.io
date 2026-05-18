@@ -78,194 +78,265 @@ regression is found:
 | S62 | Provider guard hard-stop breach smoke. |
 | S63 | Budget/provider guard cross-links. |
 | S64 | Build status consistency audit. |
+| S65 | Completed worker task. |
+| S66 | Completed worker task. |
+| S67 | Completed worker task. |
+| S68 | Completed worker task. |
+| S69 | Completed worker task. |
+| S70 | Completed worker task. |
+| S71 | Completed worker task. |
+| S72 | Completed worker task. |
+| S73 | Completed worker task. |
+| S74 | Completed worker task. |
+| S75 | Completed worker task. |
+| S76 | Completed worker task. |
+| S77 | Completed worker task. |
+| S78 | Completed worker task. |
+| S79 | Completed worker task. |
+| S80 | Completed worker task. |
+| S81 | Completed worker task. |
+| S82 | Completed worker task. |
+| S83 | Completed worker task. |
+| S84 | Completed worker task. |
+| S85 | Completed worker task. |
+| S86 | Completed worker task. |
+| S87 | Completed worker task. |
+| S88 | Completed worker task. |
+| S89 | Completed worker task. |
+| S90 | Completed worker task. |
 
 ## Active queue
 
 Pick from the top unless Daniel or the senior agent says otherwise.
 
-## S65 - Provider guard missing pricing smoke
+## S91 - Idea-capture malformed-output smoke
 
 Where:
-- `flightrecorder/tests/smoke/smoke_provider_call_guard.py`
+- `flightrecorder/tests/smoke/smoke_idea_capture.py`
 
 What:
-- Extend the smoke script to verify that a usage record for an unknown model
-  raises `ValueError`.
-- Verify no `api_calls` row is inserted for the rejected unknown model.
-- Keep this smoke fully fake: no real `$FLIGHTRECORDER_HOME`, no real
-  `pricing.toml`, and no provider SDK calls.
+- Add a small smoke branch that feeds malformed JSON to `parse_idea_operations()`.
+- Verify `IdeaCaptureError` is raised.
+- Verify no project document, spaghetti file, or `ideas` row is created by that
+  malformed parse branch.
+- Do not change prompts or provider code.
 
 Why:
-- Missing pricing must fail closed before real provider calls are wired.
+- The future LLM execution path must fail closed when model output is malformed.
 
 Smoke test:
 
 ```sh
 cd /home/daniel/Documents/Projekter/Daniel90mm.github.io/flightrecorder
-.venv/bin/python tests/smoke/smoke_provider_call_guard.py
+.venv/bin/python tests/smoke/smoke_idea_capture.py
 ```
 
-## S66 - Provider guard mismatch smoke
+## S92 - Session close blockers note
 
 Where:
-- `flightrecorder/tests/smoke/smoke_provider_call_guard.py`
+- `flightrecorder/docs/SESSION_CLOSE_PIPELINE.md`
 
 What:
-- Extend the smoke script to verify that a usage record whose provider does
-  not match the pricing entry raises `ValueError`.
-- Verify no `api_calls` row is inserted for the rejected mismatch.
-- Keep this smoke fully fake.
+- Add a short "Blockers before implementation" section.
+- Include chat endpoint approval, provider SDK execution, idea-capture LLM call,
+  and retry/error semantics.
+- Documentation-only.
 
 Why:
-- Provider/model mismatches are usually configuration bugs and must not create
-  misleading cost rows.
+- Session close is the next bridge to core value, but it should not be wired
+  until the upstream pieces are clear.
 
 Smoke test:
 
 ```sh
 cd /home/daniel/Documents/Projekter/Daniel90mm.github.io/flightrecorder
-.venv/bin/python tests/smoke/smoke_provider_call_guard.py
+grep -q 'Blockers before implementation' docs/SESSION_CLOSE_PIPELINE.md
+grep -q 'retry' docs/SESSION_CLOSE_PIPELINE.md
+LC_ALL=C grep -n '[^ -~]' docs/SESSION_CLOSE_PIPELINE.md && exit 1 || true
 ```
 
-## S67 - Provider guard doc examples
+## S93 - Project registry fixture skeleton
 
 Where:
-- `flightrecorder/docs/PROVIDER_CALL_GUARD.md`
+- `flightrecorder/tests/fixtures/project_registry/projects.json`
+- `flightrecorder/tests/fixtures/project_registry/README.md`
 
 What:
-- Add a short "Failure cases" section covering:
-  missing pricing, provider/model mismatch, existing budget sentinel, and
-  post-call hard-stop breach.
-- Documentation-only. Do not mention commands that do not exist.
+- Add a fake `projects.json` fixture matching the current contract draft.
+- Include at least two fake projects with distinct refs and paths.
+- Fixtures only. Do not implement registry loading.
 
 Why:
-- The guard is small but security/cost critical; future agents should know the
-  intended fail-closed behavior.
+- Future registry tests need a stable fake input before sync code exists.
 
 Smoke test:
 
 ```sh
 cd /home/daniel/Documents/Projekter/Daniel90mm.github.io/flightrecorder
-grep -q 'Failure cases' docs/PROVIDER_CALL_GUARD.md
-grep -q 'missing pricing' docs/PROVIDER_CALL_GUARD.md
-grep -q 'provider/model mismatch' docs/PROVIDER_CALL_GUARD.md
-LC_ALL=C grep -n '[^ -~]' docs/PROVIDER_CALL_GUARD.md && exit 1 || true
+python -m json.tool tests/fixtures/project_registry/projects.json >/dev/null
+grep -q 'fake project registry' tests/fixtures/project_registry/README.md
+LC_ALL=C grep -n '[^ -~]' tests/fixtures/project_registry/README.md tests/fixtures/project_registry/projects.json && exit 1 || true
 ```
 
-## S68 - Build status audit navigation
+## S94 - Spaghetti format fixture
 
 Where:
+- `flightrecorder/tests/fixtures/spaghetti/README.md`
+- `flightrecorder/tests/fixtures/spaghetti/*.md`
+
+What:
+- Add one fake spaghetti markdown fixture that follows `docs/SPAGHETTI_FORMAT.md`.
+- Include tags, topics, status, match_attempts, matched_to, implemented_in,
+  source_session, and body text.
+- Fixtures only. Do not implement reader code.
+
+Why:
+- Matchmaker and publisher tests will need stable spaghetti examples.
+
+Smoke test:
+
+```sh
+cd /home/daniel/Documents/Projekter/Daniel90mm.github.io/flightrecorder
+grep -q 'match_attempts' tests/fixtures/spaghetti/*.md
+grep -q 'fake spaghetti' tests/fixtures/spaghetti/README.md
+LC_ALL=C grep -n '[^ -~]' tests/fixtures/spaghetti/README.md tests/fixtures/spaghetti/*.md && exit 1 || true
+```
+
+## S95 - Project document fixture
+
+Where:
+- `flightrecorder/tests/fixtures/documents/README.md`
+- `flightrecorder/tests/fixtures/documents/*.md`
+
+What:
+- Add one fake project document fixture using the standard section headers.
+- Include at least one TODO, one idea, and one hand-written note.
+- Fixtures only. Do not alter runtime `documents/`.
+
+Why:
+- Matchmaker, publisher, and append-only tests need a stable project document
+  that is not real runtime data.
+
+Smoke test:
+
+```sh
+cd /home/daniel/Documents/Projekter/Daniel90mm.github.io/flightrecorder
+grep -q '## TODOs' tests/fixtures/documents/*.md
+grep -q 'fake project document' tests/fixtures/documents/README.md
+LC_ALL=C grep -n '[^ -~]' tests/fixtures/documents/README.md tests/fixtures/documents/*.md && exit 1 || true
+```
+
+## S96 - Publisher fixture privacy readme
+
+Where:
+- `flightrecorder/tests/fixtures/adversarial/README.md`
+
+What:
+- Add explicit guidance that adversarial fixtures must remain fake and must not
+  include real private data.
+- Mention that realistic-looking examples are acceptable only when invented.
+- Documentation-only.
+
+Why:
+- We need adversarial tests, but not by committing actual sensitive data.
+
+Smoke test:
+
+```sh
+cd /home/daniel/Documents/Projekter/Daniel90mm.github.io/flightrecorder
+grep -q 'must remain fake' tests/fixtures/adversarial/README.md
+grep -q 'invented' tests/fixtures/adversarial/README.md
+LC_ALL=C grep -n '[^ -~]' tests/fixtures/adversarial/README.md && exit 1 || true
+```
+
+## S97 - Termux service open questions
+
+Where:
+- `flightrecorder/docs/TERMUX_SERVICE_INVENTORY.md`
+
+What:
+- Add an "Open questions" section for service names, exact runit paths,
+  wake-lock wrapping, and log file locations.
+- Documentation-only. Do not create service files.
+
+Why:
+- Termux setup needs phone-specific confirmation before scripts become real.
+
+Smoke test:
+
+```sh
+cd /home/daniel/Documents/Projekter/Daniel90mm.github.io/flightrecorder
+grep -q 'Open questions' docs/TERMUX_SERVICE_INVENTORY.md
+grep -q 'wake-lock' docs/TERMUX_SERVICE_INVENTORY.md
+LC_ALL=C grep -n '[^ -~]' docs/TERMUX_SERVICE_INVENTORY.md && exit 1 || true
+```
+
+## S98 - API current-state smoke
+
+Where:
+- `flightrecorder/tests/smoke/smoke_api_current_state.py`
+- `flightrecorder/docs/API_CURRENT_STATE.md`
+
+What:
+- Add a smoke script that checks every implemented route documented in
+  `API_CURRENT_STATE.md` appears in `src/backend/flightrecorder/api.py` or
+  `app.py`.
+- Keep it lightweight string matching.
+
+Why:
+- API docs should not drift while frontend work is pending.
+
+Smoke test:
+
+```sh
+cd /home/daniel/Documents/Projekter/Daniel90mm.github.io/flightrecorder
+.venv/bin/python tests/smoke/smoke_api_current_state.py
+```
+
+## S99 - Navigation smoke
+
+Where:
+- `flightrecorder/tests/smoke/smoke_docs_navigation.py`
 - `flightrecorder/docs/NAVIGATION.md`
-- `flightrecorder/docs/BUILD_STATUS_AUDIT.md`
 
 What:
-- Add `docs/BUILD_STATUS_AUDIT.md` to `docs/NAVIGATION.md`.
-- Add a one-line "Last audited" note at the top of
-  `docs/BUILD_STATUS_AUDIT.md` with today's date.
-- Documentation-only.
+- Add a smoke script that extracts `docs/...` paths from `NAVIGATION.md` and
+  verifies each referenced file exists.
+- Do not require every docs file to be listed yet.
 
 Why:
-- The audit is only useful if future agents can find it and know when it was
-  last checked.
+- The navigation doc is now growing quickly and broken links are easy to miss.
 
 Smoke test:
 
 ```sh
 cd /home/daniel/Documents/Projekter/Daniel90mm.github.io/flightrecorder
-grep -q 'docs/BUILD_STATUS_AUDIT.md' docs/NAVIGATION.md
-grep -q 'Last audited' docs/BUILD_STATUS_AUDIT.md
-LC_ALL=C grep -n '[^ -~]' docs/NAVIGATION.md docs/BUILD_STATUS_AUDIT.md && exit 1 || true
+.venv/bin/python tests/smoke/smoke_docs_navigation.py
 ```
 
-## S69 - Smoke command all-loop audit
+## S100 - Core progress estimate doc
 
 Where:
-- `flightrecorder/docs/SMOKE_COMMANDS.md`
-
-What:
-- Compare every file in `tests/smoke/*.py` with the smoke command table.
-- Add any missing smoke script rows.
-- Make sure the all-smoke loop routes every FastAPI/package-dependent smoke
-  through `.venv/bin/python`.
-- Documentation-only.
-
-Why:
-- The smoke list has become the handoff surface for small tasks; it should not
-  silently miss scripts.
-
-Smoke test:
-
-```sh
-cd /home/daniel/Documents/Projekter/Daniel90mm.github.io/flightrecorder
-for script in tests/smoke/*.py; do grep -q "$(basename "$script")" docs/SMOKE_COMMANDS.md; done
-LC_ALL=C grep -n '[^ -~]' docs/SMOKE_COMMANDS.md && exit 1 || true
-```
-
-## S70 - README status line wrap
-
-Where:
-- `flightrecorder/README.md`
-
-What:
-- Reflow the long status paragraph into readable lines without changing its
-  meaning.
-- Do not add claims about real provider SDK calls, chat endpoint completion, or
-  frontend work.
-- Documentation-only.
-
-Why:
-- The README status is getting too dense and easy to misread.
-
-Smoke test:
-
-```sh
-cd /home/daniel/Documents/Projekter/Daniel90mm.github.io/flightrecorder
-grep -q 'real SDK calls are not yet wired' README.md
-LC_ALL=C grep -n '[^ -~]' README.md && exit 1 || true
-```
-
-## S71 - Termux helper dry-run docs
-
-Where:
-- `flightrecorder/docs/TERMUX_PHONE_PATTERN.md`
+- `flightrecorder/docs/CORE_PROGRESS.md`
 - `flightrecorder/docs/NAVIGATION.md`
 
 What:
-- Add a short section describing what has and has not been run on pa-server:
-  dorm-assistant pattern inspected, helper syntax/smoke checked locally,
-  phone execution still pending.
-- Documentation-only. Do not run phone commands.
+- Create a concise percentage-style progress snapshot for the core v1 areas:
+  backend skeleton, session storage, cost guard, project docs, idea capture,
+  chat, frontend, tagger, pokemon mapping, matchmaker, publisher, Termux.
+- Base it on `BUILD_STATUS.md`; do not overclaim.
+- Documentation-only.
 
 Why:
-- Step 19 is intentionally in progress; future agents need the exact boundary.
+- Daniel asked for percentage thinking, and this should be tracked in-repo
+  instead of living only in chat.
 
 Smoke test:
 
 ```sh
 cd /home/daniel/Documents/Projekter/Daniel90mm.github.io/flightrecorder
-grep -q 'phone execution still pending' docs/TERMUX_PHONE_PATTERN.md
-grep -q 'docs/TERMUX_PHONE_PATTERN.md' docs/NAVIGATION.md
-LC_ALL=C grep -n '[^ -~]' docs/TERMUX_PHONE_PATTERN.md docs/NAVIGATION.md && exit 1 || true
-```
-
-## S72 - Small task queue integrity check
-
-Where:
-- `flightrecorder/docs/SMALL_MODEL_TASKS.md`
-- `flightrecorder/tests/smoke/smoke_small_model_tasks.py`
-
-What:
-- Add a smoke script that checks task IDs are unique and increase
-  monotonically within the completed ledger plus active queue.
-- Keep it parser-light: regex over `SNN` headings and ledger rows is fine.
-
-Why:
-- This file is now a coordination surface for parallel work; duplicate task IDs
-  would waste time.
-
-Smoke test:
-
-```sh
-cd /home/daniel/Documents/Projekter/Daniel90mm.github.io/flightrecorder
-.venv/bin/python tests/smoke/smoke_small_model_tasks.py
+grep -q 'Overall v1' docs/CORE_PROGRESS.md
+grep -q 'publisher' docs/CORE_PROGRESS.md
+grep -q 'docs/CORE_PROGRESS.md' docs/NAVIGATION.md
+LC_ALL=C grep -n '[^ -~]' docs/CORE_PROGRESS.md docs/NAVIGATION.md && exit 1 || true
 ```

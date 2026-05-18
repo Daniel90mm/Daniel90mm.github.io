@@ -1,0 +1,11 @@
+{
+    "description": "normal call",
+    "provider": "test",
+    "model": "fake-model",
+    "role": "tagger",
+    "input_tokens": 1500,
+    "output_tokens": 200,
+    "cached_tokens": 0,
+    "session_id": "session-normal-1",
+    "expected_cost_eur": 0.021
+}

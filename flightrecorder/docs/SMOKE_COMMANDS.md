@@ -19,6 +19,7 @@ directory.
 | `tests/smoke/smoke_documents_git.py` | `.venv/bin/python tests/smoke/smoke_documents_git.py` |
 | `tests/smoke/smoke_budget_hard_stop.py` | `.venv/bin/python tests/smoke/smoke_budget_hard_stop.py` |
 | `tests/smoke/smoke_provider_call_guard.py` | `.venv/bin/python tests/smoke/smoke_provider_call_guard.py` |
+| `tests/smoke/smoke_small_model_tasks.py` | `.venv/bin/python tests/smoke/smoke_small_model_tasks.py` |
 | `tests/smoke/smoke_session_api.py` | `.venv/bin/python tests/smoke/smoke_session_api.py` |
 | `tests/smoke/smoke_termux_helper.py` | `.venv/bin/python tests/smoke/smoke_termux_helper.py` |
 
@@ -30,7 +31,7 @@ Scripts that import FastAPI or FastAPI-dependent modules use `.venv/bin/python`.
 ```sh
 for script in tests/smoke/smoke_*.py; do
     case "$script" in
-        *smoke_backend_health*|*smoke_budget*|*smoke_budget_hard_stop*|*smoke_documents_git*|*smoke_idea_capture*|*smoke_imports*|*smoke_pricing*|*smoke_project_documents*|*smoke_provider_call_guard*|*smoke_session_api*|*smoke_termux_helper*)
+        *smoke_backend_health*|*smoke_budget*|*smoke_budget_hard_stop*|*smoke_documents_git*|*smoke_idea_capture*|*smoke_imports*|*smoke_pricing*|*smoke_project_documents*|*smoke_provider_call_guard*|*smoke_session_api*|*smoke_small_model_tasks*|*smoke_termux_helper*)
             python=".venv/bin/python" ;;
         *)
             python="python" ;;

@@ -16,6 +16,20 @@
 | `docs/API_CONTRACT_REVIEW.md` | Daniel's approval checklist for the API contract draft. |
 | `docs/BUDGET_GUARD.md` | Budget hard-stop sentinel lifecycle and enforcement rules. |
 | `docs/BUILD_STATUS.md` | Build-order status for spec section 19 steps. |
+| `docs/BUILD_STATUS_AUDIT.md` | Consistency audit of BUILD_STATUS and MISSING_WORK against spec. |
+| `docs/CHAT_API_CONTRACT_DRAFT.md` | Draft chat SSE contract for `POST /api/sessions/{id}/messages`. |
+| `docs/CHAT_IMPLEMENTATION_PLAN.md` | Chat endpoint implementation checklist from contract draft. |
+| `docs/FRONTEND_SCOPE.md` | v1 frontend surfaces and available backend routes. |
+| `docs/IDEA_CAPTURE_RETRY_POLICY.md` | Fail-closed policy for malformed idea-capture LLM output. |
+| `docs/MATCHMAKER_INPUTS.md` | Files and tables the future matchmaker will read. |
+| `docs/MATCHMAKER_REJECTION_FIXTURES.md` | Scenarios to prove matchmaker rejects by default. |
+| `docs/POKEMON_MAPPING_READINESS.md` | Pre-implementation notes for pokemon pseudonymization step. |
+| `docs/PROJECT_REGISTRY_CONTRACT.md` | Draft `projects.json` fields and open questions. |
+| `docs/PUBLISHER_ADVERSARIAL_FIXTURES.md` | Adversarial fixture categories for redaction tests. |
+| `docs/RUNTIME_DATA_SAFETY.md` | Checklist of files that must never be committed. |
+| `docs/SESSION_CLOSE_PIPELINE.md` | Intended session-close sequence with exist/missing marks. |
+| `docs/SPAGHETTI_FORMAT.md` | Spaghetti idea markdown/frontmatter shape from render_spaghetti_idea(). |
+| `docs/TERMUX_SERVICE_INVENTORY.md` | Future Termux services: backend daemon, publisher, matchmaker. |
 | `docs/MISSING_WORK.md` | Human-readable snapshot of remaining build steps. |
 | `docs/PRICING_FORMAT.md` | Expected pricing.toml shape with zero placeholder rates. |
 | `docs/PROVIDER_CALL_GUARD.md` | Provider call guard flow: preflight, record, cost log, budget enforcement. |

@@ -1,0 +1,11 @@
+Today I worked on the fNIRS project. The differential amplifier stage
+is progressing well. I ran into Mikkel Jensen at the lab and we discussed
+ADC selection - he suggested checking the ADS1299 datasheet.
+
+The circuit cost about 4500 kr for the initial prototype. I still need
+to order the SiPMs from Hamamatsu, but those are expensive. My contact
+there is parts@hamamatsu.internal for the actual quote.
+
+Overall a productive day. The code is on github.com/anomalyco/fnirs-dev
+and I pushed the latest schematics there. I should document the decisions
+made about the gain stage before I forget.

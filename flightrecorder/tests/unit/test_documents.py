@@ -185,3 +185,91 @@ def test_commit_documents_repo_commits_changes_and_skips_clean_tree(
 
     assert committed is True
     assert skipped is False
+
+
+def test_append_preserves_hand_written_text_around_section(tmp_path: Path) -> None:
+    path = project_document_path(tmp_path, "fnirs")
+    path.parent.mkdir(parents=True)
+    original = "\n".join(
+        [
+            "---",
+            "project: fnirs",
+            "last_appended: 2026-05-01T00:00:00+02:00",
+            "---",
+            "",
+            "# fnirs",
+            "",
+            "## Problem",
+            "some handwritten background text",
+            "that spans multiple lines",
+            "",
+            "## TODOs",
+            "- old todo item from manual edit",
+            "",
+            "## Ideas",
+            "## Decisions made",
+            "",
+        ]
+    )
+    path.write_text(original, encoding="utf-8")
+
+    append_to_project_document(
+        tmp_path,
+        ProjectAppend(
+            project_ref="fnirs",
+            section="TODOs",
+            content="new todo from system",
+            timestamp="2026-05-18T19:00:00+02:00",
+        ),
+    )
+
+    updated = path.read_text(encoding="utf-8")
+    assert "some handwritten background text" in updated
+    assert "that spans multiple lines" in updated
+    assert "old todo item from manual edit" in updated
+    assert "new todo from system" in updated
+
+
+def test_append_preserves_non_standard_text_between_sections(tmp_path: Path) -> None:
+    path = project_document_path(tmp_path, "fnirs")
+    path.parent.mkdir(parents=True)
+    original = "\n".join(
+        [
+            "---",
+            "project: fnirs",
+            "last_appended: 2026-05-01T00:00:00+02:00",
+            "---",
+            "",
+            "# fnirs",
+            "",
+            "Some freeform text before sections.",
+            "",
+            "## Problem",
+            "problem text",
+            "",
+            "More text between sections.",
+            "",
+            "## TODOs",
+            "- old todo",
+            "",
+            "## Ideas",
+            "",
+        ]
+    )
+    path.write_text(original, encoding="utf-8")
+
+    append_to_project_document(
+        tmp_path,
+        ProjectAppend(
+            project_ref="fnirs",
+            section="TODOs",
+            content="new todo",
+            timestamp="2026-05-18T19:00:00+02:00",
+        ),
+    )
+
+    updated = path.read_text(encoding="utf-8")
+    assert "Some freeform text before sections." in updated
+    assert "More text between sections." in updated
+    assert "old todo" in updated
+    assert "new todo" in updated

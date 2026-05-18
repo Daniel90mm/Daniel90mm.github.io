@@ -62,6 +62,29 @@ def main() -> None:
         assert len(result.spaghetti_paths) == 1
         assert result.spaghetti_paths[0].exists()
 
+        print("--- duplicate operation test ---")
+
+        duplicate_result = apply_idea_operations(
+            runtime_home=runtime_home,
+            connection=connection,
+            source_session=session_id,
+            operations=operations,
+            captured_at=datetime.fromisoformat("2026-05-18T19:01:00+02:00"),
+        )
+
+        spaghetti_files = list(
+            (runtime_home / "spaghetti").glob("*.md")
+        )
+        ideas_rows = connection.execute(
+            "SELECT COUNT(*) FROM ideas"
+        ).fetchone()[0]
+
+        print(f"spaghetti_files_on_disk: {len(spaghetti_files)}")
+        print(f"ideas_rows_in_db: {ideas_rows}")
+
+        assert len(spaghetti_files) == 1, "duplicate apply should not create extra file"
+        assert ideas_rows == 1, "duplicate apply should upsert, not insert"
+
     print("idea capture smoke test passed")
 
 

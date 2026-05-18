@@ -1,0 +1,11 @@
+{
+    "description": "hard-stop breach call",
+    "provider": "test",
+    "model": "fake-model",
+    "role": "matchmaker",
+    "input_tokens": 500000,
+    "output_tokens": 300000,
+    "cached_tokens": 0,
+    "session_id": "session-breach-1",
+    "expected_cost_eur": 14.0
+}

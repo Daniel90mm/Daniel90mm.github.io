@@ -1,4 +1,4 @@
-"""Smoke test: provider call guard records usage, respects sentinel, and writes sentinel on breach."""
+"""Smoke test: provider call guard records usage, respects sentinel, writes sentinel on breach, rejects missing/mismatched pricing."""
 
 from __future__ import annotations
 
@@ -138,6 +138,88 @@ def main() -> None:
 
         connection.close()
         connection2.close()
+
+        print("--- unknown model test ---")
+
+        connection3 = sqlite3.connect(":memory:")
+        initialize_database(connection3)
+        runtime_home3 = Path(tmp) / "unknown"
+        runtime_home3.mkdir()
+
+        guard3 = ProviderCallGuard(
+            runtime_home=runtime_home3,
+            connection=connection3,
+            pricing=pricing,
+            warn_at_eur=5.0,
+            hard_stop_eur=10.0,
+        )
+
+        unknown_usage = ProviderUsage(
+            timestamp=now,
+            provider="test",
+            model="unknown-model",
+            role="tagger",
+            input_tokens=100,
+            output_tokens=10,
+            session_id="session-unknown",
+        )
+
+        try:
+            guard3.record_usage(unknown_usage)
+            print("ERROR: ValueError not raised for unknown model")
+            sys.exit(1)
+        except ValueError as exc:
+            print(f"unknown_model_value_error: {bool(exc)}")
+
+        unknown_rows = connection3.execute(
+            "SELECT COUNT(*) FROM api_calls"
+        ).fetchone()[0]
+        print(f"unknown_model_no_api_calls: {unknown_rows == 0}")
+
+        assert unknown_rows == 0, "api_calls row inserted for unknown model"
+
+        connection3.close()
+
+        print("--- provider mismatch test ---")
+
+        connection4 = sqlite3.connect(":memory:")
+        initialize_database(connection4)
+        runtime_home4 = Path(tmp) / "mismatch"
+        runtime_home4.mkdir()
+
+        guard4 = ProviderCallGuard(
+            runtime_home=runtime_home4,
+            connection=connection4,
+            pricing=pricing,
+            warn_at_eur=5.0,
+            hard_stop_eur=10.0,
+        )
+
+        mismatch_usage = ProviderUsage(
+            timestamp=now,
+            provider="wrong-provider",
+            model="fake-model",
+            role="tagger",
+            input_tokens=100,
+            output_tokens=10,
+            session_id="session-mismatch",
+        )
+
+        try:
+            guard4.record_usage(mismatch_usage)
+            print("ERROR: ValueError not raised for provider mismatch")
+            sys.exit(1)
+        except ValueError as exc:
+            print(f"provider_mismatch_value_error: {bool(exc)}")
+
+        mismatch_rows = connection4.execute(
+            "SELECT COUNT(*) FROM api_calls"
+        ).fetchone()[0]
+        print(f"mismatch_no_api_calls: {mismatch_rows == 0}")
+
+        assert mismatch_rows == 0, "api_calls row inserted for provider mismatch"
+
+        connection4.close()
 
     print("provider call guard smoke test passed")
 

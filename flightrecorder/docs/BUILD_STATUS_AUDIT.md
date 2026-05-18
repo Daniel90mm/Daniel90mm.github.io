@@ -1,5 +1,7 @@
 # Build status audit
 
+Last audited: 2026-05-18.
+
 Audit of `docs/BUILD_STATUS.md` and `docs/MISSING_WORK.md` against spec
 section 19.
 

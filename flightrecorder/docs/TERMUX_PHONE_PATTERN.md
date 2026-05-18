@@ -64,3 +64,21 @@ Start the backend manually:
 ```sh
 ./scripts/termux-phone.sh start-backend
 ```
+
+## Dry-run status
+
+What has been verified locally:
+
+- `scripts/termux-phone.sh` syntax validated with `bash -n`.
+- `--help` smoke test passes (exit 0, contains `install-boot`).
+- The dorm-assistant pattern on the phone was inspected for reusable
+  conventions (pid files, wake-lock, nohup, boot script).
+
+What has **not** been run on pa-server:
+
+- `install-boot` has not been executed on the phone.
+- `start-backend` has not been executed on the phone.
+- Termux ARM64 dependency verification is deferred (see
+  `docs/TERMUX_DEPENDENCIES.md`).
+
+phone execution still pending

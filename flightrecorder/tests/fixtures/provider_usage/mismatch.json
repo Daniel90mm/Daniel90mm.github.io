@@ -1,0 +1,11 @@
+{
+    "description": "provider/model mismatch call",
+    "provider": "wrong-provider",
+    "model": "fake-model",
+    "role": "tagger",
+    "input_tokens": 100,
+    "output_tokens": 10,
+    "cached_tokens": 0,
+    "session_id": "session-mismatch-1",
+    "expects": "ValueError for provider mismatch"
+}
