@@ -20,7 +20,7 @@ class ApiCallRecord:
     input_tokens: int
     output_tokens: int
     cached_tokens: int
-    cost_eur: float
+    cost_dkk: float
     session_id: str | None = None
 
 
@@ -49,14 +49,14 @@ class ModelPricing:
 @dataclass(frozen=True)
 class PricingTable:
     models: dict[str, ModelPricing]
-    exchange_rates_to_eur: dict[str, float]
+    exchange_rates_to_dkk: dict[str, float]
 
 
 @dataclass(frozen=True)
 class BudgetEvaluation:
-    monthly_cost_eur: float
-    warn_at_eur: float
-    hard_stop_eur: float
+    monthly_cost_dkk: float
+    warn_at_dkk: float
+    hard_stop_dkk: float
     status: str
 
     @property
@@ -78,7 +78,7 @@ class BudgetGuardResult:
 @dataclass(frozen=True)
 class ProviderUsageResult:
     api_call_id: int
-    cost_eur: float
+    cost_dkk: float
     budget: BudgetGuardResult
 
 
@@ -92,22 +92,22 @@ class ProviderCallGuard:
     runtime_home: Path
     connection: sqlite3.Connection
     pricing: PricingTable
-    warn_at_eur: float
-    hard_stop_eur: float
+    warn_at_dkk: float
+    hard_stop_dkk: float
 
     def __init__(
         self,
         runtime_home: Path,
         connection: sqlite3.Connection,
         pricing: PricingTable,
-        warn_at_eur: float,
-        hard_stop_eur: float,
+        warn_at_dkk: float,
+        hard_stop_dkk: float,
     ) -> None:
         self.runtime_home = runtime_home
         self.connection = connection
         self.pricing = pricing
-        self.warn_at_eur = warn_at_eur
-        self.hard_stop_eur = hard_stop_eur
+        self.warn_at_dkk = warn_at_dkk
+        self.hard_stop_dkk = hard_stop_dkk
 
     def check_before_call(self, now: datetime) -> BudgetGuardResult:
         """Refuse a paid provider call when the hard-stop sentinel is active."""
@@ -116,8 +116,8 @@ class ProviderCallGuard:
             runtime_home=self.runtime_home,
             connection=self.connection,
             now=now,
-            warn_at_eur=self.warn_at_eur,
-            hard_stop_eur=self.hard_stop_eur,
+            warn_at_dkk=self.warn_at_dkk,
+            hard_stop_dkk=self.hard_stop_dkk,
         )
         if result.hard_stop_active:
             raise BudgetHardStopError(
@@ -129,7 +129,7 @@ class ProviderCallGuard:
         """Log one completed provider call and re-enforce the monthly budget."""
 
         self._validate_usage_provider(usage)
-        cost_eur = compute_cost_eur(
+        cost_dkk = compute_cost_dkk(
             pricing=self.pricing,
             model=usage.model,
             input_tokens=usage.input_tokens,
@@ -146,7 +146,7 @@ class ProviderCallGuard:
                 input_tokens=usage.input_tokens,
                 output_tokens=usage.output_tokens,
                 cached_tokens=usage.cached_tokens,
-                cost_eur=cost_eur,
+                cost_dkk=cost_dkk,
                 session_id=usage.session_id,
             ),
         )
@@ -154,12 +154,12 @@ class ProviderCallGuard:
             runtime_home=self.runtime_home,
             connection=self.connection,
             now=usage.timestamp + timedelta(microseconds=1),
-            warn_at_eur=self.warn_at_eur,
-            hard_stop_eur=self.hard_stop_eur,
+            warn_at_dkk=self.warn_at_dkk,
+            hard_stop_dkk=self.hard_stop_dkk,
         )
         return ProviderUsageResult(
             api_call_id=api_call_id,
-            cost_eur=cost_eur,
+            cost_dkk=cost_dkk,
             budget=budget,
         )
 
@@ -189,7 +189,7 @@ def log_api_call(connection: sqlite3.Connection, record: ApiCallRecord) -> int:
             input_tokens,
             output_tokens,
             cached_tokens,
-            cost_eur,
+            cost_dkk,
             session_id
         )
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
@@ -202,7 +202,7 @@ def log_api_call(connection: sqlite3.Connection, record: ApiCallRecord) -> int:
             record.input_tokens,
             record.output_tokens,
             record.cached_tokens,
-            record.cost_eur,
+            record.cost_dkk,
             record.session_id,
         ),
     )
@@ -219,7 +219,7 @@ def total_cost_between(
 
     row = connection.execute(
         """
-        SELECT COALESCE(SUM(cost_eur), 0)
+        SELECT COALESCE(SUM(cost_dkk), 0)
         FROM api_calls
         WHERE timestamp >= ?
         AND timestamp < ?
@@ -237,29 +237,29 @@ def monthly_cost_to_date(connection: sqlite3.Connection, now: datetime) -> float
 
 
 def evaluate_budget(
-    monthly_cost_eur: float,
-    warn_at_eur: float,
-    hard_stop_eur: float,
+    monthly_cost_dkk: float,
+    warn_at_dkk: float,
+    hard_stop_dkk: float,
 ) -> BudgetEvaluation:
     """Classify monthly spend against warn and hard-stop thresholds."""
 
-    _validate_nonnegative_amount(monthly_cost_eur, "monthly_cost_eur")
-    _validate_nonnegative_amount(warn_at_eur, "warn_at_eur")
-    _validate_nonnegative_amount(hard_stop_eur, "hard_stop_eur")
-    if warn_at_eur > hard_stop_eur:
-        raise ValueError("warn_at_eur must be less than or equal to hard_stop_eur")
+    _validate_nonnegative_amount(monthly_cost_dkk, "monthly_cost_dkk")
+    _validate_nonnegative_amount(warn_at_dkk, "warn_at_dkk")
+    _validate_nonnegative_amount(hard_stop_dkk, "hard_stop_dkk")
+    if warn_at_dkk > hard_stop_dkk:
+        raise ValueError("warn_at_dkk must be less than or equal to hard_stop_dkk")
 
-    if monthly_cost_eur >= hard_stop_eur:
+    if monthly_cost_dkk >= hard_stop_dkk:
         status = "hard_stop"
-    elif monthly_cost_eur >= warn_at_eur:
+    elif monthly_cost_dkk >= warn_at_dkk:
         status = "warn"
     else:
         status = "ok"
 
     return BudgetEvaluation(
-        monthly_cost_eur=monthly_cost_eur,
-        warn_at_eur=warn_at_eur,
-        hard_stop_eur=hard_stop_eur,
+        monthly_cost_dkk=monthly_cost_dkk,
+        warn_at_dkk=warn_at_dkk,
+        hard_stop_dkk=hard_stop_dkk,
         status=status,
     )
 
@@ -267,15 +267,15 @@ def evaluate_budget(
 def evaluate_monthly_budget(
     connection: sqlite3.Connection,
     now: datetime,
-    warn_at_eur: float,
-    hard_stop_eur: float,
+    warn_at_dkk: float,
+    hard_stop_dkk: float,
 ) -> BudgetEvaluation:
     """Return budget status for the current month."""
 
     return evaluate_budget(
         monthly_cost_to_date(connection, now),
-        warn_at_eur,
-        hard_stop_eur,
+        warn_at_dkk,
+        hard_stop_dkk,
     )
 
 
@@ -300,9 +300,9 @@ def write_budget_hard_stop(runtime_home: Path, evaluation: BudgetEvaluation) -> 
         "\n".join(
             [
                 "status=hard_stop",
-                f"monthly_cost_eur={evaluation.monthly_cost_eur}",
-                f"warn_at_eur={evaluation.warn_at_eur}",
-                f"hard_stop_eur={evaluation.hard_stop_eur}",
+                f"monthly_cost_dkk={evaluation.monthly_cost_dkk}",
+                f"warn_at_dkk={evaluation.warn_at_dkk}",
+                f"hard_stop_dkk={evaluation.hard_stop_dkk}",
                 "",
             ]
         ),
@@ -325,16 +325,16 @@ def enforce_monthly_budget(
     runtime_home: Path,
     connection: sqlite3.Connection,
     now: datetime,
-    warn_at_eur: float,
-    hard_stop_eur: float,
+    warn_at_dkk: float,
+    hard_stop_dkk: float,
 ) -> BudgetGuardResult:
     """Evaluate monthly spend and write hard-stop sentinel if needed."""
 
     evaluation = evaluate_monthly_budget(
         connection=connection,
         now=now,
-        warn_at_eur=warn_at_eur,
-        hard_stop_eur=hard_stop_eur,
+        warn_at_dkk=warn_at_dkk,
+        hard_stop_dkk=hard_stop_dkk,
     )
     if evaluation.should_stop:
         path = write_budget_hard_stop(runtime_home, evaluation)
@@ -387,43 +387,43 @@ def parse_pricing(data: Mapping[str, Any]) -> PricingTable:
             currency=currency,
         )
 
-    raw_exchange = data.get("exchange_rates_to_eur", {"EUR": 1.0})
-    exchange_mapping = _mapping(raw_exchange, "exchange_rates_to_eur")
-    exchange_rates_to_eur = {
-        str(currency).upper(): _nonnegative_float(rate, f"exchange_rates_to_eur.{currency}")
+    raw_exchange = data.get("exchange_rates_to_dkk", {"DKK": 1.0})
+    exchange_mapping = _mapping(raw_exchange, "exchange_rates_to_dkk")
+    exchange_rates_to_dkk = {
+        str(currency).upper(): _nonnegative_float(rate, f"exchange_rates_to_dkk.{currency}")
         for currency, rate in exchange_mapping.items()
     }
-    exchange_rates_to_eur.setdefault("EUR", 1.0)
+    exchange_rates_to_dkk.setdefault("DKK", 1.0)
 
     return PricingTable(
         models=models,
-        exchange_rates_to_eur=exchange_rates_to_eur,
+        exchange_rates_to_dkk=exchange_rates_to_dkk,
     )
 
 
-def compute_cost_eur(
+def compute_cost_dkk(
     pricing: PricingTable,
     model: str,
     input_tokens: int,
     output_tokens: int,
     cached_tokens: int = 0,
 ) -> float:
-    """Compute EUR cost for one provider call from token counts."""
+    """Compute DKK cost for one provider call from token counts."""
 
     _validate_token_count(input_tokens, "input_tokens")
     _validate_token_count(output_tokens, "output_tokens")
     _validate_token_count(cached_tokens, "cached_tokens")
 
     model_pricing = pricing.models[model]
-    if model_pricing.currency not in pricing.exchange_rates_to_eur:
-        raise ValueError(f"missing EUR exchange rate for {model_pricing.currency}")
+    if model_pricing.currency not in pricing.exchange_rates_to_dkk:
+        raise ValueError(f"missing DKK exchange rate for {model_pricing.currency}")
 
     local_cost = (
         input_tokens / 1000 * model_pricing.input_per_1k
         + output_tokens / 1000 * model_pricing.output_per_1k
         + cached_tokens / 1000 * model_pricing.cached_per_1k
     )
-    return local_cost * pricing.exchange_rates_to_eur[model_pricing.currency]
+    return local_cost * pricing.exchange_rates_to_dkk[model_pricing.currency]
 
 
 def _required_mapping(data: Mapping[str, Any], key: str) -> Mapping[str, Any]:

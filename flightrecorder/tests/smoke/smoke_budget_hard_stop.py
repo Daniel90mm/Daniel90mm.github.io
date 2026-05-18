@@ -38,7 +38,7 @@ def main() -> None:
                     input_tokens=500,
                     output_tokens=50,
                     cached_tokens=0,
-                    cost_eur=100.0,
+                    cost_dkk=100.0,
                     session_id=f"heavy-session-{i}",
                 ),
             )
@@ -47,8 +47,8 @@ def main() -> None:
             runtime_home=runtime_home,
             connection=connection,
             now=now,
-            warn_at_eur=5.0,
-            hard_stop_eur=10.0,
+            warn_at_dkk=5.0,
+            hard_stop_dkk=10.0,
         )
 
         print(f"hard_stop_active: {result.hard_stop_active}")

@@ -66,7 +66,7 @@ CREATE TABLE IF NOT EXISTS api_calls (
     input_tokens INTEGER NOT NULL,
     output_tokens INTEGER NOT NULL,
     cached_tokens INTEGER DEFAULT 0,
-    cost_eur REAL NOT NULL,
+    cost_dkk REAL NOT NULL,
     session_id TEXT
 );
 

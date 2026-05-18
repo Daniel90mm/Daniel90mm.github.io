@@ -13,7 +13,7 @@ from flightrecorder.costs import (
     ProviderUsage,
     budget_hard_stop_path,
     clear_budget_hard_stop,
-    compute_cost_eur,
+    compute_cost_dkk,
     enforce_monthly_budget,
     evaluate_budget,
     evaluate_monthly_budget,
@@ -41,14 +41,14 @@ def test_log_api_call_inserts_row() -> None:
             input_tokens=100,
             output_tokens=40,
             cached_tokens=0,
-            cost_eur=0.0123,
+            cost_dkk=0.0123,
             session_id="session-1",
         ),
     )
 
     row = connection.execute(
         """
-        SELECT provider, model, role, input_tokens, output_tokens, cost_eur, session_id
+        SELECT provider, model, role, input_tokens, output_tokens, cost_dkk, session_id
         FROM api_calls
         WHERE id = ?
         """,
@@ -85,7 +85,7 @@ def test_monthly_cost_to_date_sums_current_month_only() -> None:
                 input_tokens=1,
                 output_tokens=1,
                 cached_tokens=0,
-                cost_eur=cost,
+                cost_dkk=cost,
             ),
         )
 
@@ -115,7 +115,7 @@ def test_total_cost_between_includes_start_and_excludes_end() -> None:
                 input_tokens=1,
                 output_tokens=1,
                 cached_tokens=0,
-                cost_eur=cost,
+                cost_dkk=cost,
             ),
         )
 
@@ -128,7 +128,7 @@ def test_total_cost_between_includes_start_and_excludes_end() -> None:
     assert total == 5
 
 
-def test_parse_pricing_and_compute_cost_eur() -> None:
+def test_parse_pricing_and_compute_cost_dkk() -> None:
     pricing = parse_pricing(
         {
             "models": {
@@ -140,11 +140,11 @@ def test_parse_pricing_and_compute_cost_eur() -> None:
                     "currency": "USD",
                 },
             },
-            "exchange_rates_to_eur": {"USD": 0.5},
+            "exchange_rates_to_dkk": {"USD": 0.5},
         }
     )
 
-    cost = compute_cost_eur(
+    cost = compute_cost_dkk(
         pricing,
         "test-model",
         input_tokens=1000,
@@ -164,7 +164,7 @@ def test_load_pricing_reads_toml(tmp_path: Path) -> None:
         input_per_1k = 1.0
         output_per_1k = 2.0
         cached_per_1k = 0.0
-        currency = "EUR"
+        currency = "DKK"
         """,
         encoding="utf-8",
     )
@@ -172,7 +172,7 @@ def test_load_pricing_reads_toml(tmp_path: Path) -> None:
     pricing = load_pricing(path)
 
     assert pricing.models["test-model"].provider == "anthropic"
-    assert compute_cost_eur(pricing, "test-model", 1000, 1000) == 3.0
+    assert compute_cost_dkk(pricing, "test-model", 1000, 1000) == 3.0
 
 
 def test_compute_cost_rejects_negative_tokens() -> None:
@@ -191,7 +191,7 @@ def test_compute_cost_rejects_negative_tokens() -> None:
     )
 
     with pytest.raises(ValueError):
-        compute_cost_eur(pricing, "test-model", -1, 0)
+        compute_cost_dkk(pricing, "test-model", -1, 0)
 
 
 def test_parse_pricing_rejects_missing_models() -> None:
@@ -214,7 +214,7 @@ def test_evaluate_budget_thresholds(
     should_warn: bool,
     should_stop: bool,
 ) -> None:
-    evaluation = evaluate_budget(monthly_cost, warn_at_eur=10.0, hard_stop_eur=80.0)
+    evaluation = evaluate_budget(monthly_cost, warn_at_dkk=10.0, hard_stop_dkk=80.0)
 
     assert evaluation.status == expected_status
     assert evaluation.should_warn is should_warn
@@ -223,7 +223,7 @@ def test_evaluate_budget_thresholds(
 
 def test_evaluate_budget_rejects_invalid_threshold_order() -> None:
     with pytest.raises(ValueError):
-        evaluate_budget(0.0, warn_at_eur=80.0, hard_stop_eur=10.0)
+        evaluate_budget(0.0, warn_at_dkk=80.0, hard_stop_dkk=10.0)
 
 
 def test_evaluate_monthly_budget_uses_current_month_cost() -> None:
@@ -244,18 +244,18 @@ def test_evaluate_monthly_budget_uses_current_month_cost() -> None:
                 input_tokens=1,
                 output_tokens=1,
                 cached_tokens=0,
-                cost_eur=cost,
+                cost_dkk=cost,
             ),
         )
 
     evaluation = evaluate_monthly_budget(
         connection,
         datetime.fromisoformat("2026-05-18T18:00:00+02:00"),
-        warn_at_eur=10.0,
-        hard_stop_eur=80.0,
+        warn_at_dkk=10.0,
+        hard_stop_dkk=80.0,
     )
 
-    assert evaluation.monthly_cost_eur == 11
+    assert evaluation.monthly_cost_dkk == 11
     assert evaluation.status == "warn"
 
 
@@ -280,7 +280,7 @@ def test_enforce_monthly_budget_writes_hard_stop_file(tmp_path: Path) -> None:
             input_tokens=1,
             output_tokens=1,
             cached_tokens=0,
-            cost_eur=81,
+            cost_dkk=81,
         ),
     )
 
@@ -288,15 +288,15 @@ def test_enforce_monthly_budget_writes_hard_stop_file(tmp_path: Path) -> None:
         runtime_home=tmp_path,
         connection=connection,
         now=datetime.fromisoformat("2026-05-18T18:00:00+02:00"),
-        warn_at_eur=30,
-        hard_stop_eur=80,
+        warn_at_dkk=30,
+        hard_stop_dkk=80,
     )
 
     assert result.evaluation.status == "hard_stop"
     assert result.hard_stop_active is True
     assert result.hard_stop_path == tmp_path / "budget"
     assert is_budget_hard_stop_active(tmp_path) is True
-    assert "monthly_cost_eur=81.0" in result.hard_stop_path.read_text(encoding="utf-8")
+    assert "monthly_cost_dkk=81.0" in result.hard_stop_path.read_text(encoding="utf-8")
 
 
 def test_enforce_monthly_budget_warn_does_not_clear_existing_hard_stop(
@@ -311,8 +311,8 @@ def test_enforce_monthly_budget_warn_does_not_clear_existing_hard_stop(
         runtime_home=tmp_path,
         connection=connection,
         now=datetime.fromisoformat("2026-05-18T18:00:00+02:00"),
-        warn_at_eur=0,
-        hard_stop_eur=80,
+        warn_at_dkk=0,
+        hard_stop_dkk=80,
     )
 
     assert result.evaluation.status == "warn"
@@ -336,8 +336,8 @@ def test_provider_call_guard_refuses_existing_hard_stop(tmp_path: Path) -> None:
         runtime_home=tmp_path,
         connection=connection,
         pricing=_pricing_table(),
-        warn_at_eur=30,
-        hard_stop_eur=80,
+        warn_at_dkk=30,
+        hard_stop_dkk=80,
     )
 
     with pytest.raises(BudgetHardStopError):
@@ -351,8 +351,8 @@ def test_provider_call_guard_records_usage_and_cost(tmp_path: Path) -> None:
         runtime_home=tmp_path,
         connection=connection,
         pricing=_pricing_table(),
-        warn_at_eur=30,
-        hard_stop_eur=80,
+        warn_at_dkk=30,
+        hard_stop_dkk=80,
     )
 
     result = guard.record_usage(
@@ -370,14 +370,14 @@ def test_provider_call_guard_records_usage_and_cost(tmp_path: Path) -> None:
     row = connection.execute(
         """
         SELECT provider, model, role, input_tokens, output_tokens, cached_tokens,
-               cost_eur, session_id
+               cost_dkk, session_id
         FROM api_calls
         WHERE id = ?
         """,
         (result.api_call_id,),
     ).fetchone()
 
-    assert result.cost_eur == pytest.approx(0.0021)
+    assert result.cost_dkk == pytest.approx(0.0021)
     assert result.budget.evaluation.status == "ok"
     assert row == (
         "anthropic",
@@ -398,8 +398,8 @@ def test_provider_call_guard_writes_hard_stop_after_usage(tmp_path: Path) -> Non
         runtime_home=tmp_path,
         connection=connection,
         pricing=_pricing_table(input_per_1k=100),
-        warn_at_eur=30,
-        hard_stop_eur=80,
+        warn_at_dkk=30,
+        hard_stop_dkk=80,
     )
 
     result = guard.record_usage(
@@ -427,8 +427,8 @@ def test_provider_call_guard_rejects_provider_pricing_mismatch(
         runtime_home=tmp_path,
         connection=connection,
         pricing=_pricing_table(),
-        warn_at_eur=30,
-        hard_stop_eur=80,
+        warn_at_dkk=30,
+        hard_stop_dkk=80,
     )
 
     with pytest.raises(ValueError, match="belongs to anthropic"):
@@ -459,5 +459,5 @@ def _pricing_table(input_per_1k: float = 0.001) -> PricingTable:
                 currency="EUR",
             )
         },
-        exchange_rates_to_eur={"EUR": 1.0},
+        exchange_rates_to_dkk={"EUR": 1.0},
     )

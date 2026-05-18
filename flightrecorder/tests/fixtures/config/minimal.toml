@@ -1,6 +1,6 @@
 # Minimal config for smoke tests - no providers, defaults only.
 
 [budget]
-warn_at_eur = 30
-hard_stop_eur = 10
-currency = "EUR"
+warn_at_dkk = 30
+hard_stop_dkk = 10
+currency = "DKK"

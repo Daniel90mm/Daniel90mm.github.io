@@ -7,7 +7,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent / "src" / "backend"))
 
-from flightrecorder.costs import compute_cost_eur, parse_pricing
+from flightrecorder.costs import compute_cost_dkk, parse_pricing
 
 
 def main() -> None:
@@ -21,12 +21,12 @@ def main() -> None:
                 "currency": "USD",
             }
         },
-        "exchange_rates_to_eur": {"USD": 0.9},
+        "exchange_rates_to_dkk": {"USD": 0.9},
     }
 
     pricing = parse_pricing(data)
 
-    cost = compute_cost_eur(
+    cost = compute_cost_dkk(
         pricing,
         model="fake-model",
         input_tokens=1000,
@@ -35,8 +35,8 @@ def main() -> None:
     )
 
     expected = (1000 / 1000 * 1.0 + 500 / 1000 * 2.0 + 200 / 1000 * 0.5) * 0.9
-    print(f"computed_cost_eur: {cost}")
-    print(f"expected_cost_eur: {expected}")
+    print(f"computed_cost_dkk: {cost}")
+    print(f"expected_cost_dkk: {expected}")
 
     assert abs(cost - expected) < 0.001, f"cost mismatch: {cost} vs {expected}"
 

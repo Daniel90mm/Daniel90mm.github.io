@@ -5,7 +5,7 @@ switch for paid LLM calls.
 
 ## Sentinel lifecycle
 
-- **Written by** `enforce_monthly_budget()` when `monthly_cost_eur >= hard_stop_eur`.
+- **Written by** `enforce_monthly_budget()` when `monthly_cost_dkk >= hard_stop_dkk`.
   The file contains key=value lines: `status=hard_stop`, current cost, and
   threshold values.
 - **Checked by** `is_budget_hard_stop_active()`. Any code path that makes paid
@@ -28,7 +28,7 @@ enforcement path that checks this sentinel before allowing provider calls.
 
 ## Enforce function
 
-`enforce_monthly_budget(runtime_home, connection, now, warn_at_eur, hard_stop_eur)`:
+`enforce_monthly_budget(runtime_home, connection, now, warn_at_dkk, hard_stop_dkk)`:
 1. Evaluates current monthly spend against thresholds.
 2. If `should_stop`: writes the `budget` sentinel, returns `hard_stop_active=True`.
 3. If `should_warn` or `ok`: does NOT clear an existing sentinel. Just returns

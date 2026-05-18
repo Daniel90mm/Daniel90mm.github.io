@@ -336,8 +336,8 @@ Runtime/config plumbing (keep narrow):
   `create_role_provider(config, "brainstorm")`.
 - Add a `RuntimeContext.guard()` method that returns a fresh
   `ProviderCallGuard` constructed from runtime_home, the metadata db
-  connection, `runtime.pricing`, and `config.budget.warn_at_eur` /
-  `hard_stop_eur`. Building per-request is fine; the guard is cheap.
+  connection, `runtime.pricing`, and `config.budget.warn_at_dkk` /
+  `hard_stop_dkk`. Building per-request is fine; the guard is cheap.
 
 Do NOT:
 - Touch `prompts/` (the brainstorm system prompt is not part of this task).

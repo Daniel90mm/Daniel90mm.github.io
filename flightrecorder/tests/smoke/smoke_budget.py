@@ -39,24 +39,24 @@ def main() -> None:
                 input_tokens=500,
                 output_tokens=50,
                 cached_tokens=0,
-                cost_eur=cost_per_call,
+                cost_dkk=cost_per_call,
                 session_id=f"session-{i}",
             ),
         )
 
     evaluation = evaluate_monthly_budget(
-        connection, now, warn_at_eur=warn_threshold, hard_stop_eur=hard_stop
+        connection, now, warn_at_dkk=warn_threshold, hard_stop_dkk=hard_stop
     )
 
-    print(f"monthly_cost_eur: {evaluation.monthly_cost_eur}")
-    print(f"warn_at_eur: {evaluation.warn_at_eur}")
-    print(f"hard_stop_eur: {evaluation.hard_stop_eur}")
+    print(f"monthly_cost_dkk: {evaluation.monthly_cost_dkk}")
+    print(f"warn_at_dkk: {evaluation.warn_at_dkk}")
+    print(f"hard_stop_dkk: {evaluation.hard_stop_dkk}")
     print(f"status: {evaluation.status}")
     print(f"should_warn: {evaluation.should_warn}")
     print(f"should_stop: {evaluation.should_stop}")
 
     expected_cost = cost_per_call * 4
-    assert evaluation.monthly_cost_eur == expected_cost
+    assert evaluation.monthly_cost_dkk == expected_cost
     assert evaluation.status == "warn"
     assert evaluation.should_warn is True
     assert evaluation.should_stop is False

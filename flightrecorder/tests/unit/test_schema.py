@@ -33,6 +33,6 @@ def test_api_calls_schema_matches_spec_columns() -> None:
         "input_tokens",
         "output_tokens",
         "cached_tokens",
-        "cost_eur",
+        "cost_dkk",
         "session_id",
     ]

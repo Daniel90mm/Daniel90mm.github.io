@@ -25,7 +25,7 @@ def main() -> None:
         input_tokens=1200,
         output_tokens=42,
         cached_tokens=0,
-        cost_eur=0.0015,
+        cost_dkk=0.0015,
         session_id="2026-05-18-1730-test-abcd1234",
     )
 

@@ -16,9 +16,9 @@ FIXTURES_DIR = Path(__file__).resolve().parent.parent / "fixtures" / "config"
 def test_parse_config_defaults_paths_and_budget() -> None:
     config = parse_config({})
 
-    assert config.budget.warn_at_eur == 30
-    assert config.budget.hard_stop_eur == 80
-    assert config.budget.currency == "EUR"
+    assert config.budget.warn_at_dkk == 225
+    assert config.budget.hard_stop_dkk == 600
+    assert config.budget.currency == "DKK"
     assert config.paths.runtime_home == Path.home() / "flightrecorder"
     assert config.paths.hugo_site == Path.home() / "hugo-site"
 
@@ -32,7 +32,7 @@ def test_parse_config_roles_and_providers() -> None:
             "roles": {
                 "tagger": {"provider": "anthropic", "model": "claude-haiku-4-5"},
             },
-            "budget": {"warn_at_eur": 12, "hard_stop_eur": 34, "currency": "EUR"},
+            "budget": {"warn_at_dkk": 12, "hard_stop_dkk": 34, "currency": "EUR"},
             "paths": {
                 "runtime_home": "~/flightrecorder",
                 "hugo_site": "~/hugo-site",
@@ -43,7 +43,7 @@ def test_parse_config_roles_and_providers() -> None:
     assert config.providers["anthropic"].api_key == "test-anthropic-key"
     assert config.roles["tagger"].provider == "anthropic"
     assert config.roles["tagger"].model == "claude-haiku-4-5"
-    assert config.budget.hard_stop_eur == 34
+    assert config.budget.hard_stop_dkk == 34
     assert config.paths.runtime_home == Path.home() / "flightrecorder"
 
 
@@ -84,9 +84,9 @@ def test_load_config_from_environment_reads_file(tmp_path: Path) -> None:
 def test_load_config_reads_minimal_fixture() -> None:
     config = load_config(FIXTURES_DIR / "minimal.toml")
 
-    assert config.budget.warn_at_eur == 30
-    assert config.budget.hard_stop_eur == 10
-    assert config.budget.currency == "EUR"
+    assert config.budget.warn_at_dkk == 30
+    assert config.budget.hard_stop_dkk == 10
+    assert config.budget.currency == "DKK"
     assert config.providers == {}
     assert config.roles == {}
 
@@ -101,7 +101,7 @@ def test_load_config_reads_full_fixture() -> None:
     assert config.roles["brainstorm"].model == "gemini-2.5-pro"
     assert config.roles["reviewer"].provider == "openai"
     assert config.roles["reviewer"].model == "gpt-5-mini"
-    assert config.budget.hard_stop_eur == 80
+    assert config.budget.hard_stop_dkk == 80
     assert config.paths.runtime_home == Path.home() / "flightrecorder"
     assert config.paths.hugo_site == Path.home() / "hugo-site"
 
@@ -112,33 +112,33 @@ def test_parse_config_preserves_budget_thresholds_without_ordering_validation() 
     config = parse_config(
         {
             "budget": {
-                "warn_at_eur": 90,
-                "hard_stop_eur": 50,
+                "warn_at_dkk": 90,
+                "hard_stop_dkk": 50,
                 "currency": "EUR",
             }
         }
     )
 
-    assert config.budget.warn_at_eur == 90
-    assert config.budget.hard_stop_eur == 50
+    assert config.budget.warn_at_dkk == 90
+    assert config.budget.hard_stop_dkk == 50
 
 
 def test_parse_config_accepts_zero_budget_thresholds() -> None:
     config = parse_config(
         {
             "budget": {
-                "warn_at_eur": 0,
-                "hard_stop_eur": 0,
+                "warn_at_dkk": 0,
+                "hard_stop_dkk": 0,
                 "currency": "EUR",
             }
         }
     )
 
-    assert config.budget.warn_at_eur == 0
-    assert config.budget.hard_stop_eur == 0
+    assert config.budget.warn_at_dkk == 0
+    assert config.budget.hard_stop_dkk == 0
 
 
-def test_parse_config_defaults_currency_to_eur_when_absent() -> None:
-    config = parse_config({"budget": {"warn_at_eur": 5, "hard_stop_eur": 10}})
+def test_parse_config_defaults_currency_to_dkk_when_absent() -> None:
+    config = parse_config({"budget": {"warn_at_dkk": 5, "hard_stop_dkk": 10}})
 
-    assert config.budget.currency == "EUR"
+    assert config.budget.currency == "DKK"

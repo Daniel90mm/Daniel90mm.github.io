@@ -53,7 +53,7 @@ def make_app(
     config = parse_config(
         {
             "paths": {"runtime_home": str(tmp_path)},
-            "budget": {"warn_at_eur": 5, "hard_stop_eur": 10, "currency": "EUR"},
+            "budget": {"warn_at_dkk": 375, "hard_stop_dkk": 750, "currency": "DKK"},
         }
     )
     runtime = build_runtime_context(config)
@@ -68,10 +68,10 @@ def make_app(
                     input_per_1k=0.01,
                     output_per_1k=0.03,
                     cached_per_1k=0.001,
-                    currency="EUR",
+                    currency="DKK",
                 )
             },
-            exchange_rates_to_eur={"EUR": 1.0},
+            exchange_rates_to_dkk={"DKK": 1.0},
         )
         object.__setattr__(runtime, "pricing", pricing)
 

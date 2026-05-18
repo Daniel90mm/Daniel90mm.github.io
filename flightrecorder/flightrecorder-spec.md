@@ -344,9 +344,9 @@ provider = "openai"
 model = "whisper-1"
 
 [budget]
-warn_at_eur = 30
-hard_stop_eur = 80
-currency = "EUR"
+warn_at_dkk = 225
+hard_stop_dkk = 600
+currency = "DKK"
 ```
 
 Curator and reviewer use different providers when possible — shared-blindspot failures are real.
@@ -930,7 +930,7 @@ CREATE TABLE api_calls (
     input_tokens INTEGER NOT NULL,
     output_tokens INTEGER NOT NULL,
     cached_tokens INTEGER DEFAULT 0,
-    cost_eur REAL NOT NULL,
+    cost_dkk REAL NOT NULL,
     session_id TEXT
 );
 ```
@@ -938,10 +938,10 @@ CREATE TABLE api_calls (
 `pricing.toml` holds per-model rates, separate from `config.toml` so it can be updated independently. After every call:
 
 - Recompute monthly rolling spend.
-- If over `warn_at_eur`: log warning, surface in `fr status` and UI banner.
-- If over `hard_stop_eur`: write `budget` kill switch file. Brainstorm and publisher refuse to run until cleared.
+- If over `warn_at_dkk`: log warning, surface in `fr status` and UI banner.
+- If over `hard_stop_dkk`: write `budget` kill switch file. Brainstorm and publisher refuse to run until cleared.
 
-Clear via `fr budget clear-stop` or by raising `hard_stop_eur` (top-up).
+Clear via `fr budget clear-stop` or by raising `hard_stop_dkk` (top-up).
 
 ---
 

@@ -28,8 +28,8 @@ class RoleConfig:
 
 @dataclass(frozen=True)
 class BudgetConfig:
-    warn_at_eur: float
-    hard_stop_eur: float
+    warn_at_dkk: float
+    hard_stop_dkk: float
     currency: str
 
 
@@ -98,9 +98,9 @@ def parse_config(data: dict[str, Any]) -> AppConfig:
 
     budget_data = data.get("budget", {})
     budget = BudgetConfig(
-        warn_at_eur=float(budget_data.get("warn_at_eur", 30)),
-        hard_stop_eur=float(budget_data.get("hard_stop_eur", 80)),
-        currency=str(budget_data.get("currency", "EUR")),
+        warn_at_dkk=float(budget_data.get("warn_at_dkk", 225)),
+        hard_stop_dkk=float(budget_data.get("hard_stop_dkk", 600)),
+        currency=str(budget_data.get("currency", "DKK")),
     )
 
     paths_data = data.get("paths", {})

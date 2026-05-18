@@ -32,7 +32,7 @@ def make_pricing() -> PricingTable:
                 currency="EUR",
             )
         },
-        exchange_rates_to_eur={"EUR": 1.0},
+        exchange_rates_to_dkk={"EUR": 1.0},
     )
 
 
@@ -49,8 +49,8 @@ def main() -> None:
             runtime_home=runtime_home,
             connection=connection,
             pricing=pricing,
-            warn_at_eur=5.0,
-            hard_stop_eur=10.0,
+            warn_at_dkk=5.0,
+            hard_stop_dkk=10.0,
         )
 
         guard.check_before_call(now)
@@ -68,7 +68,7 @@ def main() -> None:
 
         result = guard.record_usage(usage)
         print(f"api_call_id: {result.api_call_id}")
-        print(f"cost_eur: {result.cost_eur}")
+        print(f"cost_dkk: {result.cost_dkk}")
         print(f"budget_status: {result.budget.evaluation.status}")
 
         row_count = connection.execute(
@@ -78,7 +78,7 @@ def main() -> None:
 
         assert result.api_call_id == 1
         assert row_count == 1
-        assert result.cost_eur > 0
+        assert result.cost_dkk > 0
 
         budget_path = runtime_home / "budget"
         budget_path.write_text("status=hard_stop\n", encoding="utf-8")
@@ -102,8 +102,8 @@ def main() -> None:
             runtime_home=runtime_home2,
             connection=connection2,
             pricing=pricing,
-            warn_at_eur=5.0,
-            hard_stop_eur=10.0,
+            warn_at_dkk=5.0,
+            hard_stop_dkk=10.0,
         )
 
         guard2.check_before_call(now)
@@ -150,8 +150,8 @@ def main() -> None:
             runtime_home=runtime_home3,
             connection=connection3,
             pricing=pricing,
-            warn_at_eur=5.0,
-            hard_stop_eur=10.0,
+            warn_at_dkk=5.0,
+            hard_stop_dkk=10.0,
         )
 
         unknown_usage = ProviderUsage(
@@ -191,8 +191,8 @@ def main() -> None:
             runtime_home=runtime_home4,
             connection=connection4,
             pricing=pricing,
-            warn_at_eur=5.0,
-            hard_stop_eur=10.0,
+            warn_at_dkk=5.0,
+            hard_stop_dkk=10.0,
         )
 
         mismatch_usage = ProviderUsage(

@@ -26,8 +26,8 @@ class RuntimeContext:
             runtime_home=self.config.paths.runtime_home,
             connection=self.database,
             pricing=self.pricing,
-            warn_at_eur=self.config.budget.warn_at_eur,
-            hard_stop_eur=self.config.budget.hard_stop_eur,
+            warn_at_dkk=self.config.budget.warn_at_dkk,
+            hard_stop_dkk=self.config.budget.hard_stop_dkk,
         )
 
 

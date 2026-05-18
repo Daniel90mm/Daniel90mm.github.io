@@ -42,9 +42,9 @@ provider = "openai"
 model = "whisper-1"
 
 [budget]
-warn_at_eur = 30
-hard_stop_eur = 80
-currency = "EUR"
+warn_at_dkk = 30
+hard_stop_dkk = 80
+currency = "DKK"
 
 [paths]
 runtime_home = "~/flightrecorder"
