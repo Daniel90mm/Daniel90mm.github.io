@@ -61,120 +61,102 @@ regression is found:
 | S45 | Chat endpoint contract draft. |
 | S46 | Idea-capture operation boundary, completed by senior agent. |
 | S47 | Idea-capture smoke command sync, completed by senior agent. |
+| S48 | Idea-capture parser edge docs. |
+| S49 | Idea-capture README status. |
+| S50 | Idea-capture smoke docs. |
+| S51 | Documents git smoke. |
 | S52 | Documents git auto-commit path, completed by senior agent. |
+| S53 | Documents git docs. |
+| S54 | Budget hard-stop sentinel, completed by senior agent. |
 
 ## Active queue
 
 Pick from the top unless Daniel or the senior agent says otherwise.
 
-## S48 - Idea-capture parser edge docs
+## S55 - Budget sentinel smoke
 
 Where:
-- `flightrecorder/docs/IDEA_CAPTURE_VALIDATION.md`
+- `flightrecorder/tests/smoke/smoke_budget_hard_stop.py`
+
+What:
+- Add a smoke script that inserts fake cost rows, calls
+  `enforce_monthly_budget()`, and verifies a temp `budget` file is written.
+- Do not touch real `~/flightrecorder/budget`.
+
+Why:
+- The hard-stop kill switch is a runtime safety boundary.
+
+Smoke test:
+
+```sh
+cd /home/daniel/Documents/Projekter/Daniel90mm.github.io/flightrecorder
+.venv/bin/python tests/smoke/smoke_budget_hard_stop.py
+```
+
+## S56 - Budget docs update
+
+Where:
+- `flightrecorder/docs/BUDGET_GUARD.md`
 - `flightrecorder/docs/NAVIGATION.md`
 
 What:
-- Document what `parse_idea_operations()` accepts and rejects.
-- Mention the max of eight operations.
+- Document the `budget` sentinel file behavior:
+  write on hard-stop, do not auto-clear on warn/ok, clear only explicitly.
 - Documentation-only.
 
 Why:
-- Future prompt/provider work needs to know the exact parser boundary.
+- Provider work must understand the safety boundary before adding paid calls.
 
 Smoke test:
 
 ```sh
 cd /home/daniel/Documents/Projekter/Daniel90mm.github.io/flightrecorder
-grep -q 'max of eight' docs/IDEA_CAPTURE_VALIDATION.md
-grep -q 'docs/IDEA_CAPTURE_VALIDATION.md' docs/NAVIGATION.md
-LC_ALL=C grep -n '[^ -~]' docs/IDEA_CAPTURE_VALIDATION.md docs/NAVIGATION.md && exit 1 || true
+grep -q 'do not auto-clear' docs/BUDGET_GUARD.md
+grep -q 'docs/BUDGET_GUARD.md' docs/NAVIGATION.md
+LC_ALL=C grep -n '[^ -~]' docs/BUDGET_GUARD.md docs/NAVIGATION.md && exit 1 || true
 ```
 
-## S49 - Idea-capture README status
-
-Where:
-- `flightrecorder/README.md`
-
-What:
-- Add one short status sentence saying idea-capture operation parsing and
-  spaghetti/project routing exist, but the LLM call itself is not wired.
-- Do not add commands that do not exist.
-
-Why:
-- Step 8 is partially implemented; the README should not overclaim.
-
-Smoke test:
-
-```sh
-cd /home/daniel/Documents/Projekter/Daniel90mm.github.io/flightrecorder
-grep -q 'idea-capture operation parsing' README.md
-LC_ALL=C grep -n '[^ -~]' README.md && exit 1 || true
-```
-
-## S50 - Idea-capture smoke docs
+## S57 - Smoke command sync for new guards
 
 Where:
 - `flightrecorder/docs/SMOKE_COMMANDS.md`
 
 What:
-- Confirm `smoke_idea_capture.py` and `smoke_termux_helper.py` are both listed
-  in the smoke command table and all-smoke loop.
+- Add `smoke_documents_git.py` to the smoke command table and all-smoke loop.
+- If S55 is already complete, add `smoke_budget_hard_stop.py` too.
 - Documentation-only.
 
 Why:
-- The active smoke list should reflect the latest helper scripts.
+- The smoke index should stay aligned with runnable safety checks.
 
 Smoke test:
 
 ```sh
 cd /home/daniel/Documents/Projekter/Daniel90mm.github.io/flightrecorder
-grep -q 'smoke_idea_capture.py' docs/SMOKE_COMMANDS.md
-grep -q 'smoke_termux_helper.py' docs/SMOKE_COMMANDS.md
+grep -q 'smoke_documents_git.py' docs/SMOKE_COMMANDS.md
+grep -q 'smoke_documents_git' docs/SMOKE_COMMANDS.md
 LC_ALL=C grep -n '[^ -~]' docs/SMOKE_COMMANDS.md && exit 1 || true
 ```
 
-## S51 - Documents git smoke
+## S58 - Budget guard README status
 
 Where:
-- `flightrecorder/tests/smoke/smoke_documents_git.py`
+- `flightrecorder/README.md`
 
 What:
-- Add a smoke script that creates a temp `documents/` repo with
-  `ensure_documents_repo`, appends a project document, commits it, and prints
-  the latest commit subject.
-- Do not touch real `~/flightrecorder/documents/`.
+- Add one short status sentence saying budget tracking has a hard-stop sentinel
+  helper, but provider/chat paths do not enforce it yet.
+- Do not document any setup command for clearing the sentinel.
 
 Why:
-- Project documents have their own git history; this must stay easy to verify.
+- The README should reflect the hard-stop primitive without overclaiming that
+  paid-call enforcement exists.
 
 Smoke test:
 
 ```sh
 cd /home/daniel/Documents/Projekter/Daniel90mm.github.io/flightrecorder
-.venv/bin/python tests/smoke/smoke_documents_git.py
-```
-
-## S53 - Documents git docs
-
-Where:
-- `flightrecorder/docs/DOCUMENTS_GIT.md`
-- `flightrecorder/docs/NAVIGATION.md`
-
-What:
-- Document that `~/flightrecorder/documents/` is its own git repo, initialized
-  by `ensure_documents_repo()`, and committed by `commit_documents_repo()`.
-- Mention that clean-tree commits are skipped.
-- Documentation-only.
-
-Why:
-- This is a core append-only audit trail and should be explicit for future
-  agents.
-
-Smoke test:
-
-```sh
-cd /home/daniel/Documents/Projekter/Daniel90mm.github.io/flightrecorder
-grep -q 'clean-tree commits are skipped' docs/DOCUMENTS_GIT.md
-grep -q 'docs/DOCUMENTS_GIT.md' docs/NAVIGATION.md
-LC_ALL=C grep -n '[^ -~]' docs/DOCUMENTS_GIT.md docs/NAVIGATION.md && exit 1 || true
+grep -q 'hard-stop sentinel' README.md
+grep -q 'do not enforce it yet' README.md
+LC_ALL=C grep -n '[^ -~]' README.md && exit 1 || true
 ```

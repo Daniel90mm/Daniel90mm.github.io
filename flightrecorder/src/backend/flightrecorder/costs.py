@@ -56,6 +56,13 @@ class BudgetEvaluation:
         return self.status == "hard_stop"
 
 
+@dataclass(frozen=True)
+class BudgetGuardResult:
+    evaluation: BudgetEvaluation
+    hard_stop_active: bool
+    hard_stop_path: Path
+
+
 def log_api_call(connection: sqlite3.Connection, record: ApiCallRecord) -> int:
     """Insert one provider call cost row and return its id."""
 
@@ -156,6 +163,77 @@ def evaluate_monthly_budget(
         monthly_cost_to_date(connection, now),
         warn_at_eur,
         hard_stop_eur,
+    )
+
+
+def budget_hard_stop_path(runtime_home: Path) -> Path:
+    """Return the runtime hard-stop sentinel path."""
+
+    return runtime_home / "budget"
+
+
+def is_budget_hard_stop_active(runtime_home: Path) -> bool:
+    """Return whether the budget hard-stop sentinel exists."""
+
+    return budget_hard_stop_path(runtime_home).exists()
+
+
+def write_budget_hard_stop(runtime_home: Path, evaluation: BudgetEvaluation) -> Path:
+    """Write the budget hard-stop sentinel file."""
+
+    path = budget_hard_stop_path(runtime_home)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(
+        "\n".join(
+            [
+                "status=hard_stop",
+                f"monthly_cost_eur={evaluation.monthly_cost_eur}",
+                f"warn_at_eur={evaluation.warn_at_eur}",
+                f"hard_stop_eur={evaluation.hard_stop_eur}",
+                "",
+            ]
+        ),
+        encoding="utf-8",
+    )
+    return path
+
+
+def clear_budget_hard_stop(runtime_home: Path) -> bool:
+    """Remove the budget hard-stop sentinel if it exists."""
+
+    path = budget_hard_stop_path(runtime_home)
+    if not path.exists():
+        return False
+    path.unlink()
+    return True
+
+
+def enforce_monthly_budget(
+    runtime_home: Path,
+    connection: sqlite3.Connection,
+    now: datetime,
+    warn_at_eur: float,
+    hard_stop_eur: float,
+) -> BudgetGuardResult:
+    """Evaluate monthly spend and write hard-stop sentinel if needed."""
+
+    evaluation = evaluate_monthly_budget(
+        connection=connection,
+        now=now,
+        warn_at_eur=warn_at_eur,
+        hard_stop_eur=hard_stop_eur,
+    )
+    if evaluation.should_stop:
+        path = write_budget_hard_stop(runtime_home, evaluation)
+        hard_stop_active = True
+    else:
+        path = budget_hard_stop_path(runtime_home)
+        hard_stop_active = path.exists()
+
+    return BudgetGuardResult(
+        evaluation=evaluation,
+        hard_stop_active=hard_stop_active,
+        hard_stop_path=path,
     )
 
 

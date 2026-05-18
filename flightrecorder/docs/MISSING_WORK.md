@@ -36,3 +36,6 @@ idea-capture LLM call is not wired yet.
 
 Step 19 has a documented Termux phone pattern and helper draft. It has not been
 run against pa-server.
+
+Step 17 has cost logging, pricing, monthly rollup, threshold evaluation, and
+the `budget` sentinel helper. Provider/chat paths do not enforce it yet.

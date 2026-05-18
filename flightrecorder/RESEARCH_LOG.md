@@ -243,3 +243,15 @@ Finished the project-document git primitive for build order step 8:
 
 This still does not call the idea-capture LLM. The next step 8 boundary is
 provider execution plus cost logging around that call.
+
+## 2026-05-18 - Budget hard-stop sentinel
+
+Extended build order step 17:
+- `budget_hard_stop_path()` resolves the runtime `budget` sentinel
+- `enforce_monthly_budget()` evaluates current monthly spend and writes the
+  sentinel when the hard-stop threshold is crossed
+- `clear_budget_hard_stop()` removes the sentinel explicitly
+- warn-level budget checks do not clear an existing hard-stop file
+
+This is still not wired into provider/chat paths. Future provider execution
+must call the guard before paid API calls.

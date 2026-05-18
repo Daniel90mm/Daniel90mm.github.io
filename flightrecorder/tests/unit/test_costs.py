@@ -6,9 +6,13 @@ import pytest
 
 from flightrecorder.costs import (
     ApiCallRecord,
+    budget_hard_stop_path,
+    clear_budget_hard_stop,
     compute_cost_eur,
+    enforce_monthly_budget,
     evaluate_budget,
     evaluate_monthly_budget,
+    is_budget_hard_stop_active,
     load_pricing,
     log_api_call,
     monthly_cost_to_date,
@@ -248,3 +252,72 @@ def test_evaluate_monthly_budget_uses_current_month_cost() -> None:
 
     assert evaluation.monthly_cost_eur == 11
     assert evaluation.status == "warn"
+
+
+def test_budget_hard_stop_path_uses_runtime_home(tmp_path: Path) -> None:
+    assert budget_hard_stop_path(tmp_path) == tmp_path / "budget"
+
+
+def test_clear_budget_hard_stop_returns_false_when_missing(tmp_path: Path) -> None:
+    assert clear_budget_hard_stop(tmp_path) is False
+
+
+def test_enforce_monthly_budget_writes_hard_stop_file(tmp_path: Path) -> None:
+    connection = sqlite3.connect(":memory:")
+    initialize_database(connection)
+    log_api_call(
+        connection,
+        ApiCallRecord(
+            timestamp="2026-05-18T17:30:00+02:00",
+            provider="google",
+            model="gemini-2.5-pro",
+            role="brainstorm",
+            input_tokens=1,
+            output_tokens=1,
+            cached_tokens=0,
+            cost_eur=81,
+        ),
+    )
+
+    result = enforce_monthly_budget(
+        runtime_home=tmp_path,
+        connection=connection,
+        now=datetime.fromisoformat("2026-05-18T18:00:00+02:00"),
+        warn_at_eur=30,
+        hard_stop_eur=80,
+    )
+
+    assert result.evaluation.status == "hard_stop"
+    assert result.hard_stop_active is True
+    assert result.hard_stop_path == tmp_path / "budget"
+    assert is_budget_hard_stop_active(tmp_path) is True
+    assert "monthly_cost_eur=81.0" in result.hard_stop_path.read_text(encoding="utf-8")
+
+
+def test_enforce_monthly_budget_warn_does_not_clear_existing_hard_stop(
+    tmp_path: Path,
+) -> None:
+    connection = sqlite3.connect(":memory:")
+    initialize_database(connection)
+    existing = tmp_path / "budget"
+    existing.write_text("status=hard_stop\n", encoding="utf-8")
+
+    result = enforce_monthly_budget(
+        runtime_home=tmp_path,
+        connection=connection,
+        now=datetime.fromisoformat("2026-05-18T18:00:00+02:00"),
+        warn_at_eur=0,
+        hard_stop_eur=80,
+    )
+
+    assert result.evaluation.status == "warn"
+    assert result.hard_stop_active is True
+    assert existing.exists()
+
+
+def test_clear_budget_hard_stop_removes_existing_file(tmp_path: Path) -> None:
+    path = tmp_path / "budget"
+    path.write_text("status=hard_stop\n", encoding="utf-8")
+
+    assert clear_budget_hard_stop(tmp_path) is True
+    assert is_budget_hard_stop_active(tmp_path) is False
