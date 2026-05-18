@@ -242,47 +242,146 @@ body::before {
 .path .cmd   { color: var(--fg); }
 .path .arg   { color: var(--warm); }
 
-/* ---------- project header (single project page) ---------- */
+/* ---------- project page ---------- */
 
-.project {
-  margin-top: 0.5rem;
+.project-head {
+  margin: 0.5rem 0 1.25rem;
 }
 
-.project .title {
+.project-title {
   font-family: var(--mono);
-  font-size: 1.6rem;
-  letter-spacing: 0.02em;
+  font-size: 1.7rem;
+  letter-spacing: 0.01em;
   color: var(--fg);
   font-weight: 600;
-  margin: 0.5rem 0 0.4rem;
+  margin: 0.5rem 0 0.5rem;
 }
+.project-title::before { content: "# "; color: var(--accent); }
 
-.project .title::before { content: "# "; color: var(--accent); }
-
-.project .lede {
+.project-head .lede {
   color: var(--fg-dim);
-  font-size: 0.95rem;
-  margin-bottom: 1rem;
-  max-width: 72ch;
+  font-size: 1rem;
+  max-width: 80ch;
+  line-height: 1.55;
 }
 
-.kv {
+/* two-pane grid: readme | sidebar */
+.project-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
-  gap: 0.35rem 1.5rem;
-  font-size: 0.82rem;
-  padding: 0.75rem 1rem;
-  background: var(--surface);
-  border: 1px solid var(--rule);
-  margin: 0.5rem 0 1.5rem;
+  grid-template-columns: minmax(0, 1fr) 360px;
+  gap: 1.5rem;
+  align-items: start;
+  margin-top: 0.75rem;
 }
-.kv .pair { display: flex; gap: 0.5rem; }
-.kv .k { color: var(--muted); }
-.kv .v { color: var(--fg); }
-.kv .v.accent { color: var(--accent); }
-.kv .v.cold   { color: var(--cold); }
-.kv .v.warm   { color: var(--warm); }
-.kv .v.dim    { color: var(--fg-dim); }
+
+/* ---------- pane (fieldset/legend gives the natural ── label ── break) ---------- */
+
+.pane {
+  border: 1px solid var(--rule);
+  background: var(--surface);
+  padding: 1.1rem 1.25rem 1.25rem;
+  margin: 0;
+  min-width: 0;
+}
+
+.pane > legend {
+  padding: 0 0.5rem;
+  margin-left: 0.4rem;
+  font-size: 0.74rem;
+  text-transform: lowercase;
+  letter-spacing: 0.08em;
+  color: var(--fg-dim);
+}
+.pane > legend::before { content: "─ "; color: var(--rule-2); }
+.pane > legend::after  { content: " ─"; color: var(--rule-2); }
+
+.pane .empty {
+  color: var(--muted);
+  font-size: 0.85rem;
+  font-style: italic;
+}
+
+/* readme pane gives the prose a comfortable measure even in a wide column */
+.prose-pane .prose { max-width: 78ch; }
+
+/* sidebar stack */
+.side {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  position: sticky;
+  top: 1rem;
+}
+
+/* meta dl: aligned key/value rows */
+.meta-dl {
+  display: grid;
+  grid-template-columns: 5.5rem 1fr;
+  gap: 0.5rem 0.85rem;
+  font-size: 0.86rem;
+}
+.meta-dl > div { display: contents; }
+.meta-dl dt { color: var(--muted); }
+.meta-dl dd { color: var(--fg); }
+.meta-dl dd.accent   { color: var(--accent); }
+.meta-dl dd.live     { color: var(--accent); }
+.meta-dl dd.research { color: var(--cold); }
+.meta-dl dd.shipped  { color: var(--warm); }
+.meta-dl dd.dormant  { color: var(--muted); }
+.meta-dl dd.critical { color: var(--crit); }
+.meta-dl dd a { color: var(--accent); border-bottom: 1px dotted var(--rule-2); }
+.meta-dl dd a:hover { border-bottom-style: solid; text-decoration: none; }
+
+/* sidebar log list — compact vertical entries with a left rail */
+.side-log {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  position: relative;
+}
+.side-log::before {
+  content: "";
+  position: absolute;
+  left: 0.35rem;
+  top: 0.5rem;
+  bottom: 0.5rem;
+  width: 1px;
+  background: var(--rule);
+}
+.side-log li { position: relative; padding: 0.65rem 0 0.8rem 1.2rem; border-bottom: 1px dashed var(--rule); }
+.side-log li:last-child { border-bottom: none; }
+.side-log li::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0.95rem;
+  width: 9px; height: 9px;
+  border: 1px solid var(--rule-2);
+  background: var(--surface);
+  border-radius: 50%;
+}
+.side-log li:hover::before { background: var(--accent); border-color: var(--accent); }
+.side-log a { display: block; color: var(--fg); }
+.side-log a:hover { text-decoration: none; }
+.side-log a:hover h3 { color: var(--accent); }
+.side-log time { display: block; font-size: 0.72rem; color: var(--fg-dim); margin-bottom: 0.2rem; }
+.side-log h3 {
+  font-family: var(--mono);
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--fg);
+  margin: 0 0 0.25rem;
+  line-height: 1.3;
+}
+.side-log h3::before { content: "→ "; color: var(--muted); }
+.side-log .ex { color: var(--fg-dim); font-size: 0.78rem; line-height: 1.45; }
+.side-log .tags { margin-top: 0.4rem; display: flex; flex-wrap: wrap; gap: 0.35rem; }
+.side-log .tag { font-size: 0.68rem; }
+
+@media (max-width: 900px) {
+  .project-grid { grid-template-columns: 1fr; }
+  .side { position: static; }
+}
 
 /* ---------- prose ---------- */
 
