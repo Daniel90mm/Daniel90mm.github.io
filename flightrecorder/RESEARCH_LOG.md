@@ -207,3 +207,26 @@ Added `scripts/termux-phone.sh` following the dorm-assistant pattern:
 - boot script starts only the backend, not publisher cron
 
 The helper was syntax-checked locally only. It was not run against the phone.
+
+## 2026-05-18 - Idea-capture operation boundary
+
+Extended build order step 8 below the provider boundary:
+- `parse_idea_operations()` validates JSON output from the future
+  idea-capture LLM call
+- malformed JSON, unknown operation types, unknown sections, empty required
+  fields, and more than eight operations fail closed
+- `apply_idea_operations()` routes project appends to append-only documents and
+  spaghetti operations to `~/flightrecorder/spaghetti/`
+- spaghetti ideas are written as markdown with frontmatter and indexed in
+  `metadata.db.ideas`
+- sessions are marked `extracted` after the operation list is applied, including
+  the empty-list case
+
+No provider calls, prompt changes, public API changes, or publisher behavior
+were added.
+
+Small-model work also produced:
+- offline Termux helper smoke test
+- chat endpoint SSE contract draft in `docs/CHAT_API_CONTRACT_DRAFT.md`
+
+The chat endpoint contract still requires Daniel approval before implementation.

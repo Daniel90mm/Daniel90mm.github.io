@@ -6,12 +6,12 @@ Rows for spec section 19 build-order steps 1--20.
 |------|------|--------|-------|
 | 1 | Backend skeleton | mostly done | FastAPI, sqlite schema, config, providers. Termux verification deferred. |
 | 2 | Session storage | done | File reader/writer, sqlite index, image storage, serializers, and approved `/api/sessions*` routes implemented. |
-| 3 | Chat endpoint | not started | |
+| 3 | Chat endpoint | not started | Contract draft exists in `docs/CHAT_API_CONTRACT_DRAFT.md`; implementation waits for Daniel approval. |
 | 4 | Frontend skeleton | not started | |
 | 5 | PWA manifest + service worker | not started | |
 | 6 | Voice input | not started | |
 | 7 | Tagger | not started | |
-| 8 | Project documents + idea capture | in progress | Append-only project document helpers and tests exist. Idea-capture LLM operation parsing and documents git auto-commit not wired. |
+| 8 | Project documents + idea capture | in progress | Append-only docs, spaghetti file writing, strict operation parsing, and sqlite indexing exist. LLM call and documents git auto-commit not wired. |
 | 9 | Spaghetti capture | not started | |
 | 10 | Pokemon mapping | not started | |
 | 11 | Matchmaker | not started | |

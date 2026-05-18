@@ -14,6 +14,7 @@ def main() -> None:
     import flightrecorder.costs
     import flightrecorder.database
     import flightrecorder.documents
+    import flightrecorder.idea_capture
     import flightrecorder.providers
     import flightrecorder.runtime
     import flightrecorder.schema
@@ -25,6 +26,7 @@ def main() -> None:
     print("costs ok")
     print("database ok")
     print("documents ok")
+    print("idea_capture ok")
     print("providers ok")
     print("runtime ok")
     print("schema ok")

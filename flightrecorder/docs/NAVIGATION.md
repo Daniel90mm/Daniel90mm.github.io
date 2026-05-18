@@ -10,6 +10,7 @@
 | `IDEAS_TRAIL.md` | Deferred ideas and risks. |
 | `SETUP.md` | Termux setup notes, filled out at build order step 19. |
 | `docs/API_CONTRACT_DRAFT.md` | Draft session-storage API payloads, requiring Daniel approval before implementation. |
+| `docs/CHAT_API_CONTRACT_DRAFT.md` | Draft chat SSE contract for `POST /api/sessions/{id}/messages`. |
 | `docs/API_CONTRACT_REVIEW.md` | Daniel's approval checklist for the API contract draft. |
 | `docs/BUILD_STATUS.md` | Build-order status for spec section 19 steps. |
 | `docs/MISSING_WORK.md` | Human-readable snapshot of remaining build steps. |

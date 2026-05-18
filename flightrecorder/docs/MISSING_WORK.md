@@ -30,8 +30,9 @@ progress.
 
 ## Open
 
-Step 8 has append-only project document helpers and tests. The idea-capture LLM
-operation parser and documents git auto-commit path are not wired yet.
+Step 8 has append-only project document helpers, strict idea operation parsing,
+spaghetti file writing, and sqlite indexing. The idea-capture LLM call and
+documents git auto-commit path are not wired yet.
 
 Step 19 has a documented Termux phone pattern and helper draft. It has not been
 run against pa-server.

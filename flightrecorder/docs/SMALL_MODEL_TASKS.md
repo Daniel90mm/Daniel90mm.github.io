@@ -55,76 +55,36 @@ regression is found:
 | S39 | Termux docs sync, completed by senior agent. |
 | S40 | Session API smoke command sync, completed by senior agent. |
 | S41 | Missing-work snapshot after API completion, completed by senior agent. |
+| S42 | API smoke route status docs, completed by senior agent. |
 | S43 | Termux helper smoke doc, completed by senior agent. |
+| S44 | Termux helper command tests. |
+| S45 | Chat endpoint contract draft. |
+| S46 | Idea-capture operation boundary, completed by senior agent. |
+| S47 | Idea-capture smoke command sync, completed by senior agent. |
 
 ## Active queue
 
 Pick from the top unless Daniel or the senior agent says otherwise.
 
-## S42 - API smoke route status docs
+## S48 - Idea-capture parser edge docs
 
 Where:
-- `flightrecorder/docs/BUILD_STATUS.md`
-- `flightrecorder/docs/MISSING_WORK.md`
-
-What:
-- Confirm step 2 is marked done and `/api/sessions*` is no longer described as
-  blocked.
-- Documentation-only.
-
-Why:
-- The API contract was approved and implemented; old blocker wording should not
-  survive.
-
-Smoke test:
-
-```sh
-cd /home/daniel/Documents/Projekter/Daniel90mm.github.io/flightrecorder
-grep -q 'Done: **1**' docs/MISSING_WORK.md
-! grep -q 'blocked on Daniel approval' docs/MISSING_WORK.md
-LC_ALL=C grep -n '[^ -~]' docs/BUILD_STATUS.md docs/MISSING_WORK.md && exit 1 || true
-```
-
-## S44 - Termux helper command tests
-
-Where:
-- `flightrecorder/tests/smoke/smoke_termux_helper.py`
-
-What:
-- Add a smoke script that checks `scripts/termux-phone.sh --help` exits 0 and
-  contains `install-boot`.
-- Do not connect to the phone.
-
-Why:
-- The helper is intentionally laptop-side; local smoke should stay offline.
-
-Smoke test:
-
-```sh
-cd /home/daniel/Documents/Projekter/Daniel90mm.github.io/flightrecorder
-.venv/bin/python tests/smoke/smoke_termux_helper.py
-```
-
-## S45 - Chat endpoint contract draft
-
-Where:
-- `flightrecorder/docs/CHAT_API_CONTRACT_DRAFT.md`
+- `flightrecorder/docs/IDEA_CAPTURE_VALIDATION.md`
 - `flightrecorder/docs/NAVIGATION.md`
 
 What:
-- Draft the request/response/SSE event shapes for
-  `POST /api/sessions/{id}/messages`.
-- Mark it as requiring Daniel approval before implementation.
-- Do not edit backend code.
+- Document what `parse_idea_operations()` accepts and rejects.
+- Mention the max of eight operations.
+- Documentation-only.
 
 Why:
-- The spec names the chat endpoint but not its exact streaming contract.
+- Future prompt/provider work needs to know the exact parser boundary.
 
 Smoke test:
 
 ```sh
 cd /home/daniel/Documents/Projekter/Daniel90mm.github.io/flightrecorder
-grep -q 'requires Daniel approval' docs/CHAT_API_CONTRACT_DRAFT.md
-grep -q 'POST /api/sessions/{id}/messages' docs/CHAT_API_CONTRACT_DRAFT.md
-LC_ALL=C grep -n '[^ -~]' docs/CHAT_API_CONTRACT_DRAFT.md docs/NAVIGATION.md && exit 1 || true
+grep -q 'max of eight' docs/IDEA_CAPTURE_VALIDATION.md
+grep -q 'docs/IDEA_CAPTURE_VALIDATION.md' docs/NAVIGATION.md
+LC_ALL=C grep -n '[^ -~]' docs/IDEA_CAPTURE_VALIDATION.md docs/NAVIGATION.md && exit 1 || true
 ```
