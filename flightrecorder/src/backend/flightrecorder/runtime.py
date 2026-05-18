@@ -20,6 +20,7 @@ class RuntimeContext:
     sessions: SessionStore
     pricing: PricingTable
     brainstorm_provider: ConfiguredProvider
+    idea_capture_provider: ConfiguredProvider
 
     def guard(self) -> ProviderCallGuard:
         return ProviderCallGuard(
@@ -46,7 +47,8 @@ def build_runtime_context(
         pricing_path = runtime_home.parent / "pricing.toml"
 
     pricing = _load_pricing_safe(pricing_path)
-    brainstorm = _create_brainstorm_safe(resolved_config)
+    brainstorm = _create_role_safe(resolved_config, "brainstorm")
+    idea_capture = _create_role_safe(resolved_config, "idea_capture")
 
     return RuntimeContext(
         config=resolved_config,
@@ -54,6 +56,7 @@ def build_runtime_context(
         sessions=SessionStore(runtime_home, resolved_database),
         pricing=pricing,
         brainstorm_provider=brainstorm,
+        idea_capture_provider=idea_capture,
     )
 
 
@@ -72,11 +75,11 @@ def _load_pricing_safe(path: Path) -> PricingTable:
     return parse_pricing({"models": {}})
 
 
-def _create_brainstorm_safe(config: AppConfig) -> ConfiguredProvider:
-    """Create the brainstorm provider, falling back to unconfigured if missing."""
+def _create_role_safe(config: AppConfig, role_name: str) -> ConfiguredProvider:
+    """Create a role provider, falling back to unconfigured if missing."""
 
     try:
-        return create_role_provider(config, "brainstorm")
+        return create_role_provider(config, role_name)
     except ProviderError:
         return ConfiguredProvider(
             name="none",

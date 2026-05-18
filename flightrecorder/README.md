@@ -17,16 +17,16 @@ scripts/dev-backend.sh
 
 ## Status
 
-Backend skeleton, session storage, approved `/api/sessions*` routes, and cost
-tracking are built.
+Backend skeleton, session storage, approved `/api/sessions*` routes, chat SSE,
+idea extraction, and cost tracking are built.
 
 Append-only project document helpers and idea-capture operation parsing with
-spaghetti/project routing exist, but the idea-capture LLM call itself is not
-yet wired.
+spaghetti/project routing exist. The idea-capture LLM call is wired through the
+configured `idea_capture` role.
 
 Budget tracking has a hard-stop sentinel helper and provider-call guard
-primitives (`check_before_call`, `record_usage`), but provider and chat paths
-do not enforce them yet -- real SDK calls are not yet wired.
+primitives (`check_before_call`, `record_usage`). Chat and extraction enforce
+the guard before provider calls and record usage after successful calls.
 
 ## Current API
 
@@ -34,6 +34,9 @@ do not enforce them yet -- real SDK calls are not yet wired.
 - `GET /api/sessions`
 - `GET /api/sessions/{session_id}`
 - `POST /api/sessions/{session_id}/upload`
+- `POST /api/sessions/{session_id}/messages`
+- `POST /api/sessions/{session_id}/extract`
+- `POST /api/matchmaker/run`
 
 ## Layout
 
