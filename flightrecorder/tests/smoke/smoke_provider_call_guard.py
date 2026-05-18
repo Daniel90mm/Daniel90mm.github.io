@@ -1,4 +1,4 @@
-"""Smoke test: provider call guard records usage and respects budget sentinel."""
+"""Smoke test: provider call guard records usage, respects sentinel, and writes sentinel on breach."""
 
 from __future__ import annotations
 
@@ -90,7 +90,54 @@ def main() -> None:
         except BudgetHardStopError:
             print("budget_sentinel_blocks: True")
 
+        print("--- hard-stop breach test ---")
+
+        budget_path.unlink()
+        connection2 = sqlite3.connect(":memory:")
+        initialize_database(connection2)
+        runtime_home2 = Path(tmp) / "breach"
+        runtime_home2.mkdir()
+
+        guard2 = ProviderCallGuard(
+            runtime_home=runtime_home2,
+            connection=connection2,
+            pricing=pricing,
+            warn_at_eur=5.0,
+            hard_stop_eur=10.0,
+        )
+
+        guard2.check_before_call(now)
+
+        expensive = ProviderUsage(
+            timestamp=now,
+            provider="test",
+            model="fake-model",
+            role="tagger",
+            input_tokens=500_000,
+            output_tokens=200_000,
+            cached_tokens=0,
+            session_id="session-expensive",
+        )
+
+        breach_result = guard2.record_usage(expensive)
+        breach_sentinel = runtime_home2 / "budget"
+
+        print(f"breach_sentinel_exists: {breach_sentinel.exists()}")
+        print(f"breach_budget_status: {breach_result.budget.evaluation.status}")
+        print(f"breach_hard_stop_active: {breach_result.budget.hard_stop_active}")
+
+        expensive_calls = connection2.execute(
+            "SELECT COUNT(*) FROM api_calls WHERE session_id = ?",
+            ("session-expensive",),
+        ).fetchone()[0]
+        print(f"expensive_call_in_api_calls: {expensive_calls == 1}")
+
+        assert breach_sentinel.exists(), "budget sentinel not written on breach"
+        assert breach_result.budget.hard_stop_active
+        assert expensive_calls == 1, "expensive call not logged"
+
         connection.close()
+        connection2.close()
 
     print("provider call guard smoke test passed")
 

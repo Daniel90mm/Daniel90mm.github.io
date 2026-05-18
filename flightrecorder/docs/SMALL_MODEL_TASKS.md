@@ -75,27 +75,28 @@ regression is found:
 | S59 | Provider call guard smoke. |
 | S60 | Provider call guard docs. |
 | S61 | Provider guard status sync. |
+| S62 | Provider guard hard-stop breach smoke. |
+| S63 | Budget/provider guard cross-links. |
+| S64 | Build status consistency audit. |
 
 ## Active queue
 
 Pick from the top unless Daniel or the senior agent says otherwise.
 
-## S62 - Provider guard hard-stop breach smoke
+## S65 - Provider guard missing pricing smoke
 
 Where:
 - `flightrecorder/tests/smoke/smoke_provider_call_guard.py`
 
 What:
-- Extend the smoke script to also record one deliberately expensive fake usage
-  that crosses `hard_stop_eur`.
-- Verify the temp `budget` sentinel is written after that call.
-- Verify the expensive call is still present in `api_calls`.
+- Extend the smoke script to verify that a usage record for an unknown model
+  raises `ValueError`.
+- Verify no `api_calls` row is inserted for the rejected unknown model.
 - Keep this smoke fully fake: no real `$FLIGHTRECORDER_HOME`, no real
   `pricing.toml`, and no provider SDK calls.
 
 Why:
-- The budget guard must record the call that breached the budget before
-  blocking future calls.
+- Missing pricing must fail closed before real provider calls are wired.
 
 Smoke test:
 
@@ -104,56 +105,167 @@ cd /home/daniel/Documents/Projekter/Daniel90mm.github.io/flightrecorder
 .venv/bin/python tests/smoke/smoke_provider_call_guard.py
 ```
 
-## S63 - Budget/provider guard cross-links
+## S66 - Provider guard mismatch smoke
 
 Where:
-- `flightrecorder/docs/BUDGET_GUARD.md`
-- `flightrecorder/docs/PROVIDER_CALL_GUARD.md`
-- `flightrecorder/docs/NAVIGATION.md`
+- `flightrecorder/tests/smoke/smoke_provider_call_guard.py`
 
 What:
-- Add short cross-links between the budget sentinel doc and the provider guard
-  doc.
-- Make clear that `BUDGET_GUARD.md` describes the sentinel lifecycle, while
-  `PROVIDER_CALL_GUARD.md` describes the paid-call enforcement path.
-- Documentation-only.
+- Extend the smoke script to verify that a usage record whose provider does
+  not match the pricing entry raises `ValueError`.
+- Verify no `api_calls` row is inserted for the rejected mismatch.
+- Keep this smoke fully fake.
 
 Why:
-- Future agents need to know which document answers which budget question.
+- Provider/model mismatches are usually configuration bugs and must not create
+  misleading cost rows.
 
 Smoke test:
 
 ```sh
 cd /home/daniel/Documents/Projekter/Daniel90mm.github.io/flightrecorder
-grep -q 'PROVIDER_CALL_GUARD.md' docs/BUDGET_GUARD.md
-grep -q 'BUDGET_GUARD.md' docs/PROVIDER_CALL_GUARD.md
-grep -q 'docs/PROVIDER_CALL_GUARD.md' docs/NAVIGATION.md
-LC_ALL=C grep -n '[^ -~]' docs/BUDGET_GUARD.md docs/PROVIDER_CALL_GUARD.md docs/NAVIGATION.md && exit 1 || true
+.venv/bin/python tests/smoke/smoke_provider_call_guard.py
 ```
 
-## S64 - Build status consistency audit
+## S67 - Provider guard doc examples
 
 Where:
-- `flightrecorder/docs/BUILD_STATUS.md`
-- `flightrecorder/docs/MISSING_WORK.md`
+- `flightrecorder/docs/PROVIDER_CALL_GUARD.md`
+
+What:
+- Add a short "Failure cases" section covering:
+  missing pricing, provider/model mismatch, existing budget sentinel, and
+  post-call hard-stop breach.
+- Documentation-only. Do not mention commands that do not exist.
+
+Why:
+- The guard is small but security/cost critical; future agents should know the
+  intended fail-closed behavior.
+
+Smoke test:
+
+```sh
+cd /home/daniel/Documents/Projekter/Daniel90mm.github.io/flightrecorder
+grep -q 'Failure cases' docs/PROVIDER_CALL_GUARD.md
+grep -q 'missing pricing' docs/PROVIDER_CALL_GUARD.md
+grep -q 'provider/model mismatch' docs/PROVIDER_CALL_GUARD.md
+LC_ALL=C grep -n '[^ -~]' docs/PROVIDER_CALL_GUARD.md && exit 1 || true
+```
+
+## S68 - Build status audit navigation
+
+Where:
+- `flightrecorder/docs/NAVIGATION.md`
 - `flightrecorder/docs/BUILD_STATUS_AUDIT.md`
 
 What:
-- Create a short audit that compares `BUILD_STATUS.md` and `MISSING_WORK.md`
-  against spec section 19.
-- List any mismatch you find and fix only obvious doc drift in
-  `BUILD_STATUS.md` or `MISSING_WORK.md`.
-- Do not change code or the spec.
+- Add `docs/BUILD_STATUS_AUDIT.md` to `docs/NAVIGATION.md`.
+- Add a one-line "Last audited" note at the top of
+  `docs/BUILD_STATUS_AUDIT.md` with today's date.
+- Documentation-only.
 
 Why:
-- The status docs are now updated by several agents and need a consistency
-  check before the next implementation wave.
+- The audit is only useful if future agents can find it and know when it was
+  last checked.
 
 Smoke test:
 
 ```sh
 cd /home/daniel/Documents/Projekter/Daniel90mm.github.io/flightrecorder
-grep -q 'Step 17' docs/BUILD_STATUS_AUDIT.md
-grep -q 'Step 19' docs/BUILD_STATUS_AUDIT.md
-LC_ALL=C grep -n '[^ -~]' docs/BUILD_STATUS.md docs/MISSING_WORK.md docs/BUILD_STATUS_AUDIT.md && exit 1 || true
+grep -q 'docs/BUILD_STATUS_AUDIT.md' docs/NAVIGATION.md
+grep -q 'Last audited' docs/BUILD_STATUS_AUDIT.md
+LC_ALL=C grep -n '[^ -~]' docs/NAVIGATION.md docs/BUILD_STATUS_AUDIT.md && exit 1 || true
+```
+
+## S69 - Smoke command all-loop audit
+
+Where:
+- `flightrecorder/docs/SMOKE_COMMANDS.md`
+
+What:
+- Compare every file in `tests/smoke/*.py` with the smoke command table.
+- Add any missing smoke script rows.
+- Make sure the all-smoke loop routes every FastAPI/package-dependent smoke
+  through `.venv/bin/python`.
+- Documentation-only.
+
+Why:
+- The smoke list has become the handoff surface for small tasks; it should not
+  silently miss scripts.
+
+Smoke test:
+
+```sh
+cd /home/daniel/Documents/Projekter/Daniel90mm.github.io/flightrecorder
+for script in tests/smoke/*.py; do grep -q "$(basename "$script")" docs/SMOKE_COMMANDS.md; done
+LC_ALL=C grep -n '[^ -~]' docs/SMOKE_COMMANDS.md && exit 1 || true
+```
+
+## S70 - README status line wrap
+
+Where:
+- `flightrecorder/README.md`
+
+What:
+- Reflow the long status paragraph into readable lines without changing its
+  meaning.
+- Do not add claims about real provider SDK calls, chat endpoint completion, or
+  frontend work.
+- Documentation-only.
+
+Why:
+- The README status is getting too dense and easy to misread.
+
+Smoke test:
+
+```sh
+cd /home/daniel/Documents/Projekter/Daniel90mm.github.io/flightrecorder
+grep -q 'real SDK calls are not yet wired' README.md
+LC_ALL=C grep -n '[^ -~]' README.md && exit 1 || true
+```
+
+## S71 - Termux helper dry-run docs
+
+Where:
+- `flightrecorder/docs/TERMUX_PHONE_PATTERN.md`
+- `flightrecorder/docs/NAVIGATION.md`
+
+What:
+- Add a short section describing what has and has not been run on pa-server:
+  dorm-assistant pattern inspected, helper syntax/smoke checked locally,
+  phone execution still pending.
+- Documentation-only. Do not run phone commands.
+
+Why:
+- Step 19 is intentionally in progress; future agents need the exact boundary.
+
+Smoke test:
+
+```sh
+cd /home/daniel/Documents/Projekter/Daniel90mm.github.io/flightrecorder
+grep -q 'phone execution still pending' docs/TERMUX_PHONE_PATTERN.md
+grep -q 'docs/TERMUX_PHONE_PATTERN.md' docs/NAVIGATION.md
+LC_ALL=C grep -n '[^ -~]' docs/TERMUX_PHONE_PATTERN.md docs/NAVIGATION.md && exit 1 || true
+```
+
+## S72 - Small task queue integrity check
+
+Where:
+- `flightrecorder/docs/SMALL_MODEL_TASKS.md`
+- `flightrecorder/tests/smoke/smoke_small_model_tasks.py`
+
+What:
+- Add a smoke script that checks task IDs are unique and increase
+  monotonically within the completed ledger plus active queue.
+- Keep it parser-light: regex over `SNN` headings and ledger rows is fine.
+
+Why:
+- This file is now a coordination surface for parallel work; duplicate task IDs
+  would waste time.
+
+Smoke test:
+
+```sh
+cd /home/daniel/Documents/Projekter/Daniel90mm.github.io/flightrecorder
+.venv/bin/python tests/smoke/smoke_small_model_tasks.py
 ```

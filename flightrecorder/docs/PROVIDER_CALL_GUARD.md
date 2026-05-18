@@ -43,3 +43,6 @@ wired. The chat endpoint, tagger, idea-capture, matchmaker, curator, and
 reviewer paths all need to call `check_before_call()` and
 `record_usage()` around their actual LLM calls. Currently only the smoke
 test exercises the guard.
+
+See also: [BUDGET_GUARD.md](BUDGET_GUARD.md) for the sentinel lifecycle:
+when it gets written, why it persists, and how to clear it.

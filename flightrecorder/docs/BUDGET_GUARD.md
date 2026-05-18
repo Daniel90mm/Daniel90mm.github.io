@@ -23,6 +23,9 @@ A hard-stop means "someone should look at this." Auto-clearing on month
 rollover hides the fact that the budget was hit. The sentinel stays until
 Daniel decides to remove it.
 
+See also: [PROVIDER_CALL_GUARD.md](PROVIDER_CALL_GUARD.md) for the paid-call
+enforcement path that checks this sentinel before allowing provider calls.
+
 ## Enforce function
 
 `enforce_monthly_budget(runtime_home, connection, now, warn_at_eur, hard_stop_eur)`:
