@@ -387,6 +387,128 @@ Hand-back:
 - When the tests pass, stop. Do not commit. Daniel verifies the diff and the
   test run before commit.
 
+## S117 - Idea-capture LLM wiring (BIG task)
+
+Daniel has explicitly approved LLM calls and prompt-touch for this scope. The
+prompt at `prompts/idea-capture.md` is fixed - do not edit it.
+
+Where:
+- `flightrecorder/src/backend/flightrecorder/idea_capture.py` (extend; do not
+  refactor the existing `parse_idea_operations` / `apply_idea_operations`)
+- `flightrecorder/src/backend/flightrecorder/api.py` (add a new route only)
+- `flightrecorder/src/backend/flightrecorder/runtime.py` (add an
+  `idea_capture_provider` field, parallel to `brainstorm_provider`)
+- `flightrecorder/tests/integration/test_extraction_endpoint.py` (new)
+
+What:
+- Add a function in `idea_capture.py`:
+  ```python
+  async def run_idea_capture(
+      provider: Provider,
+      prompt_text: str,
+      transcript: str,
+  ) -> tuple[str, UsageEvent]:
+      """Call the idea-capture provider and return raw JSON output + usage."""
+  ```
+  Behaviour: build `[Message(role="user", content=transcript)]`, call
+  `provider.chat(messages, system=prompt_text)`, accumulate every `TokenEvent`
+  into a single string, capture the final `UsageEvent`. Raise
+  `IdeaCaptureError` if the stream finishes without a UsageEvent.
+- Add a helper that renders a session's stored messages into the transcript
+  string the prompt expects. Format: one block per message,
+  `## <role>\n<content>\n` joined by blank lines. Use existing
+  `SessionStore.get_session()` to load messages.
+- Load the idea-capture prompt text from `prompts/idea-capture.md` once at
+  module import time (cache it). Do not inline the prompt text in code.
+- Add `POST /api/sessions/{session_id}/extract` route. Flow:
+  1. Load session via `runtime.sessions.get_session(session_id)`. 404 if
+     missing.
+  2. `runtime.guard().check_before_call(datetime.now(timezone.utc))`. 503 if
+     `BudgetHardStopError` per S116's pattern.
+  3. `raw, usage = await run_idea_capture(runtime.idea_capture_provider,
+     IDEA_CAPTURE_PROMPT, transcript)`. On `IdeaCaptureError` from
+     `run_idea_capture` (no UsageEvent) return 502
+     `{"detail": "idea-capture provider returned no usage"}`.
+  4. `operations = parse_idea_operations(raw)`. On `IdeaCaptureError` from
+     malformed output return 422 with `{"detail": str(exc)}`. **Do not apply
+     partial operations.** Do not retry. Fail closed.
+  5. `applied = apply_idea_operations(runtime_home=..., connection=...,
+     source_session=session_id, operations=operations,
+     captured_at=datetime.now(timezone.utc), commit_documents=True)`.
+  6. `runtime.guard().record_usage(ProviderUsage(...))` with the role
+     `"idea_capture"` and the session_id. Always log usage if the provider
+     call succeeded, even if parsing later fails. (Specifically: log usage
+     between steps 3 and 4, not after 5.)
+  7. Return JSON:
+     ```json
+     {
+       "session_id": "...",
+       "project_appends": <int>,
+       "spaghetti": <int>,
+       "documents_committed": <bool>
+     }
+     ```
+- Runtime: construct `idea_capture_provider` via
+  `create_role_provider(config, "idea_capture")`. Use the same safe-fallback
+  helper pattern S116 used for `brainstorm_provider` (an unconfigured shell
+  provider when the role is missing) so tests that don't configure the role
+  still build runtime cleanly.
+
+Do NOT:
+- Edit `prompts/idea-capture.md`. Read it as text; that's all.
+- Retry on malformed output. Spec section "Idea-capture LLM" says fail
+  closed. See `docs/IDEA_CAPTURE_RETRY_POLICY.md`.
+- Apply operations partially. Either all parse + all apply, or none.
+- Change the existing parse/apply function signatures.
+- Use the brainstorm provider for extraction. Idea-capture has its own role
+  and uses a cheap model.
+
+Tests (`tests/integration/test_extraction_endpoint.py`):
+- Reuse the `StubProvider` pattern from S116's chat endpoint test (copy or
+  factor a helper). Each test injects a stub onto
+  `runtime.idea_capture_provider`.
+- Cover:
+  1. Happy path: stub yields JSON for one project_append and one spaghetti,
+     plus a UsageEvent. Endpoint returns 200 with counts {project_appends: 1,
+     spaghetti: 1, documents_committed: true}. Verify the project document
+     gained the bullet, the spaghetti file exists, the sqlite `ideas` table
+     has one row, and `api_calls` has exactly one row tagged
+     `role="idea_capture"`.
+  2. Malformed output: stub yields `"not json"` plus a UsageEvent. Endpoint
+     returns 422 with detail mentioning JSON. Verify the api_calls row was
+     still logged (usage logging happens before parsing). Verify no idea
+     rows, no spaghetti files, no document edits.
+  3. No usage: stub yields tokens but no UsageEvent. Endpoint returns 502
+     with the expected detail. Verify no api_calls row, no document edits.
+  4. Budget hard-stop active: 503 with `{"detail": "Budget hard-stop active"}`.
+     No provider call, no api_calls row.
+  5. Unknown session: 404 with `{"detail": "Session not found"}`.
+
+Why:
+- Spec section 8 (Project documents + idea capture) and build order step 8
+  list this. Capture mechanics are in place; the LLM call is the last
+  missing piece for end-to-end. Without this, every session that ends just
+  sits there - nothing gets routed to project documents or the spaghetti
+  wall.
+- Idea-capture is a doxxing-adjacent path because spaghetti ideas may
+  surface for publishing later. Failing closed on malformed output is what
+  prevents corrupted JSON from getting partially applied and propagating.
+
+Smoke test:
+
+```sh
+cd /home/daniel/Documents/Projekter/Daniel90mm.github.io/flightrecorder
+.venv/bin/python -m pytest tests/integration/test_extraction_endpoint.py -q
+.venv/bin/python -m pytest tests/unit/test_idea_capture.py \
+    tests/integration/test_idea_capture_pipeline.py \
+    tests/integration/test_chat_endpoint.py \
+    tests/unit/test_providers.py -q
+# Both must pass.
+```
+
+Hand-back:
+- When the tests pass, stop. Do not commit. Daniel verifies before commit.
+
 ## S115 - Build status: project registry now in progress
 
 Where:
