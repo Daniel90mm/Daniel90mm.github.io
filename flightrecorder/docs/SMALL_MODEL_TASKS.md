@@ -61,6 +61,7 @@ regression is found:
 | S45 | Chat endpoint contract draft. |
 | S46 | Idea-capture operation boundary, completed by senior agent. |
 | S47 | Idea-capture smoke command sync, completed by senior agent. |
+| S52 | Documents git auto-commit path, completed by senior agent. |
 
 ## Active queue
 
@@ -87,4 +88,93 @@ cd /home/daniel/Documents/Projekter/Daniel90mm.github.io/flightrecorder
 grep -q 'max of eight' docs/IDEA_CAPTURE_VALIDATION.md
 grep -q 'docs/IDEA_CAPTURE_VALIDATION.md' docs/NAVIGATION.md
 LC_ALL=C grep -n '[^ -~]' docs/IDEA_CAPTURE_VALIDATION.md docs/NAVIGATION.md && exit 1 || true
+```
+
+## S49 - Idea-capture README status
+
+Where:
+- `flightrecorder/README.md`
+
+What:
+- Add one short status sentence saying idea-capture operation parsing and
+  spaghetti/project routing exist, but the LLM call itself is not wired.
+- Do not add commands that do not exist.
+
+Why:
+- Step 8 is partially implemented; the README should not overclaim.
+
+Smoke test:
+
+```sh
+cd /home/daniel/Documents/Projekter/Daniel90mm.github.io/flightrecorder
+grep -q 'idea-capture operation parsing' README.md
+LC_ALL=C grep -n '[^ -~]' README.md && exit 1 || true
+```
+
+## S50 - Idea-capture smoke docs
+
+Where:
+- `flightrecorder/docs/SMOKE_COMMANDS.md`
+
+What:
+- Confirm `smoke_idea_capture.py` and `smoke_termux_helper.py` are both listed
+  in the smoke command table and all-smoke loop.
+- Documentation-only.
+
+Why:
+- The active smoke list should reflect the latest helper scripts.
+
+Smoke test:
+
+```sh
+cd /home/daniel/Documents/Projekter/Daniel90mm.github.io/flightrecorder
+grep -q 'smoke_idea_capture.py' docs/SMOKE_COMMANDS.md
+grep -q 'smoke_termux_helper.py' docs/SMOKE_COMMANDS.md
+LC_ALL=C grep -n '[^ -~]' docs/SMOKE_COMMANDS.md && exit 1 || true
+```
+
+## S51 - Documents git smoke
+
+Where:
+- `flightrecorder/tests/smoke/smoke_documents_git.py`
+
+What:
+- Add a smoke script that creates a temp `documents/` repo with
+  `ensure_documents_repo`, appends a project document, commits it, and prints
+  the latest commit subject.
+- Do not touch real `~/flightrecorder/documents/`.
+
+Why:
+- Project documents have their own git history; this must stay easy to verify.
+
+Smoke test:
+
+```sh
+cd /home/daniel/Documents/Projekter/Daniel90mm.github.io/flightrecorder
+.venv/bin/python tests/smoke/smoke_documents_git.py
+```
+
+## S53 - Documents git docs
+
+Where:
+- `flightrecorder/docs/DOCUMENTS_GIT.md`
+- `flightrecorder/docs/NAVIGATION.md`
+
+What:
+- Document that `~/flightrecorder/documents/` is its own git repo, initialized
+  by `ensure_documents_repo()`, and committed by `commit_documents_repo()`.
+- Mention that clean-tree commits are skipped.
+- Documentation-only.
+
+Why:
+- This is a core append-only audit trail and should be explicit for future
+  agents.
+
+Smoke test:
+
+```sh
+cd /home/daniel/Documents/Projekter/Daniel90mm.github.io/flightrecorder
+grep -q 'clean-tree commits are skipped' docs/DOCUMENTS_GIT.md
+grep -q 'docs/DOCUMENTS_GIT.md' docs/NAVIGATION.md
+LC_ALL=C grep -n '[^ -~]' docs/DOCUMENTS_GIT.md docs/NAVIGATION.md && exit 1 || true
 ```

@@ -9,7 +9,10 @@ from flightrecorder.documents import (
     ProjectDocumentError,
     ProjectSectionMissingError,
     append_to_project_document,
+    commit_documents_repo,
     create_project_document,
+    documents_dir,
+    ensure_documents_repo,
     insert_append_block,
     normalize_bullet_content,
     project_document_path,
@@ -157,3 +160,28 @@ def test_sanitize_strips_trailing_special_chars() -> None:
 
 def test_sanitize_squashes_multiple_special_chars() -> None:
     assert sanitize_project_ref("pulse  oximeter") == "pulse-oximeter"
+
+
+def test_ensure_documents_repo_initializes_git_repo(tmp_path: Path) -> None:
+    path = documents_dir(tmp_path)
+
+    ensure_documents_repo(path)
+
+    assert (path / ".git").exists()
+
+
+def test_commit_documents_repo_commits_changes_and_skips_clean_tree(
+    tmp_path: Path,
+) -> None:
+    path = documents_dir(tmp_path)
+    create_project_document(
+        tmp_path,
+        "fnirs",
+        datetime.fromisoformat("2026-05-18T18:45:00+02:00"),
+    )
+
+    committed = commit_documents_repo(path, "Initial project docs")
+    skipped = commit_documents_repo(path, "No changes")
+
+    assert committed is True
+    assert skipped is False

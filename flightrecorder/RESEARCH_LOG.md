@@ -230,3 +230,16 @@ Small-model work also produced:
 - chat endpoint SSE contract draft in `docs/CHAT_API_CONTRACT_DRAFT.md`
 
 The chat endpoint contract still requires Daniel approval before implementation.
+
+## 2026-05-18 - Documents git auto-commit path
+
+Finished the project-document git primitive for build order step 8:
+- `ensure_documents_repo()` initializes `~/flightrecorder/documents/` as a git
+  repo if needed
+- `commit_documents_repo()` stages document changes, commits with a local bot
+  identity, and returns `False` instead of failing on a clean tree
+- `apply_idea_operations(..., commit_documents=True)` now commits project
+  document appends and reports whether a commit happened
+
+This still does not call the idea-capture LLM. The next step 8 boundary is
+provider execution plus cost logging around that call.

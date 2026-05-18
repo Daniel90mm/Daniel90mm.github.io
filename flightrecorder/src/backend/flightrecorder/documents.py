@@ -157,17 +157,53 @@ def update_last_appended(text: str, timestamp: str) -> str:
     return updated
 
 
-def commit_documents_repo(documents_path: Path, message: str) -> None:
+def ensure_documents_repo(documents_path: Path) -> None:
+    """Ensure the project documents directory is an initialized git repo."""
+
+    documents_path.mkdir(parents=True, exist_ok=True)
+    if (documents_path / ".git").exists():
+        return
+    subprocess.run(
+        ["git", "-C", str(documents_path), "init"],
+        check=True,
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL,
+    )
+
+
+def commit_documents_repo(documents_path: Path, message: str) -> bool:
     """Commit changed project documents in their own git repository."""
+
+    ensure_documents_repo(documents_path)
 
     subprocess.run(
         ["git", "-C", str(documents_path), "add", "."],
         check=True,
     )
-    subprocess.run(
-        ["git", "-C", str(documents_path), "commit", "-m", message],
-        check=True,
+    diff = subprocess.run(
+        ["git", "-C", str(documents_path), "diff", "--cached", "--quiet"],
+        check=False,
     )
+    if diff.returncode == 0:
+        return False
+    subprocess.run(
+        [
+            "git",
+            "-C",
+            str(documents_path),
+            "-c",
+            "user.name=flightrecorder",
+            "-c",
+            "user.email=flightrecorder@example.invalid",
+            "commit",
+            "-m",
+            message,
+        ],
+        check=True,
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL,
+    )
+    return True
 
 
 def sanitize_project_ref(value: str) -> str:

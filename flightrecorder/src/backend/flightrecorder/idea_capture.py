@@ -48,6 +48,7 @@ IdeaOperation = ProjectAppendOperation | SpaghettiOperation
 class AppliedIdeaOperations:
     project_paths: list[Path]
     spaghetti_paths: list[Path]
+    documents_committed: bool = False
 
 
 def parse_idea_operations(raw_output: str) -> list[IdeaOperation]:
@@ -107,8 +108,9 @@ def apply_idea_operations(
 
     mark_session_extracted(connection, source_session, timestamp)
 
+    documents_committed = False
     if commit_documents and project_paths:
-        commit_documents_repo(
+        documents_committed = commit_documents_repo(
             documents_dir(runtime_home),
             f"Append ideas from {source_session}",
         )
@@ -116,6 +118,7 @@ def apply_idea_operations(
     return AppliedIdeaOperations(
         project_paths=project_paths,
         spaghetti_paths=spaghetti_paths,
+        documents_committed=documents_committed,
     )
 
 

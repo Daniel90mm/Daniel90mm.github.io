@@ -138,6 +138,37 @@ def test_apply_idea_operations_appends_project_and_writes_spaghetti(tmp_path: Pa
         "unmatched",
     )
     assert session_row == (1, "2026-05-18T19:00:00+02:00")
+    assert result.documents_committed is False
+
+
+def test_apply_idea_operations_can_commit_document_repo(tmp_path: Path) -> None:
+    connection = sqlite3.connect(":memory:")
+    initialize_database(connection)
+    source_session = "2026-05-18-1730-fnirs-abcd1234"
+    index_session(connection, make_session_metadata(source_session), tmp_path / "session.md")
+    create_project_document(
+        tmp_path,
+        "fnirs",
+        datetime.fromisoformat("2026-05-18T18:45:00+02:00"),
+    )
+
+    result = apply_idea_operations(
+        runtime_home=tmp_path,
+        connection=connection,
+        source_session=source_session,
+        captured_at=datetime.fromisoformat("2026-05-18T19:00:00+02:00"),
+        operations=[
+            ProjectAppendOperation(
+                project_ref="fnirs",
+                section="TODOs",
+                content="prototype the amplifier",
+            )
+        ],
+        commit_documents=True,
+    )
+
+    assert result.documents_committed is True
+    assert (tmp_path / "documents" / ".git").exists()
 
 
 def test_apply_empty_operations_marks_session_extracted(tmp_path: Path) -> None:
