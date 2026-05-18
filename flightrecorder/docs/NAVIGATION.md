@@ -18,6 +18,7 @@
 | `docs/BUILD_STATUS.md` | Build-order status for spec section 19 steps. |
 | `docs/MISSING_WORK.md` | Human-readable snapshot of remaining build steps. |
 | `docs/PRICING_FORMAT.md` | Expected pricing.toml shape with zero placeholder rates. |
+| `docs/PROVIDER_CALL_GUARD.md` | Provider call guard flow: preflight, record, cost log, budget enforcement. |
 | `docs/SMALL_MODEL_TASKS.md` | Narrow tasks with smoke tests for smaller models. |
 | `docs/SMOKE_COMMANDS.md` | Quick index and one-liner for all smoke scripts. |
 | `docs/PROMPT_DRIFT.md` | Prompt vs spec section 8 drift report. |

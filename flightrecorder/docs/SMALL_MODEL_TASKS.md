@@ -72,28 +72,30 @@ regression is found:
 | S56 | Budget docs update. |
 | S57 | Smoke command sync for new guards. |
 | S58 | Budget guard README status. |
+| S59 | Provider call guard smoke. |
+| S60 | Provider call guard docs. |
+| S61 | Provider guard status sync. |
 
 ## Active queue
 
 Pick from the top unless Daniel or the senior agent says otherwise.
 
-## S59 - Provider call guard smoke
+## S62 - Provider guard hard-stop breach smoke
 
 Where:
 - `flightrecorder/tests/smoke/smoke_provider_call_guard.py`
 
 What:
-- After the senior agent lands the provider-call guard, add a smoke script that:
-  creates an in-memory metadata database, creates a tiny pricing table, records
-  one fake provider usage through the guard, and verifies one `api_calls` row.
-- Also verify that an existing temp `budget` sentinel makes the guard refuse a
-  new paid call.
-- Do not touch real `$FLIGHTRECORDER_HOME`, real `pricing.toml`, or provider
-  SDKs.
+- Extend the smoke script to also record one deliberately expensive fake usage
+  that crosses `hard_stop_eur`.
+- Verify the temp `budget` sentinel is written after that call.
+- Verify the expensive call is still present in `api_calls`.
+- Keep this smoke fully fake: no real `$FLIGHTRECORDER_HOME`, no real
+  `pricing.toml`, and no provider SDK calls.
 
 Why:
-- Paid provider execution must have one obvious guard path before real LLM
-  calls are wired.
+- The budget guard must record the call that breached the budget before
+  blocking future calls.
 
 Smoke test:
 
@@ -102,57 +104,56 @@ cd /home/daniel/Documents/Projekter/Daniel90mm.github.io/flightrecorder
 .venv/bin/python tests/smoke/smoke_provider_call_guard.py
 ```
 
-## S60 - Provider call guard docs
+## S63 - Budget/provider guard cross-links
 
 Where:
+- `flightrecorder/docs/BUDGET_GUARD.md`
 - `flightrecorder/docs/PROVIDER_CALL_GUARD.md`
 - `flightrecorder/docs/NAVIGATION.md`
 
 What:
-- After the senior agent lands the provider-call guard, document the intended
-  flow:
-  preflight budget check -> provider SDK call -> token usage cost computation
-  -> `api_calls` insert -> post-call budget enforcement.
-- Mention that real provider SDK calls are still not wired.
+- Add short cross-links between the budget sentinel doc and the provider guard
+  doc.
+- Make clear that `BUDGET_GUARD.md` describes the sentinel lifecycle, while
+  `PROVIDER_CALL_GUARD.md` describes the paid-call enforcement path.
 - Documentation-only.
 
 Why:
-- Future provider implementation should not bypass cost logging or the
-  hard-stop sentinel.
+- Future agents need to know which document answers which budget question.
 
 Smoke test:
 
 ```sh
 cd /home/daniel/Documents/Projekter/Daniel90mm.github.io/flightrecorder
-grep -q 'preflight budget check' docs/PROVIDER_CALL_GUARD.md
-grep -q 'api_calls' docs/PROVIDER_CALL_GUARD.md
+grep -q 'PROVIDER_CALL_GUARD.md' docs/BUDGET_GUARD.md
+grep -q 'BUDGET_GUARD.md' docs/PROVIDER_CALL_GUARD.md
 grep -q 'docs/PROVIDER_CALL_GUARD.md' docs/NAVIGATION.md
-LC_ALL=C grep -n '[^ -~]' docs/PROVIDER_CALL_GUARD.md docs/NAVIGATION.md && exit 1 || true
+LC_ALL=C grep -n '[^ -~]' docs/BUDGET_GUARD.md docs/PROVIDER_CALL_GUARD.md docs/NAVIGATION.md && exit 1 || true
 ```
 
-## S61 - Provider guard status sync
+## S64 - Build status consistency audit
 
 Where:
-- `flightrecorder/README.md`
 - `flightrecorder/docs/BUILD_STATUS.md`
 - `flightrecorder/docs/MISSING_WORK.md`
-- `flightrecorder/docs/SMOKE_COMMANDS.md`
+- `flightrecorder/docs/BUILD_STATUS_AUDIT.md`
 
 What:
-- After S59 is complete, add `smoke_provider_call_guard.py` to the smoke index.
-- Add one short README/status note saying provider-call guard primitives exist,
-  but real SDK calls are not wired.
-- Documentation-only.
+- Create a short audit that compares `BUILD_STATUS.md` and `MISSING_WORK.md`
+  against spec section 19.
+- List any mismatch you find and fix only obvious doc drift in
+  `BUILD_STATUS.md` or `MISSING_WORK.md`.
+- Do not change code or the spec.
 
 Why:
-- The repo status should stay accurate as step 17 moves from raw budget helpers
-  toward guarded paid-call execution.
+- The status docs are now updated by several agents and need a consistency
+  check before the next implementation wave.
 
 Smoke test:
 
 ```sh
 cd /home/daniel/Documents/Projekter/Daniel90mm.github.io/flightrecorder
-grep -q 'smoke_provider_call_guard.py' docs/SMOKE_COMMANDS.md
-grep -q 'provider-call guard' README.md docs/BUILD_STATUS.md docs/MISSING_WORK.md
-LC_ALL=C grep -n '[^ -~]' README.md docs/BUILD_STATUS.md docs/MISSING_WORK.md docs/SMOKE_COMMANDS.md && exit 1 || true
+grep -q 'Step 17' docs/BUILD_STATUS_AUDIT.md
+grep -q 'Step 19' docs/BUILD_STATUS_AUDIT.md
+LC_ALL=C grep -n '[^ -~]' docs/BUILD_STATUS.md docs/MISSING_WORK.md docs/BUILD_STATUS_AUDIT.md && exit 1 || true
 ```

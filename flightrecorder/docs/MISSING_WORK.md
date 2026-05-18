@@ -34,8 +34,8 @@ Step 8 has append-only project document helpers, strict idea operation parsing,
 spaghetti file writing, sqlite indexing, and documents git auto-commit. The
 idea-capture LLM call is not wired yet.
 
+Step 17 has budget logging, sentinel enforcement, and provider-call guard
+primitives. Real provider SDK calls are not yet wired.
+
 Step 19 has a documented Termux phone pattern and helper draft. It has not been
 run against pa-server.
-
-Step 17 has cost logging, pricing, monthly rollup, threshold evaluation, and
-the `budget` sentinel helper. Provider/chat paths do not enforce it yet.
