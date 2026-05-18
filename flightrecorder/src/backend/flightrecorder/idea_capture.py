@@ -17,7 +17,8 @@ from flightrecorder.documents import (
     documents_dir,
     sanitize_project_ref,
 )
-from flightrecorder.storage import format_frontmatter_value, sanitize_slug
+from flightrecorder.providers import Message, Provider, TokenEvent, UsageEvent
+from flightrecorder.storage import ChatMessage, SessionMetadata, format_frontmatter_value, sanitize_slug
 
 
 MAX_IDEA_OPERATIONS = 8
@@ -25,6 +26,50 @@ MAX_IDEA_OPERATIONS = 8
 
 class IdeaCaptureError(RuntimeError):
     """Raised when idea-capture output cannot be trusted."""
+
+
+def _load_prompt_text() -> str:
+    """Return the idea-capture prompt text, cached at module import time."""
+
+    prompt_path = Path(__file__).resolve().parent.parent.parent.parent / "prompts" / "idea-capture.md"
+    return prompt_path.read_text(encoding="utf-8")
+
+
+IDEA_CAPTURE_PROMPT = _load_prompt_text()
+
+
+def transcript_from_messages(messages: list[ChatMessage]) -> str:
+    """Render stored ChatMessages as a prompt-ready transcript string."""
+
+    parts: list[str] = []
+    for message in messages:
+        parts.append(f"## {message.role}\n{message.content}")
+    return "\n\n".join(parts)
+
+
+async def run_idea_capture(
+    provider: Provider,
+    prompt_text: str,
+    transcript: str,
+) -> tuple[str, UsageEvent]:
+    """Call the idea-capture provider and return raw JSON output + usage."""
+
+    accumulated: list[str] = []
+    usage: UsageEvent | None = None
+
+    async for event in provider.chat(
+        messages=[Message(role="user", content=transcript)],
+        system=prompt_text,
+    ):
+        if isinstance(event, TokenEvent):
+            accumulated.append(event.text)
+        elif isinstance(event, UsageEvent):
+            usage = event
+
+    if usage is None:
+        raise IdeaCaptureError("idea-capture provider returned no usage info")
+
+    return "".join(accumulated), usage
 
 
 @dataclass(frozen=True)

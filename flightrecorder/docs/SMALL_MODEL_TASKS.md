@@ -7,6 +7,46 @@ inside the listed files, and run the smoke test before handing back.
 Do not change prompts, public Hugo output, API shapes, sqlite schema, or
 publisher redaction behavior unless the task explicitly says so.
 
+## Operating rules for the junior agent
+
+Read these every session. They exist because past collisions cost real
+debugging time.
+
+1. **Stay strictly inside the "Where:" file list.** If you find yourself
+   wanting to edit a file not in the list, stop. Ask Daniel for a new task
+   that includes that file. Do not silently widen scope.
+2. **No repo-wide refactors.** Do not run sed/grep-replace across the tree.
+   Do not rename symbols outside your task files. Do not "tidy up" adjacent
+   code while passing through.
+3. **Read files fresh before every edit.** The senior agent and possibly
+   other juniors may be editing in parallel. Re-Read the file immediately
+   before each Edit. If a file changed since you last read it, treat your
+   plan for that file as stale and re-plan.
+4. **Run the listed smoke / pytest commands after every meaningful edit.**
+   Not just at the end. A failure caught after one file is easy to fix; a
+   failure caught after five files is a debugging session.
+5. **Hand back when tests pass. Do not commit.** Daniel commits after
+   verification. If you commit, you make it harder for the senior agent to
+   bundle the work into a coherent commit.
+6. **One task at a time. Top of the active queue unless told otherwise.**
+   Do not pick S118 and S119 in the same session. Finish, hand back, wait
+   for the next task.
+7. **If you hit a "file modified since read" error or unexpected diff,
+   stop.** Report the state and wait. That is the signal that someone else
+   is editing the same file.
+8. **No commits, no pushes, no branch changes.** Working tree only.
+
+## Suggested invocation prompt
+
+> You are a junior agent on the flightrecorder project. Open
+> `flightrecorder/docs/SMALL_MODEL_TASKS.md` and read the "Operating rules
+> for the junior agent" section in full before starting. Then pick the
+> single top task in the Active queue, do exactly what its "Where:" /
+> "What:" sections say, run the listed smoke / pytest commands, and stop
+> when they pass. Do not commit, do not push, do not edit files outside the
+> "Where:" list. If a file you need to edit has changed since you read it,
+> stop and report.
+
 ## Completed ledger
 
 The following small-model tasks are done and should not be repeated unless a
@@ -504,6 +544,65 @@ cd /home/daniel/Documents/Projekter/Daniel90mm.github.io/flightrecorder
     tests/integration/test_chat_endpoint.py \
     tests/unit/test_providers.py -q
 # Both must pass.
+```
+
+Hand-back:
+- When the tests pass, stop. Do not commit. Daniel verifies before commit.
+
+## S118 - Adversarial robustness tests for the idea-capture parser
+
+Where:
+- `flightrecorder/tests/adversarial/test_idea_capture_robustness.py` (new
+  file; do not edit any source module).
+
+What:
+- Write a test module that hammers `parse_idea_operations` from
+  `flightrecorder.idea_capture` with adversarial-shaped inputs and asserts
+  it fails closed by raising `IdeaCaptureError`. The parser must never
+  return partial garbage; either the whole JSON parses and validates, or
+  it raises.
+- Cover at minimum:
+  1. Empty string and whitespace-only string.
+  2. JSON that is a number, a string, `null`, a bool, or an object (only
+     an array is accepted).
+  3. An array containing a non-object element (e.g. `[1]`, `["x"]`,
+     `[null]`).
+  4. `project_append` missing each required field
+     (`project_ref`, `section`, `content`) one at a time.
+  5. `project_append` with `section` set to a string that isn't in
+     `PROJECT_SECTIONS` (e.g. `"Roadmap"`, `"todos"` lowercase, `""`).
+  6. `project_append` with `project_ref` that sanitizes to empty
+     (e.g. `"   "`, `"..."`, `"!!!"`).
+  7. `spaghetti` with `tags` not a list (string, int, dict).
+  8. `spaghetti` with `tags` containing a non-string entry (`["pca", 1]`,
+     `["pca", null]`).
+  9. `spaghetti` with empty `content` after `.strip()`.
+  10. An array of `MAX_IDEA_OPERATIONS + 1` valid operations (too many).
+  11. Operation with unknown `type` (e.g. `"draft"`, `"comment"`, missing
+      `type` field entirely).
+  12. Deeply nested junk (`[[[[]]]]`, `[{"type": ["project_append"]}]`).
+- For each case, use `pytest.raises(IdeaCaptureError)`. Group the cases
+  with `pytest.mark.parametrize` where the input shape varies but the
+  assertion is identical, otherwise write one focused test per category.
+- Do NOT test the happy path here. `tests/integration/` and
+  `tests/unit/test_idea_capture.py` already cover that.
+- Do NOT touch any source module. The whole task is one new test file.
+
+Why:
+- Idea-capture is doxxing-adjacent because spaghetti ideas may surface for
+  publishing later. The parser is the boundary between LLM output and the
+  filesystem / sqlite. A property-style sweep against malformed inputs
+  catches regressions that the existing happy-path tests miss.
+
+Smoke test:
+
+```sh
+cd /home/daniel/Documents/Projekter/Daniel90mm.github.io/flightrecorder
+.venv/bin/python -m pytest tests/adversarial/test_idea_capture_robustness.py -q
+.venv/bin/python -m pytest tests/unit/test_idea_capture.py \
+    tests/integration/test_idea_capture_pipeline.py -q
+# Both must pass. The second command catches false positives where the
+# new tests are accidentally too strict and reject happy-path inputs.
 ```
 
 Hand-back:

@@ -11,6 +11,16 @@ from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
 
 from flightrecorder.costs import BudgetHardStopError, ProviderUsage
+from flightrecorder.documents import create_project_document
+from flightrecorder.idea_capture import (
+    IDEA_CAPTURE_PROMPT,
+    IdeaCaptureError,
+    ProjectAppendOperation,
+    apply_idea_operations,
+    parse_idea_operations,
+    run_idea_capture,
+    transcript_from_messages,
+)
 from flightrecorder.providers import Message, TokenEvent, UsageEvent
 from flightrecorder.serializers import session_detail_to_dict, session_metadata_to_dict
 from flightrecorder.storage import AssetTooLargeError, ChatMessage
@@ -240,3 +250,87 @@ def _sse_event(event: str, data: dict[str, object]) -> str:
 
 def _timestamp_now() -> str:
     return datetime.now(timezone.utc).isoformat()
+
+
+@router.post("/sessions/{session_id}/extract")
+async def extract_ideas(
+    session_id: str,
+    request: Request,
+) -> dict[str, object]:
+    """Run idea capture on a session, routing ideas to project docs and spaghetti."""
+
+    runtime = request.app.state.runtime
+
+    try:
+        metadata, messages = runtime.sessions.get_session(session_id)
+    except FileNotFoundError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Session not found",
+        ) from exc
+
+    try:
+        runtime.guard().check_before_call(datetime.now(timezone.utc))
+    except BudgetHardStopError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Budget hard-stop active",
+        ) from exc
+
+    transcript = transcript_from_messages(messages)
+
+    try:
+        raw, usage = await run_idea_capture(
+            runtime.idea_capture_provider,
+            IDEA_CAPTURE_PROMPT,
+            transcript,
+        )
+    except IdeaCaptureError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY,
+            detail="idea-capture provider returned no usage",
+        ) from exc
+
+    runtime.guard().record_usage(
+        ProviderUsage(
+            timestamp=datetime.now(timezone.utc),
+            provider=runtime.idea_capture_provider.name,
+            model=runtime.idea_capture_provider.model,
+            role="idea_capture",
+            input_tokens=usage.input_tokens,
+            output_tokens=usage.output_tokens,
+            cached_tokens=usage.cached_tokens,
+            session_id=session_id,
+        ),
+    )
+
+    try:
+        operations = parse_idea_operations(raw)
+    except IdeaCaptureError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail=str(exc),
+        ) from exc
+
+    runtime_home = runtime.config.paths.runtime_home
+
+    captured_at = datetime.now(timezone.utc)
+    for op in operations:
+        if isinstance(op, ProjectAppendOperation):
+            create_project_document(runtime_home, op.project_ref, captured_at)
+
+    applied = apply_idea_operations(
+        runtime_home=runtime_home,
+        connection=runtime.database,
+        source_session=session_id,
+        operations=operations,
+        captured_at=captured_at,
+        commit_documents=True,
+    )
+
+    return {
+        "session_id": session_id,
+        "project_appends": len(applied.project_paths),
+        "spaghetti": len(applied.spaghetti_paths),
+        "documents_committed": applied.documents_committed,
+    }
