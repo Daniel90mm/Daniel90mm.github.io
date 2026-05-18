@@ -3,6 +3,14 @@
 /* dark is the default — all themes only override color tokens,
  * never typography (--mono / line-height / sizes). */
 :root {
+  /* typography / layout — never overridden per theme */
+  --mono: "JetBrains Mono", "IBM Plex Mono", "Fira Code", "Source Code Pro",
+          ui-monospace, "DejaVu Sans Mono", monospace;
+  --max:  100%;
+  --pad:  clamp(1rem, 3vw, 3rem);
+  --line: 1.55;
+
+  /* color tokens — dark defaults */
   --bg:      #0c0c0c;
   --surface: #131313;
   --rule:    #262626;
@@ -47,11 +55,6 @@
   --ok:      #4f7a35;
   --hero-glow: rgba(181, 74, 12, 0.12);
   --scanline:  rgba(0, 0, 0, 0.018);
-  --mono: "JetBrains Mono", "IBM Plex Mono", "Fira Code", "Source Code Pro",
-          ui-monospace, "DejaVu Sans Mono", monospace;
-  --max:   100%;
-  --pad:   clamp(1rem, 3vw, 3rem);
-  --line:  1.55;
 }
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
