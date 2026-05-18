@@ -1,0 +1,51 @@
+# Full config fixture matching spec section 7.  Fake keys throughout.
+
+[providers.anthropic]
+api_key = "test-anthropic-key"
+
+[providers.openai]
+api_key = "test-openai-key"
+
+[providers.google]
+api_key = "test-google-key"
+
+[roles.brainstorm]
+provider = "google"
+model = "gemini-2.5-pro"
+
+[roles.idea_capture]
+provider = "anthropic"
+model = "claude-sonnet-4-6"
+
+[roles.matchmaker]
+provider = "anthropic"
+model = "claude-opus-4-7"
+
+[roles.tagger]
+provider = "anthropic"
+model = "claude-haiku-4-5"
+
+[roles.curator]
+provider = "anthropic"
+model = "claude-sonnet-4-6"
+
+[roles.reviewer]
+provider = "openai"
+model = "gpt-5-mini"
+
+[roles.composer]
+provider = "anthropic"
+model = "claude-sonnet-4-6"
+
+[roles.voice_transcription]
+provider = "openai"
+model = "whisper-1"
+
+[budget]
+warn_at_eur = 30
+hard_stop_eur = 80
+currency = "EUR"
+
+[paths]
+runtime_home = "~/flightrecorder"
+hugo_site = "~/hugo-site"

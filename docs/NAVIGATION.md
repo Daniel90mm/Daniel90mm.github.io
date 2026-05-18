@@ -9,6 +9,7 @@ Index of where things live. Append a row when you add a significant doc or top-l
 | `IDEAS_TRAIL.md` | Agent-maintained narrative of pivots, corrections, open risks. |
 | `RESEARCH_LOG.md` | Append-only decision record. **Dormant** unless this is a research project (see CLAUDE.md → File conventions). |
 | `DESIGN_PRINCIPLES.md` | Hard UI rules. **Dormant** unless this project has a UI (see CLAUDE.md → File conventions). |
+| `flightrecorder/` | Source and canonical spec for the private brainstorming app that publishes the flight-recorder half of the site. |
 | `src/` | Application code. |
 | `tests/` | Tests. Contract-style code goes here. |
 | `tests/smoke/` | Smoke scripts for exploratory code (no assertions, exit 0 on success). |

@@ -13,6 +13,8 @@
 !IDEAS_TRAIL.md
 !RESEARCH_LOG.md
 !DESIGN_PRINCIPLES.md
+!flightrecorder/
+!flightrecorder/**
 !pyproject.toml
 !package.json
 !Cargo.toml
