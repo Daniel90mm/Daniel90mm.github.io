@@ -1,12 +1,16 @@
-<header class="site-head">
-  <a href="{{ "/" | relURL }}" class="mark">
+{{ $path := .RelPermalink }}
+{{ $crumb := "~" }}
+{{ if ne $path "/" }}{{ $crumb = printf "~%s" (strings.TrimRight "/" $path) }}{{ end }}
+<header class="bar">
+  <div class="lhs">
     <span class="dot"></span>
-    <span class="name">Daniel</span>
-    <span class="sep">/</span>
-    <span>Engineering Log</span>
-  </a>
-  <nav class="nav">
-    <a href="{{ "/projects/" | relURL }}" {{ if hasPrefix .RelPermalink "/projects" }}class="active"{{ end }}>Projects</a>
-    <a href="{{ "/posts/" | relURL }}" {{ if hasPrefix .RelPermalink "/posts" }}class="active"{{ end }}>Notes</a>
-  </nav>
+    <span class="who">
+      <span>daniel</span><span class="at">@</span><span class="host">log</span><span class="colon">:</span><span class="path">{{ $crumb }}</span><span class="prompt">$</span>
+    </span>
+  </div>
+  <div class="rhs">
+    <a href="{{ "/" | relURL }}" {{ if .IsHome }}class="active"{{ end }}>home</a>
+    <a href="{{ "/projects/" | relURL }}" {{ if hasPrefix .RelPermalink "/projects" }}class="active"{{ end }}>projects</a>
+    <a href="{{ "/posts/" | relURL }}" {{ if hasPrefix .RelPermalink "/posts" }}class="active"{{ end }}>notes</a>
+  </div>
 </header>

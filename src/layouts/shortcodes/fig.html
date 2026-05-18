@@ -1,0 +1,21 @@
+{{- /* {{< fig src="..." caption="..." alt="..." width="600" >}}  — also supports inline SVG via inner content */ -}}
+{{- $src := .Get "src" -}}
+{{- $cap := .Get "caption" | default "" -}}
+{{- $alt := .Get "alt" | default $cap -}}
+{{- $w := .Get "width" -}}
+{{- $idx := .Ordinal | add 1 -}}
+<figure class="fig">
+  <div class="frame">
+    {{- if $src -}}
+      <img src="{{ $src | relURL }}" alt="{{ $alt }}"{{ with $w }} style="max-width:{{ . }}px"{{ end }}>
+    {{- else -}}
+      {{ .Inner | safeHTML }}
+    {{- end -}}
+  </div>
+  {{- if $cap -}}
+  <figcaption class="cap">
+    <span class="idx">fig.{{ printf "%02d" $idx }}</span>
+    <span>{{ $cap }}</span>
+  </figcaption>
+  {{- end -}}
+</figure>

@@ -2,69 +2,46 @@
 {{ $started := .Params.started }}
 {{ $latest := "" }}
 {{ range first 1 .RegularPages.ByDate.Reverse }}{{ $latest = .Date }}{{ end }}
+{{ $slug := path.Base .File.Dir }}
 
-<header class="project-head">
-  <div class="crumbs">
-    <a href="{{ "/" | relURL }}">Index</a>
-    <span class="arrow">→</span>
-    <span>{{ .Title }}</span>
-  </div>
-  <h1>{{ .Title }}</h1>
-  {{ with .Params.summary }}<p class="one-line">{{ . }}</p>{{ end }}
-  <div class="project-meta">
-    <span class="pill {{ $status }}">{{ $status }}</span>
-    {{ with $started }}
-    <div class="field">
-      <span class="label">Started</span>
-      <span class="value">{{ . }}</span>
-    </div>
-    {{ end }}
-    {{ if $latest }}
-    <div class="field">
-      <span class="label">Last update</span>
-      <span class="value">{{ $latest.Format "2006-01-02" }}</span>
-    </div>
-    {{ end }}
-    <div class="field">
-      <span class="label">Entries</span>
-      <span class="value">{{ printf "%02d" (len .RegularPages) }}</span>
-    </div>
-    {{ with .Params.stack }}
-    <div class="field">
-      <span class="label">Stack</span>
-      <span class="value">{{ delimit . " · " }}</span>
-    </div>
-    {{ end }}
-  </div>
-</header>
+<div class="path">
+  <span class="user">daniel</span><span class="at">@</span><span class="host">log</span><span class="colon">:</span><span class="seg">~/projects/{{ $slug }}</span><span class="prompt">$</span><span class="cmd">cat</span> <span class="arg">README.md</span>
+</div>
 
-{{ with .Content }}
-<div class="prose">{{ . }}</div>
-{{ end }}
+<article class="project">
+  <h1 class="title">{{ .Title | lower }}</h1>
+  {{ with .Params.summary }}<p class="lede">{{ . }}</p>{{ end }}
+
+  <div class="kv">
+    <div class="pair"><span class="k">status</span><span class="v {{ if eq $status "live" }}accent{{ else if eq $status "research" }}cold{{ else if eq $status "shipped" }}warm{{ else }}dim{{ end }}">{{ $status }}</span></div>
+    {{ with $started }}<div class="pair"><span class="k">started</span><span class="v">{{ . }}</span></div>{{ end }}
+    {{ if $latest }}<div class="pair"><span class="k">last</span><span class="v">{{ $latest.Format "2006-01-02" }}</span></div>{{ end }}
+    <div class="pair"><span class="k">entries</span><span class="v accent">{{ printf "%02d" (len .RegularPages) }}</span></div>
+    {{ with .Params.stack }}<div class="pair"><span class="k">stack</span><span class="v">{{ delimit . ", " }}</span></div>{{ end }}
+    {{ with .Params.repo }}<div class="pair"><span class="k">repo</span><span class="v"><a href="{{ . }}">{{ . | replaceRE "https?://" "" }}</a></span></div>{{ end }}
+  </div>
+
+  {{ with .Content }}<div class="prose">{{ . }}</div>{{ end }}
+</article>
 
 {{ if .RegularPages }}
-<div class="log-head">
-  <span class="count">{{ printf "%02d" (len .RegularPages) }}</span>
-  <span class="line"></span>
-  <span>Progress log</span>
+<div class="path" style="margin-top: 2.25rem;">
+  <span class="user">daniel</span><span class="at">@</span><span class="host">log</span><span class="colon">:</span><span class="seg">~/projects/{{ $slug }}/log</span><span class="prompt">$</span><span class="cmd">ls</span> <span class="arg">-lt</span>
+</div>
+
+<div class="sep">
+  <span class="dash"></span><span class="label">progress log</span><span class="count">{{ printf "%02d" (len .RegularPages) }}</span><span class="dash long"></span>
 </div>
 
 <ol class="log">
   {{ range .RegularPages.ByDate.Reverse }}
-  <li class="entry">
-    <div class="when">
-      <span class="day">{{ .Date.Format "02" }}</span>
-      <span>{{ .Date.Format "Jan 2006" }}</span>
-    </div>
-    <div class="what">
-      <h3><a href="{{ .RelPermalink }}">{{ .Title }}</a></h3>
-      <p class="excerpt">{{ .Params.excerpt | default (.Summary | plainify | truncate 220) }}</p>
-      {{ with .Params.tags }}
-      <div class="tag-row">
-        {{ range . }}<span class="tag">{{ . }}</span>{{ end }}
-      </div>
-      {{ end }}
-    </div>
+  <li>
+    <a href="{{ .RelPermalink }}">
+      <span class="when">{{ .Date.Format "2006-01-02" }}</span>
+      <span class="ttl">{{ .Title }}</span>
+      <span class="ex">{{ .Params.excerpt | default (.Summary | plainify | truncate 200) }}</span>
+      {{ with .Params.tags }}<span class="tags">{{ range . }}<span class="tag">{{ . }}</span>{{ end }}</span>{{ end }}
+    </a>
   </li>
   {{ end }}
 </ol>

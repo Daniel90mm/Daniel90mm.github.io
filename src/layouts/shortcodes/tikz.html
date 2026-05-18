@@ -1,0 +1,4 @@
+{{- /* {{< tikz >}} \begin{tikzpicture} ... \end{tikzpicture} {{< /tikz >}}  — requires `tikz = true` in front matter */ -}}
+<script type="text/tikz">
+{{ .Inner | safeHTML }}
+</script>

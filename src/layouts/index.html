@@ -1,37 +1,42 @@
 {{ define "main" }}
-<section class="intro">
-  <h1>Building <em>things</em>,<br>logging them<br>as I go.</h1>
-  <p class="blurb">
-    <span class="kicker">Sig.0001 // Daniel</span>
-    A working log of personal engineering projects — hardware, software, research. Updated when something actually moves.
-  </p>
-</section>
-
 {{ $root := site.GetPage "/projects" }}
 {{ $children := $root.Sections }}
 
-<div class="section-bar">
-  <span class="count">{{ printf "%02d" (len $children) }}</span>
-  <span class="line"></span>
-  <span>Active projects</span>
+<section class="hero">
+  <pre aria-label="daniel">██████╗  █████╗ ███╗   ██╗██╗███████╗██╗
+██╔══██╗██╔══██╗████╗  ██║██║██╔════╝██║
+██║  ██║███████║██╔██╗ ██║██║█████╗  ██║
+██║  ██║██╔══██║██║╚██╗██║██║██╔══╝  ██║
+██████╔╝██║  ██║██║ ╚████║██║███████╗███████╗
+╚═════╝ ╚═╝  ╚═╝╚═╝  ╚═══╝╚═╝╚══════╝╚══════╝</pre>
+  <div class="meta">
+    <div><span class="k">sig</span> <span class="v">0001</span></div>
+    <div><span class="k">role</span> <span class="v">builder / writer</span></div>
+    <div><span class="k">stack</span> <span class="v">rust · python · ts · embedded</span></div>
+    <p class="blurb">engineering log — personal projects, dated entries when something actually moves.</p>
+  </div>
+</section>
+
+<div class="path">
+  <span class="user">daniel</span><span class="at">@</span><span class="host">log</span><span class="colon">:</span><span class="seg">~/projects</span><span class="prompt">$</span><span class="cmd">ls</span> <span class="arg">-lt --status</span>
 </div>
 
-<ol class="projects">
+<div class="sep">
+  <span class="dash"></span><span class="label">active</span><span class="count">{{ printf "%02d" (len $children) }}</span><span class="dash long"></span>
+</div>
+
+<ol class="listing">
   {{ range $i, $p := $children }}
     {{ $latest := "" }}
     {{ range first 1 $p.RegularPages.ByDate.Reverse }}{{ $latest = .Date }}{{ end }}
     {{ $status := .Params.status | default "live" }}
   <li>
-    <a href="{{ .RelPermalink }}" class="row">
+    <a class="row" href="{{ .RelPermalink }}">
       <span class="idx">{{ printf "%02d" (add $i 1) }}</span>
-      <div class="body">
-        <span class="ptitle">{{ .Title }}</span>
-        <span class="pdesc">{{ .Params.summary | default .Description }}</span>
-      </div>
-      <div class="meta">
-        <span class="pill {{ $status }}">{{ $status }}</span>
-        <span>{{ if $latest }}upd · {{ $latest.Format "2006-01-02" }}{{ else }}new{{ end }}</span>
-      </div>
+      <span class="name">{{ .Title | lower }}</span>
+      <span class="status {{ $status }}">{{ if eq $status "live" }}<span class="blink">●</span> {{ end }}{{ $status }}</span>
+      <span class="date">{{ if $latest }}{{ $latest.Format "2006-01-02" }}{{ else }}new{{ end }}</span>
+      <span class="desc">{{ .Params.summary | default .Description }}</span>
     </a>
   </li>
   {{ end }}

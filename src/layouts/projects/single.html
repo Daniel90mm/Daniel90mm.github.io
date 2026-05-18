@@ -1,20 +1,19 @@
 {{ define "main" }}
 {{ $project := .Parent }}
-<article class="entry-page">
-  <div class="crumbs">
-    <a href="{{ "/" | relURL }}">Index</a>
-    <span class="arrow">→</span>
-    <a href="{{ $project.RelPermalink }}">{{ $project.Title }}</a>
-    <span class="arrow">→</span>
-    <span>Log</span>
-  </div>
+{{ $pslug := path.Base $project.File.Dir }}
+{{ $fname := .File.LogicalName }}
+<div class="path">
+  <span class="user">daniel</span><span class="at">@</span><span class="host">log</span><span class="colon">:</span><span class="seg">~/projects/{{ $pslug }}/log</span><span class="prompt">$</span><span class="cmd">cat</span> <span class="arg">{{ $fname }}</span>
+</div>
+
+<article class="entry">
   <div class="stamp">
-    {{ .Date.Format "2006-01-02" }}
-    {{ with .Params.tags }} &nbsp;·&nbsp; {{ delimit . " · " }}{{ end }}
+    <span><span class="k">date</span> <span class="v accent">{{ .Date.Format "2006-01-02" }}</span></span>
+    <span><span class="k">project</span> <span class="v"><a href="{{ $project.RelPermalink }}">{{ $project.Title | lower }}</a></span></span>
+    {{ with .Params.tags }}<span><span class="k">tags</span> <span class="v">{{ delimit . ", " }}</span></span>{{ end }}
+    {{ with .ReadingTime }}<span><span class="k">read</span> <span class="v">{{ . }}min</span></span>{{ end }}
   </div>
   <h1>{{ .Title }}</h1>
-  <div class="prose">
-    {{ .Content }}
-  </div>
+  <div class="prose">{{ .Content }}</div>
 </article>
 {{ end }}

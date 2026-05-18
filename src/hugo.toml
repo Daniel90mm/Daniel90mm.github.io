@@ -1,6 +1,6 @@
 baseURL = "https://Daniel90mm.github.io/"
 locale = "en-us"
-title = "Daniel's Blog"
+title = "daniel — engineering log"
 theme = "PaperMod"
 
 enableRobotsTXT = true
@@ -17,6 +17,7 @@ pygmentsUseClasses = true
   ShowToc = true
   TocOpen = false
   math = true
+  tikz = false
 
   [params.homeInfoParams]
     Title = "Hi"
@@ -25,6 +26,11 @@ pygmentsUseClasses = true
 [markup]
   [markup.goldmark.renderer]
     unsafe = true
+  [markup.goldmark.extensions.passthrough]
+    enable = true
+    [markup.goldmark.extensions.passthrough.delimiters]
+      block  = [["\\[", "\\]"], ["$$", "$$"]]
+      inline = [["\\(", "\\)"], ["$", "$"]]
   [markup.highlight]
     style = "monokai"
 
