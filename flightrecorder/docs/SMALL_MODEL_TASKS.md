@@ -36,141 +36,141 @@ regression is found:
 | S20 | Cost boundary tests, taken by senior agent during cleanup. |
 | S21 | Research log checkpoint. |
 | S22 | Smoke command index. |
+| S23 | Budget smoke script. |
+| S24 | Missing-work status doc. |
+| S25 | Config budget threshold validation tests. |
+| S26 | API draft examples consistency pass, completed by senior agent. |
+| S27 | Package import smoke. |
+| S28 | README missing approval warning. |
 
 ## Active queue
 
 Pick from the top unless Daniel or the senior agent says otherwise.
 
-## S23 - Budget smoke script
+## S29 - Project document smoke script
 
 Where:
-- `flightrecorder/tests/smoke/smoke_budget.py`
+- `flightrecorder/tests/smoke/smoke_project_documents.py`
 
 What:
-- Add a smoke script that initializes an in-memory sqlite database, inserts
-  enough fake `api_calls` rows to cross the warn threshold, and prints the
-  result from `evaluate_monthly_budget`.
-- Do not add provider calls, real prices, routes, or schema changes.
+- Create a temp runtime home, call `create_project_document`, append one TODO
+  with `append_to_project_document`, and print the resulting path.
+- Assert the TODO landed between `## TODOs` and `## Ideas`.
+- Do not invoke git or provider calls.
 
 Why:
-- Budget warning and hard-stop behavior need a quick check before provider
-  wrappers start using it.
+- The append-only document core is now a critical primitive for idea capture.
 
 Smoke test:
 
 ```sh
 cd /home/daniel/Documents/Projekter/Daniel90mm.github.io/flightrecorder
-.venv/bin/python tests/smoke/smoke_budget.py
+.venv/bin/python tests/smoke/smoke_project_documents.py
 ```
 
-## S24 - Missing-work status doc
-
-Where:
-- `flightrecorder/docs/MISSING_WORK.md`
-- `flightrecorder/docs/NAVIGATION.md`
-
-What:
-- Create a short human-readable snapshot of what remains from spec section 19.
-- Use `docs/BUILD_STATUS.md` as the source, not memory.
-- Include a count of done/in-progress/not-started steps.
-- Add the new doc to navigation.
-
-Why:
-- Daniel asked how much is missing. A doc keeps the answer durable across
-  agents.
-
-Smoke test:
-
-```sh
-cd /home/daniel/Documents/Projekter/Daniel90mm.github.io/flightrecorder
-grep -q 'Not started' docs/MISSING_WORK.md
-grep -q 'docs/MISSING_WORK.md' docs/NAVIGATION.md
-LC_ALL=C grep -n '[^ -~]' docs/MISSING_WORK.md docs/NAVIGATION.md && exit 1 || true
-```
-
-## S25 - Config budget threshold validation tests
-
-Where:
-- `flightrecorder/tests/unit/test_config.py`
-
-What:
-- Add tests documenting the current config behavior for budget thresholds:
-  defaults, explicit values, and the current lack of validation when warn is
-  greater than hard stop.
-- Do not change production code.
-
-Why:
-- If we later decide config parsing should reject invalid budget thresholds,
-  the behavior change will be explicit.
-
-Smoke test:
-
-```sh
-cd /home/daniel/Documents/Projekter/Daniel90mm.github.io/flightrecorder
-.venv/bin/python -m pytest tests/unit/test_config.py -q
-```
-
-## S26 - API draft examples consistency pass
-
-Where:
-- `flightrecorder/docs/API_CONTRACT_DRAFT.md`
-
-What:
-- Check that every example uses the same field names as `serializers.py`.
-- Fix documentation-only mismatches if found.
-- Do not edit backend code.
-
-Why:
-- Route implementation is blocked on Daniel approval, but the draft can still
-  be made internally consistent.
-
-Smoke test:
-
-```sh
-cd /home/daniel/Documents/Projekter/Daniel90mm.github.io/flightrecorder
-grep -q 'session_id' docs/API_CONTRACT_DRAFT.md
-grep -q 'image_count' docs/API_CONTRACT_DRAFT.md
-LC_ALL=C grep -n '[^ -~]' docs/API_CONTRACT_DRAFT.md && exit 1 || true
-```
-
-## S27 - Package import smoke
-
-Where:
-- `flightrecorder/tests/smoke/smoke_imports.py`
-
-What:
-- Add a smoke script that imports the backend modules directly:
-  `app`, `config`, `costs`, `database`, `providers`, `runtime`, `schema`,
-  `serializers`, and `storage`.
-- Do not instantiate provider SDK clients.
-
-Why:
-- It catches accidental import-time dependency problems early.
-
-Smoke test:
-
-```sh
-cd /home/daniel/Documents/Projekter/Daniel90mm.github.io/flightrecorder
-.venv/bin/python tests/smoke/smoke_imports.py
-```
-
-## S28 - README missing approval warning
+## S30 - Project document README note
 
 Where:
 - `flightrecorder/README.md`
 
 What:
-- Add one short note that `/api/sessions*` route implementation is waiting for
-  Daniel approval of `docs/API_CONTRACT_DRAFT.md`.
-- Do not add API commands that do not work yet.
+- Add one short status sentence saying append-only project document helpers
+  exist, but idea-capture LLM parsing is not wired.
+- Do not document commands that do not exist.
 
 Why:
-- Prevents future agents from treating the draft API contract as implemented.
+- Future agents should not mistake document helpers for completed step 8.
 
 Smoke test:
 
 ```sh
 cd /home/daniel/Documents/Projekter/Daniel90mm.github.io/flightrecorder
-grep -q 'API_CONTRACT_DRAFT.md' README.md
+grep -q 'append-only project document helpers' README.md
 LC_ALL=C grep -n '[^ -~]' README.md && exit 1 || true
+```
+
+## S31 - Small-model queue smoke sync
+
+Where:
+- `flightrecorder/docs/SMOKE_COMMANDS.md`
+
+What:
+- Add `tests/smoke/smoke_project_documents.py` to the smoke command index after
+  S29 exists.
+- Keep the all-smoke loop working.
+
+Why:
+- Smoke docs should track new smoke scripts immediately.
+
+Smoke test:
+
+```sh
+cd /home/daniel/Documents/Projekter/Daniel90mm.github.io/flightrecorder
+grep -q 'smoke_project_documents.py' docs/SMOKE_COMMANDS.md
+LC_ALL=C grep -n '[^ -~]' docs/SMOKE_COMMANDS.md && exit 1 || true
+```
+
+## S32 - Project document filename tests
+
+Where:
+- `flightrecorder/tests/unit/test_documents.py`
+
+What:
+- Add tests for `sanitize_project_ref` with spaces, uppercase, underscores,
+  and hyphens.
+- Do not edit backend code.
+
+Why:
+- Project refs become filenames, so filename behavior should stay boring and
+  deterministic.
+
+Smoke test:
+
+```sh
+cd /home/daniel/Documents/Projekter/Daniel90mm.github.io/flightrecorder
+.venv/bin/python -m pytest tests/unit/test_documents.py -q
+```
+
+## S33 - Missing-work snapshot sync
+
+Where:
+- `flightrecorder/docs/MISSING_WORK.md`
+
+What:
+- Confirm the counts match `docs/BUILD_STATUS.md` after step 8 moved to in
+  progress.
+- Do not change build status unless it is factually wrong.
+
+Why:
+- Daniel asked "how much is missing"; this doc must not drift.
+
+Smoke test:
+
+```sh
+cd /home/daniel/Documents/Projekter/Daniel90mm.github.io/flightrecorder
+grep -q 'In progress: **3**' docs/MISSING_WORK.md
+grep -q 'Not started: **16**' docs/MISSING_WORK.md
+LC_ALL=C grep -n '[^ -~]' docs/MISSING_WORK.md && exit 1 || true
+```
+
+## S34 - API contract review sync
+
+Where:
+- `flightrecorder/docs/API_CONTRACT_REVIEW.md`
+
+What:
+- Check whether the review checklist still mentions all open issues from
+  `docs/API_CONTRACT_DRAFT.md`.
+- Add a note that field names are snake_case if missing.
+- Do not edit backend code.
+
+Why:
+- API implementation remains blocked on this approval surface.
+
+Smoke test:
+
+```sh
+cd /home/daniel/Documents/Projekter/Daniel90mm.github.io/flightrecorder
+grep -q 'snake_case' docs/API_CONTRACT_REVIEW.md
+LC_ALL=C grep -n '[^ -~]' docs/API_CONTRACT_REVIEW.md && exit 1 || true
 ```

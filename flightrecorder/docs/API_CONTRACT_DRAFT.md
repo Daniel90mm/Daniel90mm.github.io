@@ -77,7 +77,8 @@ List sessions, newest first.
 ```
 
 **Notes:**
-- Field names match `SessionMetadata` dataclass keys (camelCase in JSON).
+- Field names match `SessionMetadata` dataclass keys. They are snake_case in
+  JSON to match the internal serializers.
 
 ---
 

@@ -1,0 +1,135 @@
+from datetime import datetime
+from pathlib import Path
+
+import pytest
+
+from flightrecorder.documents import (
+    PROJECT_SECTIONS,
+    ProjectAppend,
+    ProjectDocumentError,
+    ProjectSectionMissingError,
+    append_to_project_document,
+    create_project_document,
+    insert_append_block,
+    normalize_bullet_content,
+    project_document_path,
+    sanitize_project_ref,
+    update_last_appended,
+)
+
+
+def test_create_project_document_writes_stable_sections(tmp_path: Path) -> None:
+    created_at = datetime.fromisoformat("2026-05-18T18:45:00+02:00")
+
+    path = create_project_document(tmp_path, "fNIRS", created_at)
+
+    assert path == tmp_path / "documents" / "fnirs.md"
+    text = path.read_text(encoding="utf-8")
+    assert "project: fnirs" in text
+    assert "last_appended: 2026-05-18T18:45:00+02:00" in text
+    for section in PROJECT_SECTIONS:
+        assert f"## {section}" in text
+
+
+def test_append_to_project_document_inserts_under_target_section(tmp_path: Path) -> None:
+    create_project_document(
+        tmp_path,
+        "fnirs",
+        datetime.fromisoformat("2026-05-18T18:45:00+02:00"),
+    )
+
+    path = append_to_project_document(
+        tmp_path,
+        ProjectAppend(
+            project_ref="fnirs",
+            section="TODOs",
+            content="prototype the differential amplifier stage [open]",
+            timestamp="2026-05-18T19:00:00+02:00",
+            source_session="2026-05-18-1730-fnirs-abcd1234",
+        ),
+    )
+
+    text = path.read_text(encoding="utf-8")
+    assert "last_appended: 2026-05-18T19:00:00+02:00" in text
+    assert (
+        "- 2026-05-18T19:00:00+02:00: prototype the differential amplifier stage "
+        "[open] [source: 2026-05-18-1730-fnirs-abcd1234]"
+    ) in text
+    assert text.index("## TODOs") < text.index("prototype the differential amplifier")
+    assert text.index("prototype the differential amplifier") < text.index("## Ideas")
+
+
+def test_insert_append_block_preserves_other_sections_exactly() -> None:
+    original = "\n".join(
+        [
+            "---",
+            "project: fnirs",
+            "last_appended: 2026-05-01T00:00:00+02:00",
+            "---",
+            "",
+            "# fnirs",
+            "",
+            "## Problem",
+            "existing problem text",
+            "",
+            "## TODOs",
+            "- old todo",
+            "",
+            "## Ideas",
+            "existing idea text",
+            "",
+        ]
+    )
+
+    updated = insert_append_block(original, "TODOs", "- new todo")
+
+    assert "## Problem\nexisting problem text\n\n" in updated
+    assert "## Ideas\nexisting idea text" in updated
+    assert "## TODOs\n- old todo\n\n- new todo\n## Ideas" in updated
+
+
+def test_append_rejects_unknown_section(tmp_path: Path) -> None:
+    create_project_document(tmp_path, "fnirs", datetime.fromisoformat("2026-05-18T18:45:00+02:00"))
+
+    with pytest.raises(ProjectDocumentError):
+        append_to_project_document(
+            tmp_path,
+            ProjectAppend(
+                project_ref="fnirs",
+                section="Not a section",
+                content="something",
+                timestamp="2026-05-18T19:00:00+02:00",
+            ),
+        )
+
+
+def test_append_rejects_missing_section(tmp_path: Path) -> None:
+    path = project_document_path(tmp_path, "fnirs")
+    path.parent.mkdir(parents=True)
+    path.write_text("# fnirs\n\n## TODOs\n", encoding="utf-8")
+
+    with pytest.raises(ProjectSectionMissingError):
+        append_to_project_document(
+            tmp_path,
+            ProjectAppend(
+                project_ref="fnirs",
+                section="Ideas",
+                content="something",
+                timestamp="2026-05-18T19:00:00+02:00",
+            ),
+        )
+
+
+def test_update_last_appended_rejects_missing_frontmatter_field() -> None:
+    with pytest.raises(ProjectDocumentError):
+        update_last_appended("# fnirs\n\n## Ideas\n", "2026-05-18T19:00:00+02:00")
+
+
+def test_normalize_bullet_content_strips_one_marker() -> None:
+    assert normalize_bullet_content("- investigate PCA") == "investigate PCA"
+    assert normalize_bullet_content("* investigate PCA") == "investigate PCA"
+
+
+def test_sanitize_project_ref_rejects_empty_value() -> None:
+    with pytest.raises(ProjectDocumentError):
+        sanitize_project_ref("...")

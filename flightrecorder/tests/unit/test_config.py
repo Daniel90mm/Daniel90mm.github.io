@@ -104,3 +104,41 @@ def test_load_config_reads_full_fixture() -> None:
     assert config.budget.hard_stop_eur == 80
     assert config.paths.runtime_home == Path.home() / "flightrecorder"
     assert config.paths.hugo_site == Path.home() / "hugo-site"
+
+
+def test_parse_config_preserves_budget_thresholds_without_ordering_validation() -> None:
+    """Config parsing does not currently validate that warn <= hard_stop.
+    That validation lives in costs.evaluate_budget."""
+    config = parse_config(
+        {
+            "budget": {
+                "warn_at_eur": 90,
+                "hard_stop_eur": 50,
+                "currency": "EUR",
+            }
+        }
+    )
+
+    assert config.budget.warn_at_eur == 90
+    assert config.budget.hard_stop_eur == 50
+
+
+def test_parse_config_accepts_zero_budget_thresholds() -> None:
+    config = parse_config(
+        {
+            "budget": {
+                "warn_at_eur": 0,
+                "hard_stop_eur": 0,
+                "currency": "EUR",
+            }
+        }
+    )
+
+    assert config.budget.warn_at_eur == 0
+    assert config.budget.hard_stop_eur == 0
+
+
+def test_parse_config_defaults_currency_to_eur_when_absent() -> None:
+    config = parse_config({"budget": {"warn_at_eur": 5, "hard_stop_eur": 10}})
+
+    assert config.budget.currency == "EUR"

@@ -160,3 +160,20 @@ Still open:
 Small-model tasks S01--S22 are queued and being executed to build out fixtures,
 smoke tests, status docs, and API contract materials without touching production
 API surface or prompts.
+
+## 2026-05-18 - Append-only project document core
+
+Started build order step 8 below the LLM/API boundary:
+- project document creation writes stable frontmatter and sections
+- append operations insert one bullet under a named section without reflowing
+  unrelated sections
+- `last_appended` is updated per append
+- unknown or missing sections fail closed
+- generated bullet content has one leading markdown marker stripped defensively
+
+The valid section list includes `Ideas` because the idea-capture output contract
+in spec section 8 includes it, even though the section 6.2 document example
+omits it.
+
+Still open for step 8: parse and validate idea-capture operations, wire
+documents git auto-commit, and test on hand-rolled sessions before going live.

@@ -11,7 +11,7 @@ Rows for spec section 19 build-order steps 1--20.
 | 5 | PWA manifest + service worker | not started | |
 | 6 | Voice input | not started | |
 | 7 | Tagger | not started | |
-| 8 | Project documents + idea capture | not started | |
+| 8 | Project documents + idea capture | in progress | Append-only project document helpers and tests exist. Idea-capture LLM operation parsing and documents git auto-commit not wired. |
 | 9 | Spaghetti capture | not started | |
 | 10 | Pokemon mapping | not started | |
 | 11 | Matchmaker | not started | |

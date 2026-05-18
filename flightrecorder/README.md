@@ -15,6 +15,13 @@ pytest tests/ -v
 scripts/dev-backend.sh
 ```
 
+## Status
+
+Backend skeleton, session storage, and cost tracking are built below the API
+boundary. `/api/sessions*` routes are **not yet implemented** -- the API
+contract is drafted in [docs/API_CONTRACT_DRAFT.md](docs/API_CONTRACT_DRAFT.md)
+and awaiting Daniel's approval before route work begins.
+
 ## Layout
 
 - `prompts/` - versioned LLM prompts.

@@ -10,7 +10,9 @@ directory.
 | `tests/smoke/smoke_session_storage.py` | `python tests/smoke/smoke_session_storage.py` |
 | `tests/smoke/smoke_runtime_context.py` | `python tests/smoke/smoke_runtime_context.py` |
 | `tests/smoke/smoke_cost_logging.py` | `python tests/smoke/smoke_cost_logging.py` |
+| `tests/smoke/smoke_budget.py` | `.venv/bin/python tests/smoke/smoke_budget.py` |
 | `tests/smoke/smoke_backend_health.py` | `.venv/bin/python tests/smoke/smoke_backend_health.py` |
+| `tests/smoke/smoke_imports.py` | `.venv/bin/python tests/smoke/smoke_imports.py` |
 | `tests/smoke/smoke_pricing.py` | `.venv/bin/python tests/smoke/smoke_pricing.py` |
 
 Scripts that don't require FastAPI use the system Python directly.
@@ -21,7 +23,7 @@ Scripts that import FastAPI or FastAPI-dependent modules use `.venv/bin/python`.
 ```sh
 for script in tests/smoke/smoke_*.py; do
     case "$script" in
-        *smoke_backend_health*|*smoke_pricing*)
+        *smoke_backend_health*|*smoke_budget*|*smoke_imports*|*smoke_pricing*)
             python=".venv/bin/python" ;;
         *)
             python="python" ;;
