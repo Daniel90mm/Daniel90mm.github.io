@@ -1,0 +1,20 @@
+{{ define "main" }}
+{{ $project := .Parent }}
+<article class="entry-page">
+  <div class="crumbs">
+    <a href="{{ "/" | relURL }}">Index</a>
+    <span class="arrow">→</span>
+    <a href="{{ $project.RelPermalink }}">{{ $project.Title }}</a>
+    <span class="arrow">→</span>
+    <span>Log</span>
+  </div>
+  <div class="stamp">
+    {{ .Date.Format "2006-01-02" }}
+    {{ with .Params.tags }} &nbsp;·&nbsp; {{ delimit . " · " }}{{ end }}
+  </div>
+  <h1>{{ .Title }}</h1>
+  <div class="prose">
+    {{ .Content }}
+  </div>
+</article>
+{{ end }}

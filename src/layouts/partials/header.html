@@ -1,0 +1,12 @@
+<header class="site-head">
+  <a href="{{ "/" | relURL }}" class="mark">
+    <span class="dot"></span>
+    <span class="name">Daniel</span>
+    <span class="sep">/</span>
+    <span>Engineering Log</span>
+  </a>
+  <nav class="nav">
+    <a href="{{ "/projects/" | relURL }}" {{ if hasPrefix .RelPermalink "/projects" }}class="active"{{ end }}>Projects</a>
+    <a href="{{ "/posts/" | relURL }}" {{ if hasPrefix .RelPermalink "/posts" }}class="active"{{ end }}>Notes</a>
+  </nav>
+</header>

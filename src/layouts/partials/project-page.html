@@ -1,0 +1,71 @@
+{{ $status := .Params.status | default "live" }}
+{{ $started := .Params.started }}
+{{ $latest := "" }}
+{{ range first 1 .RegularPages.ByDate.Reverse }}{{ $latest = .Date }}{{ end }}
+
+<header class="project-head">
+  <div class="crumbs">
+    <a href="{{ "/" | relURL }}">Index</a>
+    <span class="arrow">→</span>
+    <span>{{ .Title }}</span>
+  </div>
+  <h1>{{ .Title }}</h1>
+  {{ with .Params.summary }}<p class="one-line">{{ . }}</p>{{ end }}
+  <div class="project-meta">
+    <span class="pill {{ $status }}">{{ $status }}</span>
+    {{ with $started }}
+    <div class="field">
+      <span class="label">Started</span>
+      <span class="value">{{ . }}</span>
+    </div>
+    {{ end }}
+    {{ if $latest }}
+    <div class="field">
+      <span class="label">Last update</span>
+      <span class="value">{{ $latest.Format "2006-01-02" }}</span>
+    </div>
+    {{ end }}
+    <div class="field">
+      <span class="label">Entries</span>
+      <span class="value">{{ printf "%02d" (len .RegularPages) }}</span>
+    </div>
+    {{ with .Params.stack }}
+    <div class="field">
+      <span class="label">Stack</span>
+      <span class="value">{{ delimit . " · " }}</span>
+    </div>
+    {{ end }}
+  </div>
+</header>
+
+{{ with .Content }}
+<div class="prose">{{ . }}</div>
+{{ end }}
+
+{{ if .RegularPages }}
+<div class="log-head">
+  <span class="count">{{ printf "%02d" (len .RegularPages) }}</span>
+  <span class="line"></span>
+  <span>Progress log</span>
+</div>
+
+<ol class="log">
+  {{ range .RegularPages.ByDate.Reverse }}
+  <li class="entry">
+    <div class="when">
+      <span class="day">{{ .Date.Format "02" }}</span>
+      <span>{{ .Date.Format "Jan 2006" }}</span>
+    </div>
+    <div class="what">
+      <h3><a href="{{ .RelPermalink }}">{{ .Title }}</a></h3>
+      <p class="excerpt">{{ .Params.excerpt | default (.Summary | plainify | truncate 220) }}</p>
+      {{ with .Params.tags }}
+      <div class="tag-row">
+        {{ range . }}<span class="tag">{{ . }}</span>{{ end }}
+      </div>
+      {{ end }}
+    </div>
+  </li>
+  {{ end }}
+</ol>
+{{ end }}

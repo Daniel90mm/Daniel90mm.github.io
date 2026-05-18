@@ -1,0 +1,37 @@
+{{ define "main" }}
+{{ if eq .Kind "section" }}
+  {{ if eq .Section "projects" }}
+    {{ if eq .Path "/projects" }}
+      {{/* top-level /projects/ — same as homepage layout */}}
+      <section class="intro">
+        <h1>All <em>projects</em></h1>
+        <p class="blurb"><span class="kicker">Index</span>Every project with a log.</p>
+      </section>
+
+      <ol class="projects">
+        {{ range $i, $p := .Sections }}
+          {{ $latest := "" }}
+          {{ range first 1 $p.RegularPages.ByDate.Reverse }}{{ $latest = .Date }}{{ end }}
+          {{ $status := .Params.status | default "live" }}
+        <li>
+          <a href="{{ .RelPermalink }}" class="row">
+            <span class="idx">{{ printf "%02d" (add $i 1) }}</span>
+            <div class="body">
+              <span class="ptitle">{{ .Title }}</span>
+              <span class="pdesc">{{ .Params.summary | default .Description }}</span>
+            </div>
+            <div class="meta">
+              <span class="pill {{ $status }}">{{ $status }}</span>
+              <span>{{ if $latest }}upd · {{ $latest.Format "2006-01-02" }}{{ else }}new{{ end }}</span>
+            </div>
+          </a>
+        </li>
+        {{ end }}
+      </ol>
+    {{ else }}
+      {{/* a single project section page — summary + log */}}
+      {{ partial "project-page.html" . }}
+    {{ end }}
+  {{ end }}
+{{ end }}
+{{ end }}
