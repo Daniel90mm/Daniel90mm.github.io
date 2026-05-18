@@ -172,6 +172,36 @@ def test_session_store_adds_message_and_updates_metadata(tmp_path: Path) -> None
     assert row[0] == 1
 
 
+def test_session_store_closes_session_and_preserves_messages(tmp_path: Path) -> None:
+    connection = sqlite3.connect(":memory:")
+    initialize_database(connection)
+    store = SessionStore(tmp_path, connection)
+    metadata = store.create_session(
+        provider="google",
+        model="gemini-2.5-pro",
+        started_at=datetime.fromisoformat("2026-05-18T17:30:00+02:00"),
+        slug="spaghetti",
+    )
+    store.add_message(
+        metadata.session_id,
+        ChatMessage(role="user", timestamp="17:30:01", content="hello"),
+    )
+    ended_at = datetime.fromisoformat("2026-05-18T17:45:00+02:00")
+
+    closed_metadata = store.close_session(metadata.session_id, ended_at)
+
+    loaded_metadata, messages = store.get_session(metadata.session_id)
+    row = connection.execute(
+        "SELECT ended_at, message_count FROM sessions WHERE session_id = ?",
+        (metadata.session_id,),
+    ).fetchone()
+
+    assert closed_metadata.ended_at == "2026-05-18T17:45:00+02:00"
+    assert loaded_metadata.ended_at == "2026-05-18T17:45:00+02:00"
+    assert messages == [ChatMessage(role="user", timestamp="17:30:01", content="hello")]
+    assert row == ("2026-05-18T17:45:00+02:00", 1)
+
+
 def test_session_store_stores_asset_and_updates_image_count(tmp_path: Path) -> None:
     connection = sqlite3.connect(":memory:")
     initialize_database(connection)
