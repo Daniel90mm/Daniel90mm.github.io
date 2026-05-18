@@ -10,6 +10,8 @@ from fastapi import APIRouter, File, HTTPException, Query, Request, UploadFile, 
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
 
+from pathlib import Path
+
 from flightrecorder.costs import BudgetHardStopError, ProviderUsage
 from flightrecorder.documents import create_project_document
 from flightrecorder.idea_capture import (
@@ -21,6 +23,13 @@ from flightrecorder.idea_capture import (
     run_idea_capture,
     transcript_from_messages,
 )
+from flightrecorder.matchmaker import (
+    MatchBatch,
+    ProjectSummary,
+    SpaghettiIdea,
+    propose_matches,
+)
+from flightrecorder.project_registry import ProjectRegistryError, load_project_registry
 from flightrecorder.providers import Message, TokenEvent, UsageEvent
 from flightrecorder.serializers import session_detail_to_dict, session_metadata_to_dict
 from flightrecorder.storage import AssetTooLargeError, ChatMessage
@@ -333,4 +342,96 @@ async def extract_ideas(
         "project_appends": len(applied.project_paths),
         "spaghetti": len(applied.spaghetti_paths),
         "documents_committed": applied.documents_committed,
+    }
+
+
+class MatchmakerRunRequest(BaseModel):
+    idea_ids: list[str] = Field(min_length=1)
+
+
+@router.post("/matchmaker/run")
+async def run_matchmaker(
+    payload: MatchmakerRunRequest,
+    request: Request,
+) -> dict[str, object]:
+    """Run the matchmaker on a list of spaghetti idea ids.
+
+    The current implementation uses the NullScorer default, so the batch
+    is always empty (rejection-bias baseline). When the LLM scorer is
+    wired the route gains a scorer parameter; the contract here stays
+    stable.
+    """
+
+    runtime = request.app.state.runtime
+    runtime_home: Path = runtime.config.paths.runtime_home
+
+    ideas: list[SpaghettiIdea] = []
+    for idea_id in payload.idea_ids:
+        row = runtime.database.execute(
+            "SELECT idea_id, tags_json, topics_json, path FROM ideas "
+            "WHERE idea_id = ?",
+            (idea_id,),
+        ).fetchone()
+        if row is None:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"unknown idea_id: {idea_id}",
+            )
+        ideas.append(
+            SpaghettiIdea(
+                idea_id=row[0],
+                content=_read_spaghetti_body(Path(row[3])),
+                tags=json.loads(row[1]),
+                topics=json.loads(row[2]),
+            )
+        )
+
+    projects = _load_active_project_summaries(runtime_home)
+    batch = propose_matches(ideas=ideas, projects=projects)
+    return _batch_to_dict(batch)
+
+
+def _read_spaghetti_body(path: Path) -> str:
+    """Return the body of a spaghetti markdown file, stripping frontmatter."""
+
+    if not path.exists():
+        return ""
+    text = path.read_text(encoding="utf-8")
+    if text.startswith("---\n"):
+        end = text.find("\n---\n", 4)
+        if end != -1:
+            return text[end + 5 :].strip()
+    return text.strip()
+
+
+def _load_active_project_summaries(runtime_home: Path) -> list[ProjectSummary]:
+    """Load active projects from `<runtime_home>/projects.json`. Fail-closed."""
+
+    path = runtime_home / "projects.json"
+    if not path.exists():
+        return []
+    try:
+        registry = load_project_registry(path)
+    except ProjectRegistryError:
+        return []
+    return [
+        ProjectSummary(ref=entry.ref, summary=entry.description or entry.name)
+        for entry in registry.active()
+    ]
+
+
+def _batch_to_dict(batch: MatchBatch) -> dict[str, object]:
+    return {
+        "batch_id": batch.batch_id,
+        "generated_at": batch.generated_at,
+        "candidates": [
+            {
+                "idea_id": c.idea_id,
+                "project_ref": c.project_ref,
+                "confidence": c.confidence,
+                "rationale": c.rationale,
+            }
+            for c in batch.candidates
+        ],
+        "rejected_idea_ids": batch.rejected_idea_ids,
     }
