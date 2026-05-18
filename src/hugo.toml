@@ -1,0 +1,32 @@
+baseURL = "https://Daniel90mm.github.io/"
+locale = "en-us"
+title = "Daniel's Blog"
+theme = "PaperMod"
+
+enableRobotsTXT = true
+buildDrafts = false
+buildFuture = false
+pygmentsUseClasses = true
+
+[params]
+  env = "production"
+  defaultTheme = "auto"
+  ShowReadingTime = true
+  ShowShareButtons = false
+  ShowCodeCopyButtons = true
+  ShowToc = true
+  TocOpen = false
+  math = true
+
+  [params.homeInfoParams]
+    Title = "Hi"
+    Content = "Technical notes and writing."
+
+[markup]
+  [markup.goldmark.renderer]
+    unsafe = true
+  [markup.highlight]
+    style = "monokai"
+
+[outputs]
+  home = ["HTML", "RSS", "JSON"]
