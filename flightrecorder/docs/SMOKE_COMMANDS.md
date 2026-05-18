@@ -22,6 +22,14 @@ directory.
 | `tests/smoke/smoke_small_model_tasks.py` | `.venv/bin/python tests/smoke/smoke_small_model_tasks.py` |
 | `tests/smoke/smoke_session_api.py` | `.venv/bin/python tests/smoke/smoke_session_api.py` |
 | `tests/smoke/smoke_termux_helper.py` | `.venv/bin/python tests/smoke/smoke_termux_helper.py` |
+| `tests/smoke/smoke_provider_usage_fixtures.py` | `python tests/smoke/smoke_provider_usage_fixtures.py` |
+| `tests/smoke/smoke_adversarial_fixtures.py` | `python tests/smoke/smoke_adversarial_fixtures.py` |
+| `tests/smoke/smoke_project_registry_fixture.py` | `python tests/smoke/smoke_project_registry_fixture.py` |
+| `tests/smoke/smoke_spaghetti_fixture.py` | `python tests/smoke/smoke_spaghetti_fixture.py` |
+| `tests/smoke/smoke_project_document_fixture.py` | `python tests/smoke/smoke_project_document_fixture.py` |
+| `tests/smoke/smoke_api_current_state.py` | `.venv/bin/python tests/smoke/smoke_api_current_state.py` |
+| `tests/smoke/smoke_docs_navigation.py` | `.venv/bin/python tests/smoke/smoke_docs_navigation.py` |
+| `tests/smoke/smoke_handoff_templates.py` | `.venv/bin/python tests/smoke/smoke_handoff_templates.py` |
 
 Scripts that don't require FastAPI use the system Python directly.
 Scripts that import FastAPI or FastAPI-dependent modules use `.venv/bin/python`.
@@ -31,7 +39,7 @@ Scripts that import FastAPI or FastAPI-dependent modules use `.venv/bin/python`.
 ```sh
 for script in tests/smoke/smoke_*.py; do
     case "$script" in
-        *smoke_backend_health*|*smoke_budget*|*smoke_budget_hard_stop*|*smoke_documents_git*|*smoke_idea_capture*|*smoke_imports*|*smoke_pricing*|*smoke_project_documents*|*smoke_provider_call_guard*|*smoke_session_api*|*smoke_small_model_tasks*|*smoke_termux_helper*)
+        *smoke_adversarial_fixtures*|*smoke_api_current_state*|*smoke_backend_health*|*smoke_budget*|*smoke_budget_hard_stop*|*smoke_docs_navigation*|*smoke_documents_git*|*smoke_handoff_templates*|*smoke_idea_capture*|*smoke_imports*|*smoke_pricing*|*smoke_project_document_fixture*|*smoke_project_documents*|*smoke_project_registry_fixture*|*smoke_provider_call_guard*|*smoke_provider_usage_fixtures*|*smoke_session_api*|*smoke_small_model_tasks*|*smoke_spaghetti_fixture*|*smoke_termux_helper*)
             python=".venv/bin/python" ;;
         *)
             python="python" ;;

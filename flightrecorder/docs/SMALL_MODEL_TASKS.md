@@ -114,228 +114,47 @@ regression is found:
 | S98 | Completed worker task. |
 | S99 | Completed worker task. |
 | S100 | Completed worker task. |
+| S101 | Completed worker task. |
+| S102 | Completed worker task. |
+| S103 | Completed worker task. |
+| S104 | Completed worker task. |
+| S105 | Completed worker task. |
+| S106 | Completed worker task. |
+| S107 | Completed worker task. |
+| S108 | Completed worker task. |
+| S109 | Completed worker task. |
+| S110 | Completed worker task. |
 
 ## Active queue
 
 Pick from the top unless Daniel or the senior agent says otherwise.
 
-## S101 - Provider usage fixtures smoke
+## S111 - Project registry loader
 
 Where:
-- `flightrecorder/tests/smoke/smoke_provider_usage_fixtures.py`
-- `flightrecorder/tests/fixtures/provider_usage/*.json`
+- `flightrecorder/src/backend/flightrecorder/project_registry.py`
+- `flightrecorder/tests/unit/test_project_registry.py`
+- `flightrecorder/tests/smoke/smoke_project_registry.py`
 
 What:
-- Add a smoke script that loads every provider usage fixture JSON file.
-- Verify each fixture has `provider`, `model`, `role`, `input_tokens`,
-  `output_tokens`, and `cached_tokens` fields.
-- Verify token fields are non-negative integers.
+- Implement a typed project registry loader for runtime `projects.json`.
+- Use dataclasses and type hints.
+- Accept a JSON array of project objects with `name`, `ref`, `path`, and
+  `active`; optional fields may be preserved if already in the fixture.
+- Validate refs with the same conservative slug rules used elsewhere.
+- Return only active projects from a helper such as `active_projects()`.
+- Add unit tests using `tests/fixtures/project_registry/projects.json`.
+- Add a smoke script that loads the fixture and prints active refs.
+- Do not add API routes and do not touch schema.
 
 Why:
-- Provider fixtures are now shared test inputs and need basic shape checking.
+- This is real build-order step 15 groundwork. Idea capture and matchmaker need
+  a shared project reference source instead of ad hoc strings.
 
 Smoke test:
 
 ```sh
 cd /home/daniel/Documents/Projekter/Daniel90mm.github.io/flightrecorder
-.venv/bin/python tests/smoke/smoke_provider_usage_fixtures.py
-```
-
-## S102 - Adversarial fixture smoke
-
-Where:
-- `flightrecorder/tests/smoke/smoke_adversarial_fixtures.py`
-- `flightrecorder/tests/fixtures/adversarial/`
-
-What:
-- Add a smoke script that checks every adversarial fixture text file is non-empty.
-- Verify filenames cover names, emails, repo_urls, course_codes, mixed, and
-  sensitive.
-- Do not implement redaction.
-
-Why:
-- Redaction work must start from stable fixture coverage.
-
-Smoke test:
-
-```sh
-cd /home/daniel/Documents/Projekter/Daniel90mm.github.io/flightrecorder
-.venv/bin/python tests/smoke/smoke_adversarial_fixtures.py
-```
-
-## S103 - Project registry fixture smoke
-
-Where:
-- `flightrecorder/tests/smoke/smoke_project_registry_fixture.py`
-- `flightrecorder/tests/fixtures/project_registry/projects.json`
-
-What:
-- Add a smoke script that validates the project registry fixture is a JSON
-  array with at least two entries.
-- Verify each entry has `name`, `ref`, `path`, and `active`.
-- Do not implement project registry loading.
-
-Why:
-- The registry contract should have one executable fixture check before code.
-
-Smoke test:
-
-```sh
-cd /home/daniel/Documents/Projekter/Daniel90mm.github.io/flightrecorder
-.venv/bin/python tests/smoke/smoke_project_registry_fixture.py
-```
-
-## S104 - Spaghetti fixture smoke
-
-Where:
-- `flightrecorder/tests/smoke/smoke_spaghetti_fixture.py`
-- `flightrecorder/tests/fixtures/spaghetti/*.md`
-
-What:
-- Add a smoke script that checks each spaghetti fixture has frontmatter markers
-  and required fields: `idea_id`, `source_session`, `tags`, `status`, and
-  `match_attempts`.
-- Keep it string-based; do not add YAML dependencies.
-
-Why:
-- Future matchmaker and publisher tests need stable file-shape fixtures.
-
-Smoke test:
-
-```sh
-cd /home/daniel/Documents/Projekter/Daniel90mm.github.io/flightrecorder
-.venv/bin/python tests/smoke/smoke_spaghetti_fixture.py
-```
-
-## S105 - Project document fixture smoke
-
-Where:
-- `flightrecorder/tests/smoke/smoke_project_document_fixture.py`
-- `flightrecorder/tests/fixtures/documents/*.md`
-
-What:
-- Add a smoke script that checks project document fixtures include all standard
-  project sections from `flightrecorder.documents.PROJECT_SECTIONS`.
-- Do not alter runtime documents.
-
-Why:
-- Matchmaker and append-only tests need representative project documents.
-
-Smoke test:
-
-```sh
-cd /home/daniel/Documents/Projekter/Daniel90mm.github.io/flightrecorder
-.venv/bin/python tests/smoke/smoke_project_document_fixture.py
-```
-
-## S106 - Current API docs route list sync
-
-Where:
-- `flightrecorder/docs/API_CURRENT_STATE.md`
-- `flightrecorder/docs/SMOKE_COMMANDS.md`
-
-What:
-- Add `smoke_api_current_state.py` to the smoke command table and all-smoke
-  loop if it is missing.
-- Ensure `API_CURRENT_STATE.md` says the chat route is draft-only, not
-  implemented.
-- Documentation-only.
-
-Why:
-- API docs are now checked by a smoke script and should be included in the
-  standard smoke list.
-
-Smoke test:
-
-```sh
-cd /home/daniel/Documents/Projekter/Daniel90mm.github.io/flightrecorder
-grep -q 'smoke_api_current_state.py' docs/SMOKE_COMMANDS.md
-grep -q 'draft-only' docs/API_CURRENT_STATE.md
-LC_ALL=C grep -n '[^ -~]' docs/API_CURRENT_STATE.md docs/SMOKE_COMMANDS.md && exit 1 || true
-```
-
-## S107 - Navigation smoke command sync
-
-Where:
-- `flightrecorder/docs/SMOKE_COMMANDS.md`
-
-What:
-- Add `smoke_docs_navigation.py` to the smoke command table and all-smoke loop
-  if it is missing.
-- Documentation-only.
-
-Why:
-- Broken doc navigation links should be part of the normal smoke pass.
-
-Smoke test:
-
-```sh
-cd /home/daniel/Documents/Projekter/Daniel90mm.github.io/flightrecorder
-grep -q 'smoke_docs_navigation.py' docs/SMOKE_COMMANDS.md
-LC_ALL=C grep -n '[^ -~]' docs/SMOKE_COMMANDS.md && exit 1 || true
-```
-
-## S108 - Core progress sync with build status
-
-Where:
-- `flightrecorder/docs/CORE_PROGRESS.md`
-- `flightrecorder/docs/BUILD_STATUS.md`
-
-What:
-- Check `CORE_PROGRESS.md` against `BUILD_STATUS.md`.
-- If a percentage contradicts the status table, adjust the progress doc only.
-- Documentation-only.
-
-Why:
-- The progress doc should stay an honest snapshot, not a stale dashboard.
-
-Smoke test:
-
-```sh
-cd /home/daniel/Documents/Projekter/Daniel90mm.github.io/flightrecorder
-grep -q 'Overall v1' docs/CORE_PROGRESS.md
-grep -q 'Step 17' docs/BUILD_STATUS.md
-LC_ALL=C grep -n '[^ -~]' docs/CORE_PROGRESS.md docs/BUILD_STATUS.md && exit 1 || true
-```
-
-## S109 - Small task smoke command sync
-
-Where:
-- `flightrecorder/docs/SMOKE_COMMANDS.md`
-
-What:
-- Add `smoke_small_model_tasks.py` to the smoke command table and all-smoke
-  loop if it is missing.
-- Documentation-only.
-
-Why:
-- The queue integrity smoke should run in the normal smoke pass.
-
-Smoke test:
-
-```sh
-cd /home/daniel/Documents/Projekter/Daniel90mm.github.io/flightrecorder
-grep -q 'smoke_small_model_tasks.py' docs/SMOKE_COMMANDS.md
-LC_ALL=C grep -n '[^ -~]' docs/SMOKE_COMMANDS.md && exit 1 || true
-```
-
-## S110 - Handoff smoke command sync
-
-Where:
-- `flightrecorder/docs/SMOKE_COMMANDS.md`
-
-What:
-- Add `smoke_handoff_templates.py` to the smoke command table and all-smoke
-  loop if it is missing.
-- Documentation-only.
-
-Why:
-- Parallel work makes handoff/consult template checks part of normal hygiene.
-
-Smoke test:
-
-```sh
-cd /home/daniel/Documents/Projekter/Daniel90mm.github.io/flightrecorder
-grep -q 'smoke_handoff_templates.py' docs/SMOKE_COMMANDS.md
-LC_ALL=C grep -n '[^ -~]' docs/SMOKE_COMMANDS.md && exit 1 || true
+.venv/bin/python -m pytest tests/unit/test_project_registry.py -q
+.venv/bin/python tests/smoke/smoke_project_registry.py
 ```
