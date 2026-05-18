@@ -18,7 +18,7 @@ scripts/dev-backend.sh
 ## Status
 
 Backend skeleton, session storage, approved `/api/sessions*` routes, and cost
-tracking are built. Append-only project document helpers and idea-capture operation parsing with spaghetti/project routing exist, but the idea-capture LLM call itself is not yet wired.
+tracking are built. Append-only project document helpers and idea-capture operation parsing with spaghetti/project routing exist, but the idea-capture LLM call itself is not yet wired. Budget tracking has a hard-stop sentinel helper that writes a `budget` kill-switch file, but provider and chat paths do not enforce it yet.
 
 ## Current API
 

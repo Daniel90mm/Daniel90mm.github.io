@@ -14,6 +14,7 @@
 | `docs/DOCUMENTS_GIT.md` | Documents git repo behavior: auto-init, clean-tree skip, audit trail. |
 | `docs/IDEA_CAPTURE_VALIDATION.md` | Parser acceptance and rejection rules for `parse_idea_operations()`. |
 | `docs/API_CONTRACT_REVIEW.md` | Daniel's approval checklist for the API contract draft. |
+| `docs/BUDGET_GUARD.md` | Budget hard-stop sentinel lifecycle and enforcement rules. |
 | `docs/BUILD_STATUS.md` | Build-order status for spec section 19 steps. |
 | `docs/MISSING_WORK.md` | Human-readable snapshot of remaining build steps. |
 | `docs/PRICING_FORMAT.md` | Expected pricing.toml shape with zero placeholder rates. |

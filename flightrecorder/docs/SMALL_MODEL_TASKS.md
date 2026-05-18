@@ -68,95 +68,91 @@ regression is found:
 | S52 | Documents git auto-commit path, completed by senior agent. |
 | S53 | Documents git docs. |
 | S54 | Budget hard-stop sentinel, completed by senior agent. |
+| S55 | Budget sentinel smoke. |
+| S56 | Budget docs update. |
+| S57 | Smoke command sync for new guards. |
+| S58 | Budget guard README status. |
 
 ## Active queue
 
 Pick from the top unless Daniel or the senior agent says otherwise.
 
-## S55 - Budget sentinel smoke
+## S59 - Provider call guard smoke
 
 Where:
-- `flightrecorder/tests/smoke/smoke_budget_hard_stop.py`
+- `flightrecorder/tests/smoke/smoke_provider_call_guard.py`
 
 What:
-- Add a smoke script that inserts fake cost rows, calls
-  `enforce_monthly_budget()`, and verifies a temp `budget` file is written.
-- Do not touch real `~/flightrecorder/budget`.
+- After the senior agent lands the provider-call guard, add a smoke script that:
+  creates an in-memory metadata database, creates a tiny pricing table, records
+  one fake provider usage through the guard, and verifies one `api_calls` row.
+- Also verify that an existing temp `budget` sentinel makes the guard refuse a
+  new paid call.
+- Do not touch real `$FLIGHTRECORDER_HOME`, real `pricing.toml`, or provider
+  SDKs.
 
 Why:
-- The hard-stop kill switch is a runtime safety boundary.
+- Paid provider execution must have one obvious guard path before real LLM
+  calls are wired.
 
 Smoke test:
 
 ```sh
 cd /home/daniel/Documents/Projekter/Daniel90mm.github.io/flightrecorder
-.venv/bin/python tests/smoke/smoke_budget_hard_stop.py
+.venv/bin/python tests/smoke/smoke_provider_call_guard.py
 ```
 
-## S56 - Budget docs update
+## S60 - Provider call guard docs
 
 Where:
-- `flightrecorder/docs/BUDGET_GUARD.md`
+- `flightrecorder/docs/PROVIDER_CALL_GUARD.md`
 - `flightrecorder/docs/NAVIGATION.md`
 
 What:
-- Document the `budget` sentinel file behavior:
-  write on hard-stop, do not auto-clear on warn/ok, clear only explicitly.
+- After the senior agent lands the provider-call guard, document the intended
+  flow:
+  preflight budget check -> provider SDK call -> token usage cost computation
+  -> `api_calls` insert -> post-call budget enforcement.
+- Mention that real provider SDK calls are still not wired.
 - Documentation-only.
 
 Why:
-- Provider work must understand the safety boundary before adding paid calls.
+- Future provider implementation should not bypass cost logging or the
+  hard-stop sentinel.
 
 Smoke test:
 
 ```sh
 cd /home/daniel/Documents/Projekter/Daniel90mm.github.io/flightrecorder
-grep -q 'do not auto-clear' docs/BUDGET_GUARD.md
-grep -q 'docs/BUDGET_GUARD.md' docs/NAVIGATION.md
-LC_ALL=C grep -n '[^ -~]' docs/BUDGET_GUARD.md docs/NAVIGATION.md && exit 1 || true
+grep -q 'preflight budget check' docs/PROVIDER_CALL_GUARD.md
+grep -q 'api_calls' docs/PROVIDER_CALL_GUARD.md
+grep -q 'docs/PROVIDER_CALL_GUARD.md' docs/NAVIGATION.md
+LC_ALL=C grep -n '[^ -~]' docs/PROVIDER_CALL_GUARD.md docs/NAVIGATION.md && exit 1 || true
 ```
 
-## S57 - Smoke command sync for new guards
-
-Where:
-- `flightrecorder/docs/SMOKE_COMMANDS.md`
-
-What:
-- Add `smoke_documents_git.py` to the smoke command table and all-smoke loop.
-- If S55 is already complete, add `smoke_budget_hard_stop.py` too.
-- Documentation-only.
-
-Why:
-- The smoke index should stay aligned with runnable safety checks.
-
-Smoke test:
-
-```sh
-cd /home/daniel/Documents/Projekter/Daniel90mm.github.io/flightrecorder
-grep -q 'smoke_documents_git.py' docs/SMOKE_COMMANDS.md
-grep -q 'smoke_documents_git' docs/SMOKE_COMMANDS.md
-LC_ALL=C grep -n '[^ -~]' docs/SMOKE_COMMANDS.md && exit 1 || true
-```
-
-## S58 - Budget guard README status
+## S61 - Provider guard status sync
 
 Where:
 - `flightrecorder/README.md`
+- `flightrecorder/docs/BUILD_STATUS.md`
+- `flightrecorder/docs/MISSING_WORK.md`
+- `flightrecorder/docs/SMOKE_COMMANDS.md`
 
 What:
-- Add one short status sentence saying budget tracking has a hard-stop sentinel
-  helper, but provider/chat paths do not enforce it yet.
-- Do not document any setup command for clearing the sentinel.
+- After S59 is complete, add `smoke_provider_call_guard.py` to the smoke index.
+- Add one short README/status note saying provider-call guard primitives exist,
+  but real SDK calls are not wired.
+- Documentation-only.
 
 Why:
-- The README should reflect the hard-stop primitive without overclaiming that
-  paid-call enforcement exists.
+- The repo status should stay accurate as step 17 moves from raw budget helpers
+  toward guarded paid-call execution.
 
 Smoke test:
 
 ```sh
 cd /home/daniel/Documents/Projekter/Daniel90mm.github.io/flightrecorder
-grep -q 'hard-stop sentinel' README.md
-grep -q 'do not enforce it yet' README.md
-LC_ALL=C grep -n '[^ -~]' README.md && exit 1 || true
+grep -q 'smoke_provider_call_guard.py' docs/SMOKE_COMMANDS.md
+grep -q 'provider-call guard' README.md docs/BUILD_STATUS.md docs/MISSING_WORK.md
+LC_ALL=C grep -n '[^ -~]' README.md docs/BUILD_STATUS.md docs/MISSING_WORK.md docs/SMOKE_COMMANDS.md && exit 1 || true
 ```

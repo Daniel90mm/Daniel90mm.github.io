@@ -6,6 +6,11 @@ import pytest
 
 from flightrecorder.costs import (
     ApiCallRecord,
+    BudgetHardStopError,
+    ModelPricing,
+    PricingTable,
+    ProviderCallGuard,
+    ProviderUsage,
     budget_hard_stop_path,
     clear_budget_hard_stop,
     compute_cost_eur,
@@ -321,3 +326,138 @@ def test_clear_budget_hard_stop_removes_existing_file(tmp_path: Path) -> None:
 
     assert clear_budget_hard_stop(tmp_path) is True
     assert is_budget_hard_stop_active(tmp_path) is False
+
+
+def test_provider_call_guard_refuses_existing_hard_stop(tmp_path: Path) -> None:
+    connection = sqlite3.connect(":memory:")
+    initialize_database(connection)
+    (tmp_path / "budget").write_text("status=hard_stop\n", encoding="utf-8")
+    guard = ProviderCallGuard(
+        runtime_home=tmp_path,
+        connection=connection,
+        pricing=_pricing_table(),
+        warn_at_eur=30,
+        hard_stop_eur=80,
+    )
+
+    with pytest.raises(BudgetHardStopError):
+        guard.check_before_call(datetime.fromisoformat("2026-05-18T18:00:00+02:00"))
+
+
+def test_provider_call_guard_records_usage_and_cost(tmp_path: Path) -> None:
+    connection = sqlite3.connect(":memory:")
+    initialize_database(connection)
+    guard = ProviderCallGuard(
+        runtime_home=tmp_path,
+        connection=connection,
+        pricing=_pricing_table(),
+        warn_at_eur=30,
+        hard_stop_eur=80,
+    )
+
+    result = guard.record_usage(
+        ProviderUsage(
+            timestamp=datetime.fromisoformat("2026-05-18T18:00:00+02:00"),
+            provider="anthropic",
+            model="claude-haiku-4-5",
+            role="tagger",
+            input_tokens=1000,
+            output_tokens=500,
+            cached_tokens=100,
+            session_id="2026-05-18-1800-test-abcd1234",
+        )
+    )
+    row = connection.execute(
+        """
+        SELECT provider, model, role, input_tokens, output_tokens, cached_tokens,
+               cost_eur, session_id
+        FROM api_calls
+        WHERE id = ?
+        """,
+        (result.api_call_id,),
+    ).fetchone()
+
+    assert result.cost_eur == pytest.approx(0.0021)
+    assert result.budget.evaluation.status == "ok"
+    assert row == (
+        "anthropic",
+        "claude-haiku-4-5",
+        "tagger",
+        1000,
+        500,
+        100,
+        pytest.approx(0.0021),
+        "2026-05-18-1800-test-abcd1234",
+    )
+
+
+def test_provider_call_guard_writes_hard_stop_after_usage(tmp_path: Path) -> None:
+    connection = sqlite3.connect(":memory:")
+    initialize_database(connection)
+    guard = ProviderCallGuard(
+        runtime_home=tmp_path,
+        connection=connection,
+        pricing=_pricing_table(input_per_1k=100),
+        warn_at_eur=30,
+        hard_stop_eur=80,
+    )
+
+    result = guard.record_usage(
+        ProviderUsage(
+            timestamp=datetime.fromisoformat("2026-05-18T18:00:00+02:00"),
+            provider="anthropic",
+            model="claude-haiku-4-5",
+            role="brainstorm",
+            input_tokens=1000,
+            output_tokens=0,
+        )
+    )
+
+    assert result.budget.evaluation.status == "hard_stop"
+    assert result.budget.hard_stop_active is True
+    assert (tmp_path / "budget").exists()
+
+
+def test_provider_call_guard_rejects_provider_pricing_mismatch(
+    tmp_path: Path,
+) -> None:
+    connection = sqlite3.connect(":memory:")
+    initialize_database(connection)
+    guard = ProviderCallGuard(
+        runtime_home=tmp_path,
+        connection=connection,
+        pricing=_pricing_table(),
+        warn_at_eur=30,
+        hard_stop_eur=80,
+    )
+
+    with pytest.raises(ValueError, match="belongs to anthropic"):
+        guard.record_usage(
+            ProviderUsage(
+                timestamp=datetime.fromisoformat("2026-05-18T18:00:00+02:00"),
+                provider="openai",
+                model="claude-haiku-4-5",
+                role="tagger",
+                input_tokens=1,
+                output_tokens=1,
+            )
+        )
+
+    count = connection.execute("SELECT COUNT(*) FROM api_calls").fetchone()[0]
+    assert count == 0
+
+
+def _pricing_table(input_per_1k: float = 0.001) -> PricingTable:
+    return PricingTable(
+        models={
+            "claude-haiku-4-5": ModelPricing(
+                provider="anthropic",
+                model="claude-haiku-4-5",
+                input_per_1k=input_per_1k,
+                output_per_1k=0.002,
+                cached_per_1k=0.001,
+                currency="EUR",
+            )
+        },
+        exchange_rates_to_eur={"EUR": 1.0},
+    )

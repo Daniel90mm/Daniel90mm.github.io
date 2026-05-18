@@ -255,3 +255,16 @@ Extended build order step 17:
 
 This is still not wired into provider/chat paths. Future provider execution
 must call the guard before paid API calls.
+
+## 2026-05-18 - Provider-call guard primitive
+
+Extended build order step 17 with `ProviderCallGuard`:
+- `check_before_call()` enforces the monthly budget and refuses paid calls when
+  the hard-stop sentinel is active
+- `record_usage()` computes EUR cost from the pricing table, inserts one
+  `api_calls` row, then re-enforces the monthly budget
+- provider/model mismatches are rejected before logging
+
+The guard is intentionally not wired to real SDK calls yet. It creates the
+boundary future provider implementations should use so budget enforcement and
+cost logging are not optional.

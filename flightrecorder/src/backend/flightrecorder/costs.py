@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from collections.abc import Mapping
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import datetime, timedelta
 from pathlib import Path
 import sqlite3
 import tomllib
@@ -21,6 +21,18 @@ class ApiCallRecord:
     output_tokens: int
     cached_tokens: int
     cost_eur: float
+    session_id: str | None = None
+
+
+@dataclass(frozen=True)
+class ProviderUsage:
+    timestamp: datetime
+    provider: str
+    model: str
+    role: str
+    input_tokens: int
+    output_tokens: int
+    cached_tokens: int = 0
     session_id: str | None = None
 
 
@@ -61,6 +73,107 @@ class BudgetGuardResult:
     evaluation: BudgetEvaluation
     hard_stop_active: bool
     hard_stop_path: Path
+
+
+@dataclass(frozen=True)
+class ProviderUsageResult:
+    api_call_id: int
+    cost_eur: float
+    budget: BudgetGuardResult
+
+
+class BudgetHardStopError(RuntimeError):
+    """Raised when a paid provider call is blocked by the budget sentinel."""
+
+
+class ProviderCallGuard:
+    """Enforce budget and cost logging around paid provider calls."""
+
+    runtime_home: Path
+    connection: sqlite3.Connection
+    pricing: PricingTable
+    warn_at_eur: float
+    hard_stop_eur: float
+
+    def __init__(
+        self,
+        runtime_home: Path,
+        connection: sqlite3.Connection,
+        pricing: PricingTable,
+        warn_at_eur: float,
+        hard_stop_eur: float,
+    ) -> None:
+        self.runtime_home = runtime_home
+        self.connection = connection
+        self.pricing = pricing
+        self.warn_at_eur = warn_at_eur
+        self.hard_stop_eur = hard_stop_eur
+
+    def check_before_call(self, now: datetime) -> BudgetGuardResult:
+        """Refuse a paid provider call when the hard-stop sentinel is active."""
+
+        result = enforce_monthly_budget(
+            runtime_home=self.runtime_home,
+            connection=self.connection,
+            now=now,
+            warn_at_eur=self.warn_at_eur,
+            hard_stop_eur=self.hard_stop_eur,
+        )
+        if result.hard_stop_active:
+            raise BudgetHardStopError(
+                f"budget hard-stop active: {result.hard_stop_path}"
+            )
+        return result
+
+    def record_usage(self, usage: ProviderUsage) -> ProviderUsageResult:
+        """Log one completed provider call and re-enforce the monthly budget."""
+
+        self._validate_usage_provider(usage)
+        cost_eur = compute_cost_eur(
+            pricing=self.pricing,
+            model=usage.model,
+            input_tokens=usage.input_tokens,
+            output_tokens=usage.output_tokens,
+            cached_tokens=usage.cached_tokens,
+        )
+        api_call_id = log_api_call(
+            self.connection,
+            ApiCallRecord(
+                timestamp=usage.timestamp.isoformat(),
+                provider=usage.provider,
+                model=usage.model,
+                role=usage.role,
+                input_tokens=usage.input_tokens,
+                output_tokens=usage.output_tokens,
+                cached_tokens=usage.cached_tokens,
+                cost_eur=cost_eur,
+                session_id=usage.session_id,
+            ),
+        )
+        budget = enforce_monthly_budget(
+            runtime_home=self.runtime_home,
+            connection=self.connection,
+            now=usage.timestamp + timedelta(microseconds=1),
+            warn_at_eur=self.warn_at_eur,
+            hard_stop_eur=self.hard_stop_eur,
+        )
+        return ProviderUsageResult(
+            api_call_id=api_call_id,
+            cost_eur=cost_eur,
+            budget=budget,
+        )
+
+    def _validate_usage_provider(self, usage: ProviderUsage) -> None:
+        try:
+            model_pricing = self.pricing.models[usage.model]
+        except KeyError as exc:
+            raise ValueError(f"missing pricing for model {usage.model}") from exc
+
+        if model_pricing.provider != usage.provider:
+            raise ValueError(
+                f"pricing for {usage.model} belongs to {model_pricing.provider}, "
+                f"not {usage.provider}"
+            )
 
 
 def log_api_call(connection: sqlite3.Connection, record: ApiCallRecord) -> int:
