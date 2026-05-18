@@ -13,13 +13,13 @@
 !flightrecorder/**
 !scripts/
 !scripts/**
-!src/
-!src/**
+!museum/
+!museum/**
 
 # Hugo build output
-src/public/
-src/resources/
-src/.hugo_build.lock
+museum/public/
+museum/resources/
+museum/.hugo_build.lock
 
 # Never track
 .venv/

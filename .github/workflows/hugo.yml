@@ -40,7 +40,7 @@ jobs:
         env:
           HUGO_ENVIRONMENT: production
           HUGO_ENV: production
-        working-directory: ./src
+        working-directory: ./museum
         run: |
           hugo \
             --gc \
@@ -49,7 +49,7 @@ jobs:
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v5
         with:
-          path: ./src/public
+          path: ./museum/public
 
   deploy:
     environment:
