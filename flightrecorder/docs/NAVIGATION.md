@@ -19,6 +19,7 @@
 | `docs/BUILD_STATUS_AUDIT.md` | Consistency audit of BUILD_STATUS and MISSING_WORK against spec. |
 | `docs/CHAT_API_CONTRACT_DRAFT.md` | Draft chat SSE contract for `POST /api/sessions/{id}/messages`. |
 | `docs/CHAT_IMPLEMENTATION_PLAN.md` | Chat endpoint implementation checklist from contract draft. |
+| `docs/CORE_PROGRESS.md` | Percentage estimates for core v1 areas. |
 | `docs/FRONTEND_SCOPE.md` | v1 frontend surfaces and available backend routes. |
 | `docs/IDEA_CAPTURE_RETRY_POLICY.md` | Fail-closed policy for malformed idea-capture LLM output. |
 | `docs/MATCHMAKER_INPUTS.md` | Files and tables the future matchmaker will read. |

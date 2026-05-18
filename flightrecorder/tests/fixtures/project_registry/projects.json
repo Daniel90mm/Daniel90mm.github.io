@@ -1,0 +1,23 @@
+[
+    {
+        "name": "Pulse Oximeter",
+        "ref": "pulse-oximeter",
+        "path": "/home/demo/Documents/Projekter/pulse-oximeter",
+        "description": "DTU thesis: reflectance pulse oximeter with wireless logging.",
+        "active": true
+    },
+    {
+        "name": "fNIRS System",
+        "ref": "fnirs",
+        "path": "/home/demo/Documents/Projekter/fnirs",
+        "description": "Functional near-infrared spectroscopy with AFE-based frontend.",
+        "active": true
+    },
+    {
+        "name": "Keyboard",
+        "ref": "keyboard",
+        "path": "/home/demo/Documents/Projekter/keyboard",
+        "description": "Dvorak-layout mechanical keyboard with QMK firmware.",
+        "active": false
+    }
+]

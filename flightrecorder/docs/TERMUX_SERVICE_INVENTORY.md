@@ -39,3 +39,15 @@ simple and proven. A future move to `termux-services` is deferred.
 ## Not implemented
 
 No runit files, no cron entries, no wake-lock wrappers exist.
+
+## Open questions
+
+1. **service names** - what should the runit service directories be called?
+   `flightrecorder-backend`, `flightrecorder-publisher`, `flightrecorder-matchmaker`?
+2. **exact runit paths** - `$PREFIX/var/service/` or `~/.termux/service/`?
+3. **wake-lock wrapping** - should the wrapper be a shell function sourced by
+   both cron entries and runit `run` scripts, or duplicated inline?
+4. **log file locations** - `~/logs/` is the current convention. Should runit
+   use its own `log/` sub-service, or keep plain nohup-style logging?
+5. **cron on Termux** - `termux-services` provides runit, but cron needs
+   `termux-cron` or `crond` separately. Which is preferred for v1?

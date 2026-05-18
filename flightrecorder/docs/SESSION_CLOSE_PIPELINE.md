@@ -34,3 +34,17 @@ does not exist. `ProviderCallGuard` exists but the LLM call path is not wired.
 - Provider SDK calls must be wired (not done).
 - `ProviderCallGuard` must be called around both LLM calls.
 - API contract for `POST /api/sessions/{id}/close` is not drafted.
+
+## Blockers before implementation
+
+1. **chat endpoint approval** - Daniel must approve the chat SSE contract
+   (`docs/CHAT_API_CONTRACT_DRAFT.md`).
+2. **provider SDK execution** - `ProviderCallGuard.check_before_call()` and
+   `record_usage()` must be wired around actual provider SDK calls.
+3. **idea-capture LLM call** - the prompt exists (`prompts/idea-capture.md`)
+   but no backend code calls the LLM yet.
+4. **retry/error semantics** - on malformed LLM output, the pipeline must fail
+   closed (no documents/spaghetti written, session stays available for retry).
+   The retry policy is drafted in `docs/IDEA_CAPTURE_RETRY_POLICY.md`.
+5. **tagger LLM call** - same as idea-capture: prompt exists, no backend code
+   calls it yet.

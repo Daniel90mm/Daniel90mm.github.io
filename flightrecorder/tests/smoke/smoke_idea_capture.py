@@ -12,7 +12,11 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent / "src" / "backend"))
 
 from flightrecorder.documents import create_project_document
-from flightrecorder.idea_capture import apply_idea_operations, parse_idea_operations
+from flightrecorder.idea_capture import (
+    IdeaCaptureError,
+    apply_idea_operations,
+    parse_idea_operations,
+)
 from flightrecorder.schema import initialize_database
 from flightrecorder.storage import SessionMetadata, index_session
 
@@ -84,6 +88,28 @@ def main() -> None:
 
         assert len(spaghetti_files) == 1, "duplicate apply should not create extra file"
         assert ideas_rows == 1, "duplicate apply should upsert, not insert"
+
+        print("--- malformed output test ---")
+
+        malformed_raised = False
+        try:
+            parse_idea_operations("not valid json")
+        except IdeaCaptureError:
+            malformed_raised = True
+        print(f"malformed_raises_error: {malformed_raised}")
+        assert malformed_raised, "parse_idea_operations did not raise on malformed input"
+
+        document_files = list((runtime_home / "documents").glob("*.md"))
+        spaghetti_files2 = list((runtime_home / "spaghetti").glob("*.md"))
+        ideas_rows2 = connection.execute("SELECT COUNT(*) FROM ideas").fetchone()[0]
+
+        print(f"malformed_no_new_documents: {len(document_files) == 1}")
+        print(f"malformed_no_new_spaghetti: {len(spaghetti_files2) == 1}")
+        print(f"malformed_no_new_ideas_rows: {ideas_rows2 == 1}")
+
+        assert len(document_files) == 1, "malformed parse should not create documents"
+        assert len(spaghetti_files2) == 1, "malformed parse should not create spaghetti"
+        assert ideas_rows2 == 1, "malformed parse should not insert ideas rows"
 
     print("idea capture smoke test passed")
 
