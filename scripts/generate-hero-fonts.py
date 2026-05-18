@@ -8,12 +8,12 @@ from pathlib import Path
 
 import pyfiglet
 
-WORD = "daniel"
+WORD = "Daniel Yttesen"
 ROOT = Path(__file__).resolve().parent.parent
 OUT = ROOT / "src" / "static" / "hero-fonts.json"
 
 # size guardrails — fonts outside these don't fit the hero well
-MIN_W, MAX_W = 14, 90
+MIN_W, MAX_W = 28, 160
 MIN_H, MAX_H = 3, 14
 
 
