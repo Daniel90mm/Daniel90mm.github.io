@@ -175,89 +175,12 @@ regression is found:
 | S119 | Session round-trip integration test. |
 | S122 | Matchmaker API contract doc and NAVIGATION row. |
 | S123 | Hugo path smoke after museum rename. |
+| S124 | Local Hugo production build smoke. |
+| S125 | GitHub Pages workflow smoke. |
 
 ## Active queue
 
 Pick from the top unless Daniel or the senior agent says otherwise.
-
-## S124 - Add local Hugo production build smoke
-
-Where:
-- `flightrecorder/tests/smoke/smoke_hugo_build.py` (new file)
-- `flightrecorder/docs/SMOKE_COMMANDS.md`
-
-What:
-- Add an executable smoke script that proves the Hugo site can build from the
-  current checkout without writing into tracked `museum/public`.
-- The script should:
-  1. Locate the repo root from the script path.
-  2. Verify `museum/hugo.toml` exists.
-  3. Verify the `hugo` executable is available; if missing, print a clear
-     stderr message and exit non-zero.
-  4. Run `hugo --gc --minify --destination <temporary-dir>` with
-     `cwd=museum` and production env vars (`HUGO_ENVIRONMENT=production`,
-     `HUGO_ENV=production`).
-  5. Assert the generated temporary `index.html` exists.
-  6. Assert the generated home page contains `daniel`, `projects`, and at
-     least one `/projects/` link.
-  7. Print `hugo build smoke test passed` on success.
-- Add the new script to `docs/SMOKE_COMMANDS.md`.
-- Do not edit Hugo templates, content, CSS, JS, or the GitHub workflow in
-  this task.
-
-Why:
-- The fastest way to know whether `daniel90mm.github.io` can deploy is to
-  build the same Hugo tree locally and inspect the artifact. This catches
-  broken templates before GitHub Actions does.
-
-Smoke test:
-
-```sh
-cd /home/daniel/Documents/Projekter/Daniel90mm.github.io/flightrecorder
-PYTHONPATH=src/backend python tests/smoke/smoke_hugo_build.py
-PYTHONPATH=src/backend python tests/smoke/smoke_small_model_tasks.py
-```
-
-Hand-back:
-- When both commands pass, stop. Do not commit.
-
-## S125 - Add GitHub Pages workflow smoke
-
-Where:
-- `flightrecorder/tests/smoke/smoke_pages_workflow.py` (new file)
-- `flightrecorder/docs/SMOKE_COMMANDS.md`
-
-What:
-- Add an executable smoke script that validates the GitHub Pages workflow
-  contract using text checks only. Do not add a YAML dependency.
-- The script should read `.github/workflows/hugo.yml` and assert:
-  1. It deploys on pushes to `main`.
-  2. It has `workflow_dispatch`.
-  3. It grants `pages: write` and `id-token: write`.
-  4. It installs Hugo version `0.161.1`.
-  5. It checks out submodules recursively.
-  6. It builds with `working-directory: ./museum`.
-  7. It passes `--baseURL "${{ steps.pages.outputs.base_url }}/"`.
-  8. It uploads `./museum/public`.
-  9. It uses `actions/deploy-pages`.
-- Print one compact success line on success and clear stderr on failure.
-- Add the new script to `docs/SMOKE_COMMANDS.md`.
-- Do not edit the workflow itself in this task.
-
-Why:
-- The workflow is the real deployment path for `https://daniel90mm.github.io/`.
-  A small smoke should catch accidental path/version/permission drift.
-
-Smoke test:
-
-```sh
-cd /home/daniel/Documents/Projekter/Daniel90mm.github.io/flightrecorder
-PYTHONPATH=src/backend python tests/smoke/smoke_pages_workflow.py
-PYTHONPATH=src/backend python tests/smoke/smoke_small_model_tasks.py
-```
-
-Hand-back:
-- When both commands pass, stop. Do not commit.
 
 ## S126 - Add generated-site internal link smoke
 

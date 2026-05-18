@@ -6,6 +6,7 @@ directory.
 | Script | Command |
 |--------|---------|
 | `tests/smoke/smoke_schema.py` | `python tests/smoke/smoke_schema.py` |
+| `tests/smoke/smoke_hugo_build.py` | `python tests/smoke/smoke_hugo_build.py` |
 | `tests/smoke/smoke_hugo_paths.py` | `python tests/smoke/smoke_hugo_paths.py` |
 | `tests/smoke/smoke_idea_capture.py` | `.venv/bin/python tests/smoke/smoke_idea_capture.py` |
 | `tests/smoke/smoke_session_storage.py` | `python tests/smoke/smoke_session_storage.py` |
@@ -33,6 +34,7 @@ directory.
 | `tests/smoke/smoke_project_registry.py` | `.venv/bin/python tests/smoke/smoke_project_registry.py` |
 | `tests/smoke/smoke_matchmaker_rejection_fixtures.py` | `python tests/smoke/smoke_matchmaker_rejection_fixtures.py` |
 | `tests/smoke/smoke_docs_navigation_consistency.py` | `python tests/smoke/smoke_docs_navigation_consistency.py` |
+| `tests/smoke/smoke_pages_workflow.py` | `python tests/smoke/smoke_pages_workflow.py` |
 
 Scripts that don't require FastAPI use the system Python directly.
 Scripts that import FastAPI or FastAPI-dependent modules use `.venv/bin/python`.
