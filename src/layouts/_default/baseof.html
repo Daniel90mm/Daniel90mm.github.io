@@ -3,6 +3,16 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
+  <script>
+    (function(){
+      var t;
+      try { t = localStorage.getItem("theme.v1"); } catch (e) {}
+      if (t !== "dark" && t !== "dim" && t !== "light") {
+        t = (window.matchMedia && window.matchMedia("(prefers-color-scheme: light)").matches) ? "light" : "dark";
+      }
+      document.documentElement.dataset.theme = t;
+    })();
+  </script>
   <title>{{ if .IsHome }}{{ site.Title }}{{ else }}{{ .Title }} — {{ site.Title }}{{ end }}</title>
   {{ with .Description }}<meta name="description" content="{{ . }}">{{ end }}
 
@@ -40,5 +50,25 @@
     </main>
     {{ partial "footer.html" . }}
   </div>
+  <script>
+    (function(){
+      var btn = document.getElementById("theme-toggle");
+      if(!btn) return;
+      var ORDER = ["dark","dim","light"];
+      var GLYPH = {dark:"●", dim:"◐", light:"○"};
+      function paint(t){
+        document.documentElement.dataset.theme = t;
+        btn.querySelector(".theme-glyph").textContent = GLYPH[t];
+        btn.querySelector(".theme-name").textContent  = t;
+      }
+      paint(document.documentElement.dataset.theme || "dark");
+      btn.addEventListener("click", function(){
+        var cur = document.documentElement.dataset.theme || "dark";
+        var nxt = ORDER[(ORDER.indexOf(cur) + 1) % ORDER.length];
+        try { localStorage.setItem("theme.v1", nxt); } catch (e) {}
+        paint(nxt);
+      });
+    })();
+  </script>
 </body>
 </html>

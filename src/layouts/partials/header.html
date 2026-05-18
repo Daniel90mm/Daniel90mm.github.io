@@ -11,5 +11,8 @@
     <a href="{{ "/" | relURL }}" {{ if .IsHome }}class="active"{{ end }}>home</a>
     <a href="{{ "/projects/" | relURL }}" {{ if hasPrefix .RelPermalink "/projects" }}class="active"{{ end }}>projects</a>
     <a href="{{ "/posts/" | relURL }}" {{ if hasPrefix .RelPermalink "/posts" }}class="active"{{ end }}>notes</a>
+    <button id="theme-toggle" class="theme-toggle" type="button" title="cycle theme (dark · dim · light)" aria-label="cycle theme">
+      <span class="theme-glyph">●</span><span class="theme-name">dark</span>
+    </button>
   </div>
 </header>

@@ -2,12 +2,6 @@
 {{ $started := .Params.started }}
 {{ $latest := "" }}
 {{ range first 1 .RegularPages.ByDate.Reverse }}{{ $latest = .Date }}{{ end }}
-{{ $slug := path.Base .File.Dir }}
-
-<div class="path">
-  <span class="user">daniel</span><span class="at">@</span><span class="host">log</span><span class="colon">:</span><span class="seg">~/projects/{{ $slug }}</span><span class="prompt">$</span><span class="cmd">cat</span> <span class="arg">README.md</span>
-</div>
-
 <header class="project-head">
   <h1 class="project-title">{{ .Title | lower }}</h1>
   {{ with .Params.summary }}<p class="lede">{{ . }}</p>{{ end }}

@@ -1,11 +1,5 @@
 {{ define "main" }}
 {{ $project := .Parent }}
-{{ $pslug := path.Base $project.File.Dir }}
-{{ $fname := .File.LogicalName }}
-<div class="path">
-  <span class="user">daniel</span><span class="at">@</span><span class="host">log</span><span class="colon">:</span><span class="seg">~/projects/{{ $pslug }}/log</span><span class="prompt">$</span><span class="cmd">cat</span> <span class="arg">{{ $fname }}</span>
-</div>
-
 <article class="entry">
   <div class="stamp">
     <span><span class="k">date</span> <span class="v accent">{{ .Date.Format "2006-01-02" }}</span></span>
