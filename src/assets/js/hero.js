@@ -34,12 +34,14 @@
   }
 
   function fit(rec) {
-    // pick a font-size so the art fits the hero width without wrapping
-    const cols = rec.w;
-    const containerW = HERO.clientWidth || window.innerWidth * 0.55;
-    const targetW = Math.min(containerW, window.innerWidth * 0.65, 780);
-    const fs = targetW / (cols * 0.61);
-    return Math.max(6, Math.min(fs, 20));
+    // pick a font-size so the art fits the hero box in both axes
+    const containerW = HERO.clientWidth || window.innerWidth;
+    const containerH = HERO.clientHeight || 200;
+    const targetW = Math.min(containerW, window.innerWidth * 0.65, 820);
+    const targetH = containerH - 12;            // small breathing room
+    const fsW = targetW / (rec.w * 0.61);       // mono char ≈ 0.61em wide
+    const fsH = targetH / (rec.h * 1.02);       // line-height 1.0 + a hair
+    return Math.max(6, Math.min(fsW, fsH, 22));
   }
 
   function render(rec) {
