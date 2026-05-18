@@ -171,69 +171,11 @@ regression is found:
 | S115 | Build status update for project registry step. |
 | S116 | Chat endpoint per approved contract, verified by senior agent. |
 | S117 | Idea-capture LLM wiring, verified by senior agent. |
+| S118 | Adversarial robustness sweep for parse_idea_operations. |
 
 ## Active queue
 
 Pick from the top unless Daniel or the senior agent says otherwise.
-
-## S118 - Adversarial robustness tests for the idea-capture parser
-
-Where:
-- `flightrecorder/tests/adversarial/test_idea_capture_robustness.py` (new
-  file; do not edit any source module).
-
-What:
-- Write a test module that hammers `parse_idea_operations` from
-  `flightrecorder.idea_capture` with adversarial-shaped inputs and asserts
-  it fails closed by raising `IdeaCaptureError`. The parser must never
-  return partial garbage; either the whole JSON parses and validates, or
-  it raises.
-- Cover at minimum:
-  1. Empty string and whitespace-only string.
-  2. JSON that is a number, a string, `null`, a bool, or an object (only
-     an array is accepted).
-  3. An array containing a non-object element (e.g. `[1]`, `["x"]`,
-     `[null]`).
-  4. `project_append` missing each required field
-     (`project_ref`, `section`, `content`) one at a time.
-  5. `project_append` with `section` set to a string that isn't in
-     `PROJECT_SECTIONS` (e.g. `"Roadmap"`, `"todos"` lowercase, `""`).
-  6. `project_append` with `project_ref` that sanitizes to empty
-     (e.g. `"   "`, `"..."`, `"!!!"`).
-  7. `spaghetti` with `tags` not a list (string, int, dict).
-  8. `spaghetti` with `tags` containing a non-string entry (`["pca", 1]`,
-     `["pca", null]`).
-  9. `spaghetti` with empty `content` after `.strip()`.
-  10. An array of `MAX_IDEA_OPERATIONS + 1` valid operations (too many).
-  11. Operation with unknown `type` (e.g. `"draft"`, `"comment"`, missing
-      `type` field entirely).
-  12. Deeply nested junk (`[[[[]]]]`, `[{"type": ["project_append"]}]`).
-- For each case, use `pytest.raises(IdeaCaptureError)`. Group the cases
-  with `pytest.mark.parametrize` where the input shape varies but the
-  assertion is identical, otherwise write one focused test per category.
-- Do NOT test the happy path here. `tests/integration/` and
-  `tests/unit/test_idea_capture.py` already cover that.
-- Do NOT touch any source module. The whole task is one new test file.
-
-Why:
-- Idea-capture is doxxing-adjacent because spaghetti ideas may surface for
-  publishing later. The parser is the boundary between LLM output and the
-  filesystem / sqlite. A property-style sweep against malformed inputs
-  catches regressions that the existing happy-path tests miss.
-
-Smoke test:
-
-```sh
-cd /home/daniel/Documents/Projekter/Daniel90mm.github.io/flightrecorder
-.venv/bin/python -m pytest tests/adversarial/test_idea_capture_robustness.py -q
-.venv/bin/python -m pytest tests/unit/test_idea_capture.py \
-    tests/integration/test_idea_capture_pipeline.py -q
-# Both must pass. The second command catches false positives where the
-# new tests are accidentally too strict and reject happy-path inputs.
-```
-
-Hand-back:
-- When the tests pass, stop. Do not commit. Daniel verifies before commit.
 
 ## S119 - Session round-trip integration test
 
@@ -289,4 +231,57 @@ cd /home/daniel/Documents/Projekter/Daniel90mm.github.io/flightrecorder
 
 Hand-back:
 - When the tests pass, stop. Do not commit. Daniel verifies before commit.
+
+## S120 - Publisher pipeline smoke script
+
+Where:
+- `flightrecorder/tests/smoke/smoke_publisher.py` (new file; do not edit
+  any source module).
+
+What:
+- Write an executable smoke script under `tests/smoke/` that exercises
+  the publisher framework's fail-closed default through the public API.
+  The script should:
+  1. Import `run_publish_pipeline`, `NullCurator`, `NullReviewer`,
+     `adversarial_fixture_dir`, and `PipelineResult` from
+     `flightrecorder.publisher`.
+  2. Walk every `*.txt` file under `adversarial_fixture_dir()`. For each
+     fixture: call `run_publish_pipeline(source_kind="adversarial",
+     source_id=path.stem, source_body=path.read_text())` with the Null*
+     defaults (no explicit curator/reviewer arguments).
+  3. Print one line per fixture in the format
+     `<fixture_stem>: approved=<count> reason=<rejection_reason>`.
+  4. After the walk, print summary lines:
+     `total_fixtures: <n>`, `total_approved: <sum of approved counts>`,
+     `all_rejected: <True/False>`.
+  5. Exit 0 only if `total_approved == 0` and every fixture has a
+     non-None `rejection_reason`. Exit 1 otherwise with a clear stderr
+     message naming the fixture that leaked.
+- The script must run via system `python` (no FastAPI imports needed).
+  Use `PYTHONPATH=src/backend` when running, the standard pattern in
+  the existing smoke scripts.
+- Do NOT touch any source module. Do NOT modify the fixtures. The whole
+  task is one new smoke file.
+
+Why:
+- The unit test `tests/unit/test_publisher.py` already covers
+  fail-closed defaults inside pytest. The smoke version is for the
+  human-facing safety check: a single command that proves no
+  adversarial fixture can reach `approved` under the framework's
+  defaults. If a future refactor accidentally loosens the default
+  (changes `NullCurator` to return `publishable=True`, for example),
+  this smoke flags it instantly.
+
+Smoke test:
+
+```sh
+cd /home/daniel/Documents/Projekter/Daniel90mm.github.io/flightrecorder
+PYTHONPATH=src/backend python tests/smoke/smoke_publisher.py
+echo "exit=$?"
+# Expect exit=0 and total_approved: 0 in the output.
+```
+
+Hand-back:
+- When the smoke passes (exit 0), stop. Do not commit. Daniel verifies
+  before commit.
 
