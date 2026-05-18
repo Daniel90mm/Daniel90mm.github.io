@@ -14,14 +14,13 @@
 </header>
 
 <div class="project-grid">
-  <fieldset class="pane prose-pane">
-    <legend>readme</legend>
+  <section class="prose-col">
     {{ with .Content }}<div class="prose">{{ . }}</div>{{ else }}<p class="empty">no readme yet.</p>{{ end }}
-  </fieldset>
+  </section>
 
   <aside class="side">
-    <fieldset class="pane meta-pane">
-      <legend>meta</legend>
+    <section class="side-block">
+      <h2 class="side-title">meta</h2>
       <dl class="meta-dl">
         <div><dt>status</dt><dd class="{{ $status }}">{{ if eq $status "live" }}<span class="blink">●</span> {{ end }}{{ $status }}</dd></div>
         {{ with $started }}<div><dt>started</dt><dd>{{ . }}</dd></div>{{ end }}
@@ -29,11 +28,11 @@
         <div><dt>entries</dt><dd class="accent">{{ printf "%02d" (len .RegularPages) }}</dd></div>
         {{ with .Params.repo }}<div><dt>repo</dt><dd><a href="{{ . }}">{{ . | replaceRE "https?://" "" }}</a></dd></div>{{ end }}
       </dl>
-    </fieldset>
+    </section>
 
     {{ if .RegularPages }}
-    <fieldset class="pane log-pane">
-      <legend>log · {{ printf "%02d" (len .RegularPages) }}</legend>
+    <section class="side-block">
+      <h2 class="side-title">log · {{ printf "%02d" (len .RegularPages) }}</h2>
       <ol class="side-log">
         {{ range .RegularPages.ByDate.Reverse }}
         <li>
@@ -46,7 +45,7 @@
         </li>
         {{ end }}
       </ol>
-    </fieldset>
+    </section>
     {{ end }}
   </aside>
 </div>

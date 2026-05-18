@@ -127,3 +127,4 @@ Keep entries to one or two lines. Prefix with date: `YYYY-MM-DD: <fact>`.
 -->
 
 - 2026-05-18: never add a status/indicator dot to the site header (`<span class="dot"></span>` or any equivalent). The user rejected it sitewide.
+- 2026-05-18: never wrap site content in `<fieldset class="pane">` + `<legend>` panels (or any equivalent bordered "── label ──" box, including `.pane` / `.panel` / `.card` classes on prose blocks). The user finds the framed boxes ugly against the dark bg. Use a plain `<section>` with a small label/heading instead — let content breathe against the background.

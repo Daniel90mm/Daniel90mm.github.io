@@ -301,35 +301,25 @@ body::before {
   margin-top: 0.75rem;
 }
 
-/* ---------- pane (fieldset/legend gives the natural ── label ── break) ---------- */
+/* sidebar block — no frame, just a small label */
 
-.pane {
-  border: 1px solid var(--rule);
-  background: var(--surface);
-  padding: 1.1rem 1.25rem 1.25rem;
-  margin: 0;
-  min-width: 0;
-}
+.side-block + .side-block { margin-top: 2rem; }
 
-.pane > legend {
-  padding: 0 0.5rem;
-  margin-left: 0.4rem;
-  font-size: 0.74rem;
+.side-title {
+  font-family: var(--mono);
+  font-size: 0.7rem;
+  font-weight: 500;
   text-transform: lowercase;
-  letter-spacing: 0.08em;
-  color: var(--fg-dim);
-}
-.pane > legend::before { content: "─ "; color: var(--rule-2); }
-.pane > legend::after  { content: " ─"; color: var(--rule-2); }
-
-.pane .empty {
+  letter-spacing: 0.14em;
   color: var(--muted);
-  font-size: 0.85rem;
-  font-style: italic;
+  margin: 0 0 0.85rem;
+  padding-bottom: 0.4rem;
+  border-bottom: 1px dashed var(--rule);
 }
 
-/* readme pane gives the prose a comfortable measure even in a wide column */
-.prose-pane .prose { max-width: 78ch; }
+.prose-col { min-width: 0; }
+.prose-col .prose { max-width: 78ch; }
+.prose-col .empty { color: var(--muted); font-style: italic; font-size: 0.9rem; }
 
 /* sidebar stack */
 .side {
