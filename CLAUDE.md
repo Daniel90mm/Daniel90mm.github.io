@@ -125,3 +125,5 @@ Filter: would a future session be meaningfully worse off without this entry? If 
 
 Keep entries to one or two lines. Prefix with date: `YYYY-MM-DD: <fact>`.
 -->
+
+- 2026-05-18: never add a status/indicator dot to the site header (`<span class="dot"></span>` or any equivalent). The user rejected it sitewide.

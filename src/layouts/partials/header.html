@@ -3,7 +3,6 @@
 {{ if ne $path "/" }}{{ $crumb = printf "~%s" (strings.TrimRight "/" $path) }}{{ end }}
 <header class="bar">
   <div class="lhs">
-    <span class="dot"></span>
     <span class="who">
       <span>daniel</span><span class="at">@</span><span class="host">log</span><span class="colon">:</span><span class="path">{{ $crumb }}</span><span class="prompt">$</span>
     </span>
