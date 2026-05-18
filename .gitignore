@@ -5,39 +5,21 @@
 
 # Re-allow tracked paths
 !.gitignore
-!.githooks/
-!.githooks/**
+!.gitmodules
+!.github/
+!.github/**
 !README.md
-!CLAUDE.md
-!AGENTS.md
-!IDEAS_TRAIL.md
-!RESEARCH_LOG.md
-!DESIGN_PRINCIPLES.md
 !flightrecorder/
 !flightrecorder/**
-!pyproject.toml
-!package.json
-!Cargo.toml
-!docs/
-!docs/**
 !scripts/
 !scripts/**
 !src/
 !src/**
-!.github/
-!.github/**
-!.gitmodules
-!tests/
-!tests/**
 
 # Hugo build output
 src/public/
 src/resources/
 src/.hugo_build.lock
-!handoffs/
-!handoffs/**
-!consults/
-!consults/**
 
 # Never track
 .venv/
