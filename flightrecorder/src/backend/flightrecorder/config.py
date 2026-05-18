@@ -37,6 +37,7 @@ class BudgetConfig:
 class PathConfig:
     runtime_home: Path
     hugo_site: Path
+    pricing_path: Path | None = None
 
 
 @dataclass(frozen=True)
@@ -105,6 +106,8 @@ def parse_config(data: dict[str, Any]) -> AppConfig:
     paths_data = data.get("paths", {})
     runtime_home = expand_path(str(paths_data.get("runtime_home", "~/flightrecorder")))
     hugo_site = expand_path(str(paths_data.get("hugo_site", "~/hugo-site")))
-    paths = PathConfig(runtime_home=runtime_home, hugo_site=hugo_site)
+    pricing_raw = paths_data.get("pricing_path")
+    pricing_path = expand_path(str(pricing_raw)) if pricing_raw else None
+    paths = PathConfig(runtime_home=runtime_home, hugo_site=hugo_site, pricing_path=pricing_path)
 
     return AppConfig(providers=providers, roles=roles, budget=budget, paths=paths)

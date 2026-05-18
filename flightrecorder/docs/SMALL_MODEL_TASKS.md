@@ -158,3 +158,270 @@ cd /home/daniel/Documents/Projekter/Daniel90mm.github.io/flightrecorder
 .venv/bin/python -m pytest tests/unit/test_project_registry.py -q
 .venv/bin/python tests/smoke/smoke_project_registry.py
 ```
+
+## S112 - Matchmaker rejection fixture files
+
+Where:
+- `flightrecorder/tests/fixtures/matchmaker/scenario_01_no_match.json`
+- `flightrecorder/tests/fixtures/matchmaker/scenario_02_weak_lexical.json`
+- `flightrecorder/tests/fixtures/matchmaker/scenario_03_unrelated_domains.json`
+- `flightrecorder/tests/fixtures/matchmaker/scenario_04_genuine_multi.json`
+- `flightrecorder/tests/smoke/smoke_matchmaker_rejection_fixtures.py`
+
+What:
+- Translate the four scenarios in `docs/MATCHMAKER_REJECTION_FIXTURES.md` into
+  static JSON fixture files. One file per scenario.
+- Each file is a JSON object with these required keys:
+  - `scenario_id` (string, e.g. `"01_no_match"`)
+  - `spaghetti` (string, the loose idea text from the doc)
+  - `projects` (array of objects with `ref` (slug) and `summary` (string))
+  - `expected_match_count` (integer)
+  - `expected_match_refs` (array of project refs that should match; empty for
+    scenarios 1-3, the two relevant refs for scenario 4)
+  - `notes` (string, copy of the "Expected" sentence from the doc)
+- Use conservative slug refs for projects: `web-portfolio`, `pulse-oximeter`,
+  `bibliography-manager`, `fnirs`. Lowercase, hyphenated, ASCII only.
+- Add a smoke script that loads all four fixtures, validates the schema above
+  (keys present, types correct, counts consistent with `expected_match_refs`
+  length), prints one summary line per scenario, and exits 0.
+- Do not invoke any LLM. Do not import the matchmaker prompt. Fixtures are
+  static inputs only.
+- Do not touch `prompts/matchmaker.md`, the spec, or the doc itself.
+
+Why:
+- The doc describes the scenarios in prose. Downstream adversarial tests need a
+  machine-readable form. Splitting fixture authorship from test authorship
+  keeps the two reviewable independently.
+
+Smoke test:
+
+```sh
+cd /home/daniel/Documents/Projekter/Daniel90mm.github.io/flightrecorder
+.venv/bin/python tests/smoke/smoke_matchmaker_rejection_fixtures.py
+```
+
+## S113 - Navigation index consistency
+
+Where:
+- `flightrecorder/docs/NAVIGATION.md`
+- `flightrecorder/tests/smoke/smoke_docs_navigation_consistency.py`
+
+What:
+- `docs/NAVIGATION.md` has drifted from the actual `docs/` directory contents:
+  - `docs/API_CURRENT_STATE.md` exists on disk but has no row.
+  - `docs/CHAT_API_CONTRACT_DRAFT.md` appears on two rows (currently lines 13
+    and 20). Keep one row, remove the duplicate.
+- Add a row for `docs/API_CURRENT_STATE.md`. Mirror the prose style of nearby
+  rows: one short sentence describing the file's purpose. Read the file
+  itself to write an accurate one-liner. Do not invent.
+- Remove the duplicate `CHAT_API_CONTRACT_DRAFT.md` row. Keep the row whose
+  description you judge most accurate against the file; if both are identical,
+  keep the first occurrence.
+- Add a new smoke script that:
+  1. Lists every `*.md` file under `docs/`.
+  2. Parses `docs/NAVIGATION.md` and extracts the path from every table row
+     under the `| Path | Purpose |` heading.
+  3. Fails (non-zero exit) if any `docs/*.md` file is not referenced, or if
+     any path appears more than once in the table.
+  4. Prints a one-line summary on success.
+- Do not touch any other doc, source file, or test. Do not change row order
+  beyond the additions/removals required above.
+
+Why:
+- `docs/NAVIGATION.md` is the index a fresh agent hits before anything else
+  (see hard rule "Keep docs/NAVIGATION.md current" in CLAUDE.md). A drifted
+  index sends the next agent to the wrong place. The smoke script makes this
+  drift detectable instead of relying on review discipline.
+
+Smoke test:
+
+```sh
+cd /home/daniel/Documents/Projekter/Daniel90mm.github.io/flightrecorder
+.venv/bin/python tests/smoke/smoke_docs_navigation_consistency.py
+```
+
+## S114 - Smoke command index sync
+
+Where:
+- `flightrecorder/docs/SMOKE_COMMANDS.md`
+
+What:
+- Three smoke scripts exist under `tests/smoke/` but are absent from the
+  `docs/SMOKE_COMMANDS.md` index:
+  - `tests/smoke/smoke_project_registry.py`
+  - `tests/smoke/smoke_matchmaker_rejection_fixtures.py`
+  - `tests/smoke/smoke_docs_navigation_consistency.py`
+- For each, add one row to the index table in the existing format.
+- Determine the correct Python invocation for each by reading the script's
+  top-of-file imports. Rule (already documented at the bottom of the file):
+  scripts that import FastAPI or any module that pulls in FastAPI use
+  `.venv/bin/python`; pure-stdlib smoke scripts can use system `python`.
+- Update the bash "One-liner to run all" case statement at the bottom of the
+  file so any newly added script that needs `.venv/bin/python` is in the
+  pattern list. Do not remove or reorder existing entries.
+- Do not touch any other file. Do not run the smokes themselves; this task is
+  index maintenance only.
+
+Why:
+- `docs/SMOKE_COMMANDS.md` is the canonical "what can I quickly verify"
+  index. The new smoke scripts already exist and pass, but a future agent
+  reading only the index will not know they are available. The bash one-liner
+  also silently skips them or runs them with the wrong interpreter unless the
+  case list is current.
+
+Smoke test:
+
+```sh
+cd /home/daniel/Documents/Projekter/Daniel90mm.github.io/flightrecorder
+# Verify every smoke script is referenced by the index.
+diff <(ls tests/smoke/smoke_*.py | sort) \
+     <(grep -oE 'tests/smoke/smoke_[a-z_]+\.py' docs/SMOKE_COMMANDS.md \
+       | sort -u)
+# Empty diff = pass.
+```
+
+## S116 - Chat endpoint per approved contract (BIG task)
+
+This is a larger task than the previous queue entries. Daniel has explicitly
+approved the LLM-call addition, prompt-touch (none required), and API-surface
+work for this scope. The contract is fixed; do not negotiate it.
+
+Where:
+- `flightrecorder/src/backend/flightrecorder/api.py` (extend; do not rewrite
+  existing routes)
+- `flightrecorder/src/backend/flightrecorder/runtime.py` (extend
+  `RuntimeContext` with `pricing` and a `guard()` factory; do not change the
+  existing fields)
+- `flightrecorder/src/backend/flightrecorder/config.py` (add an optional
+  `pricing_path` config field defaulting to `<repo>/flightrecorder/pricing.toml`)
+- `flightrecorder/tests/integration/test_chat_endpoint.py` (new)
+
+What:
+- Implement `POST /api/sessions/{session_id}/messages` exactly as specified in
+  `docs/CHAT_API_CONTRACT_DRAFT.md`. The contract is authoritative; do not
+  invent extra fields, headers, or event types.
+- Use the new typed event interface from
+  `flightrecorder.providers`: `Provider.chat()` yields `TokenEvent`
+  instances and ends with exactly one `UsageEvent`. Do not parse the anthropic
+  SDK directly - go through the Provider abstraction.
+- Wire `flightrecorder.costs.ProviderCallGuard`:
+  1. Call `guard.check_before_call(now)` before opening the stream. If it
+     raises `BudgetHardStopError`, return HTTP 503 with the contract's body
+     `{"detail": "Budget hard-stop active"}`. Do not start streaming.
+  2. After the stream completes successfully, call
+     `guard.record_usage(ProviderUsage(...))` with the counts from the final
+     `UsageEvent` and the session_id. `record_usage` already logs the
+     `api_calls` row and re-enforces the monthly budget. Do not double-log.
+- Persistence rules from the contract:
+  - Append the user message to the session file via
+    `SessionStore.add_message` **before** opening the provider stream.
+  - On clean `done`, append the full assistant message via the same helper.
+  - On error mid-stream (provider exception), emit
+    `event: error\ndata: {"detail": "<message>"}\n\n` and close the stream.
+    Do not persist the assistant message. The user message stays persisted.
+  - Send the `done` event with `{"input_tokens": ..., "output_tokens": ...,
+    "message_count": <updated>}` after appending the assistant message.
+- 404 if the session does not exist; 400 if body content is empty or missing;
+  let FastAPI return 422 for malformed bodies.
+- Use `fastapi.responses.StreamingResponse` with
+  `media_type="text/event-stream"`. Each event must be two CRLF/newline
+  blocks: `event: <name>\ndata: <json>\n\n`.
+
+Runtime/config plumbing (keep narrow):
+- Add `pricing_path: Path | None` to the paths section of `AppConfig`.
+  Default to `runtime_home.parent / "pricing.toml"` if unset. Use existing
+  `flightrecorder.costs.load_pricing`.
+- Add `pricing: PricingTable` and `brainstorm_provider: Provider` to
+  `RuntimeContext`. Build the provider with
+  `create_role_provider(config, "brainstorm")`.
+- Add a `RuntimeContext.guard()` method that returns a fresh
+  `ProviderCallGuard` constructed from runtime_home, the metadata db
+  connection, `runtime.pricing`, and `config.budget.warn_at_eur` /
+  `hard_stop_eur`. Building per-request is fine; the guard is cheap.
+
+Do NOT:
+- Touch `prompts/` (the brainstorm system prompt is not part of this task).
+- Change the public response shape from the contract draft.
+- Implement images, voice_ref, or continue/resume. Those are deferred to v2
+  per the contract.
+- Touch `providers.py` or the `TokenEvent` / `UsageEvent` types. They are
+  built and tested.
+- Add retry logic, fallback providers, or graceful degradation. Fail closed.
+
+Tests (`tests/integration/test_chat_endpoint.py`):
+- Use FastAPI `TestClient`. Spin up the app against a `tmp_path` runtime_home.
+- Inject a **stub Provider** that ignores its arguments and yields a fixed
+  list of `TokenEvent` followed by one `UsageEvent`. Replace
+  `runtime.brainstorm_provider` directly on `app.state.runtime` from the test.
+- Cover:
+  1. Happy path: SSE stream contains the expected `token` events in order
+     and a final `done` event with correct token counts and message_count.
+     Verify the session file now contains both the user and assistant
+     messages. Verify one `api_calls` row exists with the matching token
+     counts.
+  2. Empty content: 400 with the contract's detail string.
+  3. Unknown session_id: 404 with the contract's detail string.
+  4. Provider raises mid-stream: response stream ends with an `event: error`
+     and no assistant message is persisted (but the user message is).
+  5. Budget hard-stop active before the call: 503 with the contract's detail
+     string. No token events are sent and no row is logged.
+
+Why:
+- Spec section 11 names this endpoint and the build order has it as step 3.
+- This is the path through which Daniel actually talks to flightrecorder;
+  every other novel piece (idea capture, matchmaker, publisher) depends on
+  sessions accumulating messages this way.
+- The contract was drafted, reviewed, and approved before code was started -
+  follow it.
+
+Smoke test:
+
+```sh
+cd /home/daniel/Documents/Projekter/Daniel90mm.github.io/flightrecorder
+.venv/bin/python -m pytest tests/integration/test_chat_endpoint.py -q
+.venv/bin/python -m pytest tests/unit/test_providers.py tests/unit/test_api.py tests/unit/test_costs.py -q
+# Both must pass. The second command catches regressions in adjacent modules.
+```
+
+Hand-back:
+- When the tests pass, stop. Do not commit. Daniel verifies the diff and the
+  test run before commit.
+
+## S115 - Build status: project registry now in progress
+
+Where:
+- `flightrecorder/docs/BUILD_STATUS.md`
+- `flightrecorder/docs/MISSING_WORK.md`
+
+What:
+- Build-order step 15 (Project registry) now has a typed loader, unit tests,
+  and a fixture smoke (delivered by S111). It is no longer "not started".
+- In `docs/BUILD_STATUS.md`, change the step 15 row from `not started` to
+  `in progress`. In the Notes column add a one-sentence summary citing the
+  loader, unit tests, and smoke script; mention what is still missing
+  (matchmaker/idea-capture wiring still reads project refs ad hoc; no API
+  route exposes the registry yet). Keep wording terse and factual.
+- In `docs/MISSING_WORK.md`:
+  - Update the count line at the top: "In progress" goes from 3 to 4 and
+    "Not started" goes from 15 to 14. List step 15 with the other
+    in-progress steps.
+  - Remove step 15 from the "Not started" table.
+  - Add a paragraph under "## Open" describing what step 15 still lacks (one
+    or two sentences, same content as the BUILD_STATUS note above).
+- Do not edit any source code, tests, or other docs. Do not change rows for
+  other steps.
+
+Why:
+- The build-status pair is the snapshot a fresh agent reads to decide what to
+  pick up. Leaving step 15 as "not started" misleads the next agent into
+  re-implementing the registry.
+
+Smoke test:
+
+```sh
+cd /home/daniel/Documents/Projekter/Daniel90mm.github.io/flightrecorder
+grep -E '^\| 15 \| Project registry \| in progress' docs/BUILD_STATUS.md
+grep -E 'In progress: \*\*4\*\*' docs/MISSING_WORK.md
+grep -E 'Not started: \*\*14\*\*' docs/MISSING_WORK.md
+# All three greps must match exactly once.
+```

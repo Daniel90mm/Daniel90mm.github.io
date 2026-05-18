@@ -2,14 +2,18 @@
 
 from __future__ import annotations
 
+import json
 from datetime import datetime, timezone
 from typing import Any
 
 from fastapi import APIRouter, File, HTTPException, Query, Request, UploadFile, status
+from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
 
+from flightrecorder.costs import BudgetHardStopError, ProviderUsage
+from flightrecorder.providers import Message, TokenEvent, UsageEvent
 from flightrecorder.serializers import session_detail_to_dict, session_metadata_to_dict
-from flightrecorder.storage import AssetTooLargeError
+from flightrecorder.storage import AssetTooLargeError, ChatMessage
 
 
 router = APIRouter(prefix="/api")
@@ -19,6 +23,10 @@ class CreateSessionRequest(BaseModel):
     provider: str = Field(min_length=1)
     model: str = Field(min_length=1)
     slug: str = "session"
+
+
+class ChatRequest(BaseModel):
+    content: str = Field(max_length=32768)
 
 
 @router.post(
@@ -119,3 +127,116 @@ async def upload_session_asset(
         "asset_path": asset_path.name,
         "image_count": metadata.image_count,
     }
+
+
+@router.post("/sessions/{session_id}/messages")
+async def send_message(
+    session_id: str,
+    payload: ChatRequest,
+    request: Request,
+) -> StreamingResponse:
+    """Send a user message and stream the assistant response via SSE."""
+
+    runtime = request.app.state.runtime
+
+    if payload.content.strip() == "":
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="content is required",
+        )
+
+    try:
+        metadata = runtime.sessions.get_session(session_id)[0]
+    except FileNotFoundError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Session not found",
+        ) from exc
+
+    try:
+        runtime.guard().check_before_call(datetime.now(timezone.utc))
+    except BudgetHardStopError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Budget hard-stop active",
+        ) from exc
+
+    user_message = ChatMessage(
+        role="user",
+        timestamp=_timestamp_now(),
+        content=payload.content,
+    )
+    runtime.sessions.add_message(session_id, user_message)
+
+    assistant_text_parts: list[str] = []
+    usage: UsageEvent | None = None
+
+    async def event_stream():
+        nonlocal usage
+        try:
+            async for event in runtime.brainstorm_provider.chat(
+                messages=[Message(role="user", content=payload.content)],
+            ):
+                if isinstance(event, TokenEvent):
+                    assistant_text_parts.append(event.text)
+                    yield _sse_event("token", {"token": event.text})
+                elif isinstance(event, UsageEvent):
+                    usage = event
+
+            if usage is None:
+                yield _sse_event(
+                    "error",
+                    {"detail": "Provider stream finished without usage info"},
+                )
+                return
+
+            assistant_content = "".join(assistant_text_parts)
+            updated = runtime.sessions.add_message(
+                session_id,
+                ChatMessage(
+                    role="assistant",
+                    timestamp=_timestamp_now(),
+                    content=assistant_content,
+                ),
+            )
+
+            runtime.guard().record_usage(
+                ProviderUsage(
+                    timestamp=datetime.now(timezone.utc),
+                    provider=runtime.brainstorm_provider.name,
+                    model=runtime.brainstorm_provider.model,
+                    role="brainstorm",
+                    input_tokens=usage.input_tokens,
+                    output_tokens=usage.output_tokens,
+                    cached_tokens=usage.cached_tokens,
+                    session_id=session_id,
+                ),
+            )
+
+            yield _sse_event(
+                "done",
+                {
+                    "input_tokens": usage.input_tokens,
+                    "output_tokens": usage.output_tokens,
+                    "message_count": updated.message_count,
+                },
+            )
+
+        except Exception as exc:
+            yield _sse_event(
+                "error",
+                {"detail": str(exc)},
+            )
+
+    return StreamingResponse(
+        event_stream(),
+        media_type="text/event-stream",
+    )
+
+
+def _sse_event(event: str, data: dict[str, object]) -> str:
+    return f"event: {event}\ndata: {json.dumps(data)}\n\n"
+
+
+def _timestamp_now() -> str:
+    return datetime.now(timezone.utc).isoformat()
