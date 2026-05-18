@@ -2,14 +2,22 @@
 {{ $root := site.GetPage "/projects" }}
 {{ $children := $root.Sections }}
 
-<section class="hero">
-  <pre aria-label="daniel">██████╗  █████╗ ███╗   ██╗██╗███████╗██╗
+<section class="hero" id="hero" aria-label="daniel">
+  <pre aria-hidden="true">██████╗  █████╗ ███╗   ██╗██╗███████╗██╗
 ██╔══██╗██╔══██╗████╗  ██║██║██╔════╝██║
 ██║  ██║███████║██╔██╗ ██║██║█████╗  ██║
 ██║  ██║██╔══██║██║╚██╗██║██║██╔══╝  ██║
 ██████╔╝██║  ██║██║ ╚████║██║███████╗███████╗
 ╚═════╝ ╚═╝  ╚═╝╚═╝  ╚═══╝╚═╝╚══════╝╚══════╝</pre>
+  <div class="hero-ctl" role="toolbar" aria-label="font cycler">
+    <span class="hero-meta">font: <span class="hero-name">ansi_shadow</span> · <span class="hero-count">—</span></span>
+    <a href="#" class="hero-hide" title="blocklist current font and skip it forever (this browser)">[× hide]</a>
+    <a href="#" class="hero-pause" title="pause cycling">[❚❚ pause]</a>
+    <a href="#" class="hero-reset" title="clear all hidden fonts">[↺ reset]</a>
+  </div>
 </section>
+{{ $hero := resources.Get "js/hero.js" | resources.Minify | resources.Fingerprint }}
+<script defer src="{{ $hero.RelPermalink }}" integrity="{{ $hero.Data.Integrity }}"></script>
 
 <div class="path">
   <span class="user">daniel</span><span class="at">@</span><span class="host">log</span><span class="colon">:</span><span class="seg">~/projects</span><span class="prompt">$</span><span class="cmd">ls</span> <span class="arg">-lt --status</span>

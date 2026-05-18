@@ -100,42 +100,62 @@ body::before {
 .bar .rhs a::after  { content: "]"; color: var(--muted); margin-left: 0.15rem; }
 .bar .rhs a.active { color: var(--accent); }
 
-/* ---------- hero ascii ---------- */
+/* ---------- hero ascii (cycling) ---------- */
 
 .hero {
-  padding: 1.5rem 0 0.5rem;
-  display: grid;
-  grid-template-columns: auto 1fr;
-  gap: 2rem;
-  align-items: flex-start;
+  padding: 1.75rem 0 1rem;
+  position: relative;
+  min-height: 11rem;
+  cursor: pointer;
 }
 
 .hero pre {
   font-family: var(--mono);
   font-size: 0.7rem;
-  line-height: 1.05;
+  line-height: 1.0;
   color: var(--accent);
   white-space: pre;
-  text-shadow: 0 0 12px rgba(255, 154, 60, 0.25);
   letter-spacing: -0.02em;
+  text-shadow: 0 0 14px rgba(255, 154, 60, 0.22);
+  animation: heroIn 380ms ease both;
+  display: inline-block;
 }
 
-.hero .meta {
-  padding-top: 0.4rem;
-  font-size: 0.82rem;
+@keyframes heroIn {
+  from { opacity: 0; transform: translateY(2px); filter: blur(0.5px); }
+  to   { opacity: 1; transform: none;            filter: none; }
+}
+
+/* re-fire the entrance animation each render by toggling a key on the element */
+.hero.loaded pre { animation: heroIn 380ms ease both; }
+.hero pre:hover { color: var(--accent); }
+
+.hero-ctl {
+  margin-top: 0.85rem;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  font-size: 0.74rem;
+  color: var(--muted);
+  flex-wrap: wrap;
+  opacity: 0.55;
+  transition: opacity 160ms ease;
+}
+.hero:hover .hero-ctl { opacity: 1; }
+
+.hero-meta { color: var(--muted); }
+.hero-name { color: var(--fg-dim); }
+.hero-count { color: var(--muted); }
+
+.hero-ctl a {
   color: var(--fg-dim);
-  max-width: 36ch;
-  border-left: 1px solid var(--rule);
-  padding-left: 1.25rem;
-  align-self: stretch;
-  display: flex; flex-direction: column;
-  justify-content: center;
-  gap: 0.5rem;
+  text-decoration: none;
+  border: 1px solid transparent;
+  padding: 0.1rem 0.35rem;
 }
-
-.hero .meta .k { color: var(--muted); }
-.hero .meta .v { color: var(--fg); }
-.hero .meta .blurb { color: var(--fg-dim); margin-top: 0.4rem; line-height: 1.5; }
+.hero-ctl a:hover { color: var(--accent); border-color: var(--rule); text-decoration: none; }
+.hero-ctl .hero-hide:hover { color: var(--crit); }
+.hero-ctl .hero-reset:hover { color: var(--ok); }
 
 /* ---------- separator with label (TUI rule) ---------- */
 
