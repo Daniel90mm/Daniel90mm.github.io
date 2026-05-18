@@ -13,7 +13,7 @@
   const PAUSE = HERO.querySelector(".hero-pause");
 
   const STORE_KEY = "hero.blocklist.v1";
-  const INTERVAL = 4200;
+  const INTERVAL = 9000;
 
   let fonts = [];
   let blocked = new Set(load());

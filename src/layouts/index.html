@@ -35,9 +35,9 @@
     <a class="row" href="{{ .RelPermalink }}">
       <span class="idx">{{ printf "%02d" (add $i 1) }}</span>
       <span class="name">{{ .Title | lower }}</span>
+      <span class="desc">{{ .Params.summary | default .Description }}</span>
       <span class="status {{ $status }}">{{ if eq $status "live" }}<span class="blink">●</span> {{ end }}{{ $status }}</span>
       <span class="date">{{ if $latest }}{{ $latest.Format "2006-01-02" }}{{ else }}new{{ end }}</span>
-      <span class="desc">{{ .Params.summary | default .Description }}</span>
     </a>
   </li>
   {{ end }}
