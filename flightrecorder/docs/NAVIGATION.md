@@ -10,14 +10,14 @@
 | `IDEAS_TRAIL.md` | Deferred ideas and risks. |
 | `SETUP.md` | Termux setup notes, filled out at build order step 19. |
 | `docs/API_CONTRACT_DRAFT.md` | Draft session-storage API payloads, requiring Daniel approval before implementation. |
+| `docs/API_CONTRACT_REVIEW.md` | Daniel's approval checklist for the API contract draft. |
+| `docs/API_CURRENT_STATE.md` | Summary of implemented vs draft-only API routes from code inspection. |
 | `docs/CHAT_API_CONTRACT_DRAFT.md` | Draft chat SSE contract for `POST /api/sessions/{id}/messages`. |
 | `docs/DOCUMENTS_GIT.md` | Documents git repo behavior: auto-init, clean-tree skip, audit trail. |
 | `docs/IDEA_CAPTURE_VALIDATION.md` | Parser acceptance and rejection rules for `parse_idea_operations()`. |
-| `docs/API_CONTRACT_REVIEW.md` | Daniel's approval checklist for the API contract draft. |
 | `docs/BUDGET_GUARD.md` | Budget hard-stop sentinel lifecycle and enforcement rules. |
 | `docs/BUILD_STATUS.md` | Build-order status for spec section 19 steps. |
 | `docs/BUILD_STATUS_AUDIT.md` | Consistency audit of BUILD_STATUS and MISSING_WORK against spec. |
-| `docs/CHAT_API_CONTRACT_DRAFT.md` | Draft chat SSE contract for `POST /api/sessions/{id}/messages`. |
 | `docs/CHAT_IMPLEMENTATION_PLAN.md` | Chat endpoint implementation checklist from contract draft. |
 | `docs/CORE_PROGRESS.md` | Percentage estimates for core v1 areas. |
 | `docs/FRONTEND_SCOPE.md` | v1 frontend surfaces and available backend routes. |

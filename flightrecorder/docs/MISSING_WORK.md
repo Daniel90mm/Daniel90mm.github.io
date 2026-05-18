@@ -5,8 +5,8 @@ progress.
 
 - Done: **1** of 20 (step 2 session storage)
 - Mostly done: **1** (step 1, backend skeleton)
-- In progress: **3** (step 8 project documents, step 17 budget tracking, step 19 Termux setup)
-- Not started: **15**
+- In progress: **4** (step 8 project documents, step 15 project registry, step 17 budget tracking, step 19 Termux setup)
+- Not started: **14**
 
 ## Not started
 
@@ -23,7 +23,6 @@ progress.
 | 12 | Curator + reviewer + composer |
 | 13 | Daily publisher |
 | 14 | Hugo integration |
-| 15 | Project registry |
 | 16 | Implementation marking UI |
 | 18 | Polish |
 | 20 | Ship and dogfood |
@@ -33,6 +32,10 @@ progress.
 Step 8 has append-only project document helpers, strict idea operation parsing,
 spaghetti file writing, sqlite indexing, and documents git auto-commit. The
 idea-capture LLM call is not wired yet.
+
+Step 15 has a typed project registry loader, unit tests, and fixture smoke.
+No API route exposes the registry yet; matchmaker and idea-capture still read
+project refs ad hoc.
 
 Step 17 has budget logging, sentinel enforcement, and provider-call guard
 primitives. Real provider SDK calls are not yet wired.

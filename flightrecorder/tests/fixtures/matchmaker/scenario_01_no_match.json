@@ -1,0 +1,21 @@
+{
+    "scenario_id": "01_no_match",
+    "spaghetti": "I should learn Rust for embedded work.",
+    "projects": [
+        {
+            "ref": "web-portfolio",
+            "summary": "A personal website and portfolio hosting engineering notes and project writeups."
+        },
+        {
+            "ref": "pulse-oximeter",
+            "summary": "DTU thesis project: a reflectance pulse oximeter with wireless data logging."
+        },
+        {
+            "ref": "bibliography-manager",
+            "summary": "A tool for managing academic citations and generating BibTeX entries."
+        }
+    ],
+    "expected_match_count": 0,
+    "expected_match_refs": [],
+    "notes": "Zero matches. No rationalizing 'embedded' -> 'pulse oximeter uses C.'"
+}

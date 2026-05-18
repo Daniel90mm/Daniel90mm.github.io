@@ -1,0 +1,13 @@
+{
+    "scenario_id": "02_weak_lexical",
+    "spaghetti": "Graph-based data structures for dependency resolution.",
+    "projects": [
+        {
+            "ref": "bibliography-manager",
+            "summary": "A tool for managing academic citations and generating BibTeX entries with dependency-aware sorting."
+        }
+    ],
+    "expected_match_count": 0,
+    "expected_match_refs": [],
+    "notes": "Zero matches. Lexical overlap (data, graphs) without conceptual fit is not a match."
+}

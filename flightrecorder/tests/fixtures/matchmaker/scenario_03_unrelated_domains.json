@@ -1,0 +1,17 @@
+{
+    "scenario_id": "03_unrelated_domains",
+    "spaghetti": "Home automation with Zigbee and MQTT.",
+    "projects": [
+        {
+            "ref": "fnirs",
+            "summary": "Functional near-infrared spectroscopy system for brain imaging research."
+        },
+        {
+            "ref": "pulse-oximeter",
+            "summary": "DTU thesis project: a reflectance pulse oximeter with wireless data logging."
+        }
+    ],
+    "expected_match_count": 0,
+    "expected_match_refs": [],
+    "notes": "Zero matches. Different domains (home automation vs biophotonics/medical devices) entirely."
+}

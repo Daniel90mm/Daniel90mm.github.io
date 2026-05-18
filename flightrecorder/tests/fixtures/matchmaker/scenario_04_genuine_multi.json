@@ -1,0 +1,17 @@
+{
+    "scenario_id": "04_genuine_multi",
+    "spaghetti": "PCA for multivariate signal denoising.",
+    "projects": [
+        {
+            "ref": "fnirs",
+            "summary": "Functional near-infrared spectroscopy system for brain imaging research. Uses multichannel optical signals that need motion artifact rejection."
+        },
+        {
+            "ref": "pulse-oximeter",
+            "summary": "DTU thesis project: a reflectance pulse oximeter. Needs to separate pulsatile AC component from baseline DC drift across multiple wavelengths."
+        }
+    ],
+    "expected_match_count": 2,
+    "expected_match_refs": ["fnirs", "pulse-oximeter"],
+    "notes": "Two matches expected, both with specific rationales: PCA on multichannel optical signals for fnirs, and PCA for AC/DC separation across wavelengths for pulse oximeter."
+}

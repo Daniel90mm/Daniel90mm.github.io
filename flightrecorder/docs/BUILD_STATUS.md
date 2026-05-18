@@ -18,7 +18,7 @@ Rows for spec section 19 build-order steps 1--20.
 | 12 | Curator + reviewer + composer | not started | |
 | 13 | Daily publisher | not started | |
 | 14 | Hugo integration | not started | |
-| 15 | Project registry | not started | |
+| 15 | Project registry | in progress | Typed loader, unit tests, and fixture smoke exist. No API route; matchmaker/idea-capture still use ad hoc refs. |
 | 16 | Implementation marking UI | not started | |
 | 17 | Budget tracking | in progress | Costs module can log calls, sum windows, parse pricing.toml, compute EUR cost, evaluate warn/hard-stop thresholds, write/clear the `budget` sentinel, and run provider-call guard (preflight + record). Not wired into provider/chat paths yet. |
 | 18 | Polish | not started | |
