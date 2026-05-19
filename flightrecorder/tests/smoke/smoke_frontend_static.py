@@ -21,6 +21,7 @@ REQUIRED_ROUTES = [
     '"/api/runtime"',
     'api/api-calls',
     'api/publish/preview',
+    'api/matchmaker/run',
 ]
 
 
@@ -67,6 +68,12 @@ def main() -> None:
         sys.exit(1)
     if 'id="preview-session-btn"' not in index_html:
         print("missing session publish preview button in index.html", file=sys.stderr)
+        sys.exit(1)
+    if 'id="asset-list"' not in index_html:
+        print("missing uploaded asset list in index.html", file=sys.stderr)
+        sys.exit(1)
+    if 'id="run-matchmaker-btn"' not in index_html:
+        print("missing matchmaker run button in index.html", file=sys.stderr)
         sys.exit(1)
 
     print("frontend static files smoke test passed")

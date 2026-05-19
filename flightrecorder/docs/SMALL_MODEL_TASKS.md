@@ -212,12 +212,88 @@ regression is found:
 | S156 | Prototype UI screenshot smoke. |
 | S157 | Upload round-trip smoke, tightened by senior agent for returned asset metadata. |
 | S158 | Public flightrecorder page update for prototype state. |
+| S159 | Frontend uploaded asset list. |
+| S160 | Session asset metadata integration test. |
+| S161 | Publish preview frontend dogfood assertions, extended by senior agent for matchmaker panel references. |
+| S162 | Prototype publish-preview walkthrough update. |
+| S163 | Prototype launcher static smoke hardening. |
+| S164 | Public page update for publish-preview visibility. |
+| S165 | Frontend matchmaker panel for selected spaghetti idea, completed by senior agent. |
 
 ## Active queue
 
 Pick from the top unless Daniel or the senior agent says otherwise.
 
-## S159 - Add uploaded asset list to the frontend
+## S166 - Draft session asset serving API contract
+
+Where:
+- `flightrecorder/docs/API_CONTRACT_DRAFT.md`
+- `flightrecorder/docs/API_CURRENT_STATE.md`
+- `flightrecorder/docs/NAVIGATION.md`
+
+What:
+- Draft the contract for a read-only session asset serving endpoint:
+  `GET /api/sessions/{session_id}/assets/{filename}`.
+- State that it serves only files already listed in the selected session's
+  `assets` array.
+- State path-guard rules clearly:
+  1. asset must live under `<runtime_home>/sessions/_assets`;
+  2. asset filename must belong to the requested session prefix;
+  3. traversal such as `../` must return 404.
+- Mark the route as draft-only in `API_CURRENT_STATE.md`.
+- Add the API contract doc location to navigation if needed.
+
+Why:
+- Uploaded images are listed in the browser, but the user still cannot inspect
+  them. The next MVP step is serving those assets safely.
+
+Smoke test:
+
+```sh
+cd /home/daniel/Documents/Projekter/Daniel90mm.github.io/flightrecorder
+rg -n "GET /api/sessions/\\{session_id\\}/assets/\\{filename\\}" docs/API_CONTRACT_DRAFT.md
+PYTHONPATH=src/backend python tests/smoke/smoke_api_current_state.py
+```
+
+Hand-back:
+- When both commands pass, stop. Do not commit.
+
+## S167 - Implement safe session asset serving
+
+Where:
+- `flightrecorder/src/backend/flightrecorder/api.py`
+- `flightrecorder/tests/integration/test_session_asset_serving_api.py` (new file)
+- `flightrecorder/tests/smoke/smoke_session_asset_serving_api.py` (new file)
+- `flightrecorder/docs/API_CURRENT_STATE.md`
+- `flightrecorder/docs/SMOKE_COMMANDS.md`
+
+What:
+- Implement `GET /api/sessions/{session_id}/assets/{filename}`.
+- Return the uploaded asset bytes with an appropriate media type.
+- Return 404 when:
+  1. the session does not exist;
+  2. the file does not exist;
+  3. the filename does not start with `{session_id}-`;
+  4. path traversal is attempted.
+- Add integration and smoke coverage.
+
+Why:
+- The dogfood UI needs to inspect uploaded images without exposing arbitrary
+  runtime files.
+
+Smoke test:
+
+```sh
+cd /home/daniel/Documents/Projekter/Daniel90mm.github.io/flightrecorder
+.venv/bin/python -m pytest tests/integration/test_session_asset_serving_api.py -q
+.venv/bin/python tests/smoke/smoke_session_asset_serving_api.py
+PYTHONPATH=src/backend python tests/smoke/smoke_api_current_state.py
+```
+
+Hand-back:
+- When all commands pass, stop. Do not commit.
+
+## S168 - Link uploaded assets from the frontend
 
 Where:
 - `flightrecorder/src/frontend/index.html`
@@ -228,17 +304,16 @@ Where:
 - `flightrecorder/docs/FRONTEND_SCOPE.md`
 
 What:
-- Add a compact uploaded-assets list for the selected session.
-- Use the `assets` array from `GET /api/sessions/{id}`.
-- Show filename and size in bytes for each asset.
-- Update the list immediately after an upload by reloading the selected
-  session detail.
-- Render with DOM nodes and `textContent`; do not use `innerHTML` for asset
-  rows.
+- Turn each uploaded asset row into a same-tab link to
+  `/api/sessions/{session_id}/assets/{filename}`.
+- Use DOM node creation and `textContent`; do not build links with raw
+  `innerHTML`.
+- Keep the filename visible and size readable.
+- If there are no assets, show a quiet empty state.
+- Update frontend docs and smokes.
 
 Why:
-- Image upload is now visible as a button and API response, but the MVP should
-  show what is attached to the active session without inspecting the filesystem.
+- Uploaded images should be inspectable from the prototype browser surface.
 
 Smoke test:
 
@@ -251,86 +326,24 @@ PYTHONPATH=src/backend python tests/smoke/smoke_frontend_static.py
 Hand-back:
 - When both commands pass, stop. Do not commit.
 
-## S160 - Add session asset metadata integration test
-
-Where:
-- `flightrecorder/tests/integration/test_session_assets_api.py` (new file)
-- `flightrecorder/docs/API_CONTRACT_DRAFT.md`
-- `flightrecorder/docs/SMOKE_COMMANDS.md`
-
-What:
-- Add an integration test that creates a session, uploads two tiny images, then
-  fetches `GET /api/sessions/{id}`.
-- Assert that `image_count == 2` and `assets` contains two objects with
-  `filename`, `relative_path`, and `size_bytes`.
-- Assert `relative_path` never exposes an absolute path.
-- Add the pytest command to the smoke command docs.
-
-Why:
-- Uploaded asset metadata is now part of the MVP API surface and needs direct
-  regression coverage beyond the smoke script.
-
-Smoke test:
-
-```sh
-cd /home/daniel/Documents/Projekter/Daniel90mm.github.io/flightrecorder
-.venv/bin/python -m pytest tests/integration/test_session_assets_api.py -q
-```
-
-Hand-back:
-- When the command passes, stop. Do not commit.
-
-## S161 - Add publish preview frontend dogfood assertions
-
-Where:
-- `flightrecorder/tests/smoke/smoke_frontend_dogfood.py`
-- `flightrecorder/tests/smoke/smoke_publish_preview_api.py`
-
-What:
-- Extend the frontend dogfood smoke to verify `/assets/app.js` references:
-  1. `preview-session-btn`;
-  2. `preview-doc-btn`;
-  3. `preview-spag-btn`;
-  4. `api/publish/preview`.
-- Extend the publish preview smoke to cover the session/document/spaghetti
-  paths plus one unknown-source 404.
-- Do not add a browser dependency here.
-
-Why:
-- The publish preview is now a visible MVP gate; smoke coverage should catch
-  accidental frontend/API drift.
-
-Smoke test:
-
-```sh
-cd /home/daniel/Documents/Projekter/Daniel90mm.github.io/flightrecorder
-.venv/bin/python tests/smoke/smoke_frontend_dogfood.py
-.venv/bin/python tests/smoke/smoke_publish_preview_api.py
-```
-
-Hand-back:
-- When both commands pass, stop. Do not commit.
-
-## S162 - Document the prototype publish-preview walkthrough
+## S169 - Add matchmaker panel walkthrough notes
 
 Where:
 - `flightrecorder/docs/PROTOTYPE_WALKTHROUGH.md`
 - `flightrecorder/tests/smoke/smoke_prototype_walkthrough.py`
-- `flightrecorder/docs/NAVIGATION.md`
+- `flightrecorder/docs/FRONTEND_SCOPE.md`
 
 What:
-- Update the walkthrough with the current UI flow:
-  1. start `scripts/dev-prototype.sh`;
-  2. create or auto-select a session;
-  3. chat and extract;
-  4. inspect session summary and uploaded assets;
-  5. run session/document/spaghetti publish preview and observe fail-closed
-     output.
-- Update the walkthrough smoke so it checks these concrete phrases.
+- Document the new **Matchmaker** panel in the prototype walkthrough.
+- Make clear that it runs only for the selected spaghetti idea.
+- Make clear that the current scorer is fail-closed, so zero candidates is
+  expected until a real scorer is wired.
+- Update the walkthrough smoke to check for `Matchmaker`, `selected spaghetti
+  idea`, and `fail-closed scorer`.
 
 Why:
-- The local prototype should be runnable by Daniel without remembering which
-  parts landed in which commit.
+- The prototype now exposes another workflow surface; the walkthrough should
+  match what the browser actually shows.
 
 Smoke test:
 
@@ -342,37 +355,36 @@ cd /home/daniel/Documents/Projekter/Daniel90mm.github.io/flightrecorder
 Hand-back:
 - When the command passes, stop. Do not commit.
 
-## S163 - Add prototype server health smoke for the launcher
+## S170 - Add browser screenshot assertions for new panels
 
 Where:
-- `flightrecorder/tests/smoke/smoke_dev_prototype_script.py`
+- `flightrecorder/tests/smoke/smoke_prototype_ui_screenshot.py`
 - `flightrecorder/docs/SMOKE_COMMANDS.md`
 
 What:
-- Extend the launcher smoke to verify `scripts/dev-prototype.sh` contains:
-  1. `config.prototype.toml`;
-  2. `FLIGHTRECORDER_CONFIG`;
-  3. `uvicorn`;
-  4. `cd "$ROOT"`;
-  5. `exec uvicorn`.
-- Add a note in smoke docs that this is a static launcher smoke and does not
-  start a long-running server.
+- Extend the screenshot smoke to fetch the served HTML/JS and assert the new
+  panel ids are present before taking the screenshot:
+  1. `asset-list`;
+  2. `publish-preview-panel`;
+  3. `matchmaker-panel`.
+- Keep Chrome optional; still skip cleanly when `google-chrome` is absent.
+- Do not add Playwright.
 
 Why:
-- The launcher is the fastest path to visible progress; regressions here are
-  expensive during dogfooding.
+- The screenshot smoke should catch missing visible panels before a human has
+  to open the prototype.
 
 Smoke test:
 
 ```sh
 cd /home/daniel/Documents/Projekter/Daniel90mm.github.io/flightrecorder
-.venv/bin/python tests/smoke/smoke_dev_prototype_script.py
+.venv/bin/python tests/smoke/smoke_prototype_ui_screenshot.py
 ```
 
 Hand-back:
 - When the command passes, stop. Do not commit.
 
-## S164 - Update public page for publish-preview visibility
+## S171 - Update public page for asset inspection and matchmaker
 
 Where:
 - `museum/content/projects/flightrecorder/_index.md`
@@ -381,14 +393,16 @@ Where:
 - `flightrecorder/tests/smoke/smoke_hugo_internal_links.py`
 
 What:
-- Update the public Flight Recorder copy to mention the now-visible publish
-  preview panel and selected-session summary.
-- Keep it factual: fail-closed preview, no real auto-publishing yet.
+- Update public copy to mention:
+  1. uploaded asset inspection from the browser;
+  2. the matchmaker panel for selected spaghetti ideas;
+  3. both matchmaker and publisher remain fail-closed until their real LLM
+     stages are wired.
+- Keep it factual; do not turn it into marketing copy.
 - Do not change layouts, archetypes, or unrelated museum pages.
 
 Why:
-- The public site should keep showing real product movement, not only backend
-  internals.
+- The public page should reflect visible MVP surfaces, not just backend work.
 
 Smoke test:
 

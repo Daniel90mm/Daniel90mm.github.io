@@ -25,6 +25,7 @@ def main() -> None:
     assert "uvicorn" in text, "script must reference uvicorn"
     assert "FLIGHTRECORDER_CONFIG" in text, "script must set FLIGHTRECORDER_CONFIG"
     assert 'cd "$ROOT"' in text, "script must run from the flightrecorder root"
+    assert "exec uvicorn" in text, "script must use exec uvicorn"
 
     assert text.strip().startswith("#!/"), "script must have a shebang"
 

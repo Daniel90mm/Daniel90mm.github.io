@@ -28,6 +28,9 @@ The MVP loop is in place locally:
 6. Watch provider spend through the budget and calls ledger panels.
 7. Preview what would be publishable via the fail-closed publish preview panel
    (currently always rejected until the real curator is wired).
+8. Inspect the selected session summary showing provider, model, message count,
+   uploaded assets, and extraction status.
+9. Run the fail-closed matchmaker panel for a selected spaghetti idea.
 
 There is also an offline prototype provider, launchable with a single command,
 so this loop can run without API keys while the real Anthropic config path is

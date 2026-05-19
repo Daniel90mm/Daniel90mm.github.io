@@ -17,6 +17,7 @@
     modelInput: document.getElementById("model"),
     sessionList: document.getElementById("session-list"),
     sessionSummary: document.getElementById("session-summary"),
+    assetList: document.getElementById("asset-list"),
     chatArea: document.getElementById("chat-area"),
     transcript: document.getElementById("transcript"),
     messageForm: document.getElementById("message-form"),
@@ -39,6 +40,8 @@
     previewDocBtn: document.getElementById("preview-doc-btn"),
     previewSpagBtn: document.getElementById("preview-spag-btn"),
     previewResult: document.getElementById("publish-preview-result"),
+    runMatchmakerBtn: document.getElementById("run-matchmaker-btn"),
+    matchmakerResult: document.getElementById("matchmaker-result"),
   };
 
   function api(path, options) {
@@ -231,6 +234,7 @@
     DOM.sessionSummary.innerHTML = "";
     if (!session) {
       DOM.sessionSummary.textContent = "No session selected";
+      renderAssetList(null);
       return;
     }
     var fields = [
@@ -246,6 +250,21 @@
       item.className = "session-summary-item";
       item.textContent = field[0] + ": " + field[1];
       DOM.sessionSummary.appendChild(item);
+    });
+    renderAssetList(session.assets || []);
+  }
+
+  function renderAssetList(assets) {
+    DOM.assetList.innerHTML = "";
+    if (!assets || assets.length === 0) {
+      DOM.assetList.textContent = "";
+      return;
+    }
+    assets.forEach(function (asset) {
+      var row = document.createElement("div");
+      row.className = "asset-row";
+      row.textContent = (asset.filename || "asset") + " (" + (asset.size_bytes || 0) + " bytes)";
+      DOM.assetList.appendChild(row);
     });
   }
 
@@ -389,6 +408,39 @@
       })
       .catch(function (err) {
         DOM.previewResult.textContent = "Error: " + err.message;
+      });
+  }
+
+  function runMatchmakerForIdea(ideaId) {
+    DOM.matchmakerResult.textContent = "Running...";
+    api("/api/matchmaker/run", {
+      method: "POST",
+      body: { idea_ids: [ideaId] },
+    })
+      .then(function (res) { return res.json(); })
+      .then(function (data) {
+        var candidates = data.candidates || [];
+        var rejected = data.rejected_idea_ids || [];
+        var lines = [];
+        lines.push("batch: " + data.batch_id);
+        lines.push("candidates: " + candidates.length);
+        lines.push("rejected: " + rejected.length);
+        candidates.forEach(function (candidate) {
+          lines.push(
+            candidate.idea_id + " -> " + candidate.project_ref
+            + " (" + Number(candidate.confidence || 0).toFixed(2) + ")"
+          );
+          if (candidate.rationale) {
+            lines.push(candidate.rationale);
+          }
+        });
+        if (candidates.length === 0) {
+          lines.push("No candidates with the current fail-closed scorer.");
+        }
+        DOM.matchmakerResult.textContent = lines.join("\n");
+      })
+      .catch(function (err) {
+        DOM.matchmakerResult.textContent = "Error: " + err.message;
       });
   }
 
@@ -598,6 +650,14 @@
     fetchPublishPreview("spaghetti", state.currentSpaghettiId);
   });
 
+  DOM.runMatchmakerBtn.addEventListener("click", function () {
+    if (!state.currentSpaghettiId) {
+      DOM.matchmakerResult.textContent = "No spaghetti idea selected.";
+      return;
+    }
+    runMatchmakerForIdea(state.currentSpaghettiId);
+  });
+
   function createSSEParser() {
     var buffer = "";
     var pendingEvent = null;
@@ -659,6 +719,7 @@
     loadSpaghetti: loadSpaghetti,
     loadSpaghettiIdea: loadSpaghettiIdea,
     fetchPublishPreview: fetchPublishPreview,
+    runMatchmakerForIdea: runMatchmakerForIdea,
   };
 
   refreshSessionList(true);

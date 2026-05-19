@@ -16,3 +16,7 @@ The first usable loop is now visible enough to judge from the outside:
 - A one-command launcher starts everything from fresh state.
 - A fail-closed publish preview panel shows what would be published (currently
   always rejected; real curator/reviewer stages are next).
+- The selected session summary displays provider, model, message count, asset
+  list, and extraction status at a glance.
+- A matchmaker panel now runs the selected spaghetti idea through the existing
+  reject-by-default routing path.

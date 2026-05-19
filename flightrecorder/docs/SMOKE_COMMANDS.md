@@ -54,6 +54,16 @@ directory.
 | `tests/smoke/smoke_prototype_ui_screenshot.py` | `.venv/bin/python tests/smoke/smoke_prototype_ui_screenshot.py` |
 | `tests/smoke/smoke_upload_api.py` | `.venv/bin/python tests/smoke/smoke_upload_api.py` |
 
+`smoke_dev_prototype_script.py` is a static launcher smoke. It verifies the
+script file contents (config reference, env var, uvicorn command) without
+starting a long-running server.
+
+## Integration test commands
+
+| Test file | Pytest command |
+|-----------|---------------|
+| `tests/integration/test_session_assets_api.py` | `.venv/bin/python -m pytest tests/integration/test_session_assets_api.py -q` |
+
 Scripts that don't require FastAPI use the system Python directly.
 Scripts that import FastAPI or FastAPI-dependent modules use `.venv/bin/python`.
 

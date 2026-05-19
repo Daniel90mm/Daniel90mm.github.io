@@ -36,8 +36,11 @@ provider readiness before enabling chat/extract.
 **Status: implemented.** Static shell (`src/frontend/index.html`) served
 by the backend at `GET /` with session CRUD, chat SSE streaming, extraction
 trigger, budget status, read panels for project documents and spaghetti
-ideas, uploaded asset counts, provider call ledger, and a publish preview
+ideas, uploaded asset counts and a per-session uploaded asset list, provider call ledger, and a publish preview
 panel with fail-closed feedback for sessions, documents, and spaghetti ideas.
+The browser also exposes the existing fail-closed matchmaker route for the
+selected spaghetti idea, so candidate routing can be inspected from the same
+dogfood surface.
 
 ## Still missing from backend
 

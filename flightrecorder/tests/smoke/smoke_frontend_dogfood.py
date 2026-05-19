@@ -124,6 +124,12 @@ def main() -> None:
         assert '"/api/spaghetti"' in app_js_text or "api/spaghetti" in app_js_text
         assert '"/api/runtime"' in app_js_text or "api/runtime" in app_js_text
         assert '"/api/api-calls"' in app_js_text or "api/api-calls" in app_js_text
+        assert "preview-session-btn" in app_js_text, "app.js missing preview-session-btn"
+        assert "preview-doc-btn" in app_js_text, "app.js missing preview-doc-btn"
+        assert "preview-spag-btn" in app_js_text, "app.js missing preview-spag-btn"
+        assert "api/publish/preview" in app_js_text, "app.js missing api/publish/preview"
+        assert "run-matchmaker-btn" in app_js_text, "app.js missing run-matchmaker-btn"
+        assert "api/matchmaker/run" in app_js_text, "app.js missing api/matchmaker/run"
 
         budget_resp = client.get("/api/budget")
         assert budget_resp.status_code == 200
