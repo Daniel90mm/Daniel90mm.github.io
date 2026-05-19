@@ -252,10 +252,28 @@ regression is found:
 | S188 | Local Tavily config template. |
 | S189 | Frontend search panel without chat integration. |
 | S190 | Search-to-spaghetti capture flow contract. |
+| S196 | Web search wired as a model-invoked chat tool, verified by senior agent. |
 
 ## Active queue
 
 Pick from the top unless Daniel or the senior agent says otherwise.
+
+## Senior instruction for this batch
+
+This queue is now implementation-heavy on purpose. Do not spend the session
+writing status docs, planning docs, broad audits, or prose inventories. Your
+job is to move working MVP behavior forward and leave focused tests so the
+senior agent can verify quickly.
+
+Treat every task as production code:
+- Read the listed files fresh before editing.
+- Stay inside the listed `Where:` files.
+- Prefer small helpers and focused tests over broad rewrites.
+- Preserve existing API shapes unless the task explicitly defines a new one.
+- Do not commit.
+- Do not delete or overwrite user/senior work.
+- If the implementation seems to require files outside `Where:`, stop and
+  report exactly which file and why.
 
 ## S191 - Add search API smoke script
 
@@ -273,8 +291,8 @@ What:
 - Add the smoke command to `docs/SMOKE_COMMANDS.md`.
 
 Why:
-- The feature now has a backend route and frontend panel. It needs a cheap
-  smoke test that protects the full FastAPI route shape.
+- The feature now has a backend route and model-invoked tool path. It needs a
+  cheap FastAPI smoke test that does not depend on Tavily network access.
 
 Smoke test:
 
@@ -286,7 +304,42 @@ cd /home/daniel/Documents/Projekter/Daniel90mm.github.io/flightrecorder
 Hand-back:
 - When the command passes, stop. Do not commit.
 
-## S192 - Add search result capture helper
+## S192 - Add chat web-search tool-loop integration tests
+
+Where:
+- `flightrecorder/tests/integration/test_chat_endpoint.py`
+
+What:
+- Add integration coverage for the current model-invoked `web_search` loop.
+- Extend the existing `StubProvider` locally if needed so it can return a
+  different event sequence on each `chat()` call.
+- Add a fake search client in this test file only.
+- Cover:
+  1. provider receives a non-empty `tools` argument when search is configured;
+  2. a `ToolCallEvent` triggers a fake search request;
+  3. the SSE stream includes a `tool_round` event;
+  4. the persisted session contains a `sys` audit message and a final
+     assistant message;
+  5. a later normal chat turn does not replay persisted `sys` messages back
+     to the provider.
+- Do not change backend code unless the test exposes a real bug. If it does,
+  stop and report the failure instead of widening scope.
+
+Why:
+- Web search is now hidden behind the chat model. We need strong tests proving
+  the user-visible behavior works without a real network call.
+
+Smoke test:
+
+```sh
+cd /home/daniel/Documents/Projekter/Daniel90mm.github.io/flightrecorder
+.venv/bin/python -m pytest tests/integration/test_chat_endpoint.py -q
+```
+
+Hand-back:
+- When the command passes, stop. Do not commit.
+
+## S193 - Add search result capture helper
 
 Where:
 - `flightrecorder/src/backend/flightrecorder/web_search.py`
@@ -314,7 +367,7 @@ cd /home/daniel/Documents/Projekter/Daniel90mm.github.io/flightrecorder
 Hand-back:
 - When the command passes, stop. Do not commit.
 
-## S193 - Add search-to-spaghetti backend endpoint
+## S194 - Add search-to-spaghetti backend endpoint
 
 Where:
 - `flightrecorder/src/backend/flightrecorder/api.py`
@@ -326,7 +379,8 @@ What:
 - Add `POST /api/spaghetti/from-search`.
 - Request body should accept `title`, `url`, `snippet`, and optional
   `raw_content`.
-- Use the pure helper from S192 and existing spaghetti write/index helpers.
+- Use the pure helper from S193 and existing spaghetti render/write/index
+  helpers.
 - Do not call a provider and do not perform a web request.
 - Add integration coverage proving a spaghetti idea file and sqlite row are
   created with source attribution.
@@ -345,7 +399,7 @@ cd /home/daniel/Documents/Projekter/Daniel90mm.github.io/flightrecorder
 Hand-back:
 - When the command passes, stop. Do not commit.
 
-## S194 - Add frontend capture button for search results
+## S195 - Add frontend capture for pasted/sourced search results
 
 Where:
 - `flightrecorder/src/frontend/index.html`
@@ -354,206 +408,130 @@ Where:
 - `flightrecorder/tests/smoke/smoke_frontend_static.py`
 
 What:
-- Add a `capture` button beside each rendered search result.
-- The button calls `POST /api/spaghetti/from-search` with that result.
-- On success, refresh the spaghetti grid and show a concise success status.
+- Add a compact "capture source" form in the Spaghetti detail/read area. It
+  should have fields for title, URL, snippet, and optional raw content.
+- The form calls `POST /api/spaghetti/from-search`.
+- On success, clear the form, refresh the spaghetti grid/list, and show a
+  concise success status.
 - Render with DOM APIs/textContent, not string-built HTML.
+- Do not re-add the old standalone search panel. Web search is invoked by the
+  model during chat; this form is only for manually saving a specific source
+  the user already has.
 
 Why:
-- This makes web search visibly useful inside Flightrecorder instead of being
-  a disconnected lookup panel.
+- This gives Daniel a visible way to turn sourced external material into a
+  Spaghetti item without waiting for extraction tuning.
 
 Smoke test:
 
 ```sh
 cd /home/daniel/Documents/Projekter/Daniel90mm.github.io/flightrecorder
-PYTHONPATH=src/backend python tests/smoke/smoke_frontend_static.py
+.venv/bin/python tests/smoke/smoke_frontend_static.py
 ```
 
 Hand-back:
 - When the command passes, stop. Do not commit.
 
-## S195 - Add docs archive proposal as a data file
+## S197 - Inject text attachment context into chat requests
 
 Where:
-- `flightrecorder/docs/DOCS_CLEANUP_PLAN.md` (new file)
-- `flightrecorder/docs/NAVIGATION.md`
+- `flightrecorder/src/backend/flightrecorder/api.py`
+- `flightrecorder/src/backend/flightrecorder/assets.py`
+- `flightrecorder/tests/integration/test_chat_endpoint.py`
+- `flightrecorder/tests/integration/test_attachment_context_api.py`
 
 What:
-- Create a short, actionable cleanup plan with three tables:
-  1. keep active;
-  2. archive after review;
-  3. merge into another doc.
-- Do not move files in this task.
-- Keep it under 120 lines.
-- Add it to navigation.
+- When a session has uploaded text-like assets (`.txt`, `.md`, `.markdown`,
+  or MIME `text/*`), include a capped attachment context block in the provider
+  message for the current chat call.
+- Do not persist the injected context into the session markdown. Persist only
+  the user's original message and assistant response.
+- Do not attempt image or PDF understanding in this task. Reuse existing
+  skip/extract behavior from the attachment context API.
+- Keep the total injected text capped. If no cap exists in `assets.py`, add a
+  small exported constant and tests around truncation.
+- Add integration coverage proving:
+  1. text/markdown attachment content reaches the provider;
+  2. image/PDF files are not injected;
+  3. persisted user message remains exactly what the user typed.
 
 Why:
-- Docs cleanup needs one explicit review artifact before file moves. This is
-  not general doc writing; it is a bounded cleanup map.
+- This is a high-value MVP step: uploaded notes should actually help chat.
+  It also avoids pretending DeepSeek can see images.
 
 Smoke test:
 
 ```sh
 cd /home/daniel/Documents/Projekter/Daniel90mm.github.io/flightrecorder
-rg -n "archive after review|merge into another doc|keep active" docs/DOCS_CLEANUP_PLAN.md
-PYTHONPATH=src/backend python tests/smoke/smoke_docs_navigation_consistency.py
+.venv/bin/python -m pytest tests/integration/test_chat_endpoint.py tests/integration/test_attachment_context_api.py -q
+```
+
+Hand-back:
+- When the command passes, stop. Do not commit.
+
+## S198 - Add extraction quality regression fixtures
+
+Where:
+- `flightrecorder/tests/unit/test_idea_capture.py`
+- `flightrecorder/prompts/idea-capture.md`
+
+What:
+- Add tests that codify the desired extraction behavior Daniel described:
+  keep concrete technical ideas like "Apply PCA to disordered
+  multi-dimensional data" or "Use ECG to synchronize pulse oximeter
+  heartbeat windows"; reject generic filler like "Improve UI", "Remove bugs",
+  "Make it better", and "Optimize performance" when there is no concrete
+  technical content.
+- If existing parser/validation code already rejects generic filler, only add
+  tests. If tests fail, make the smallest prompt/validation adjustment needed
+  in the listed files.
+- Do not change the extraction endpoint or provider plumbing.
+
+Why:
+- The Spaghetti wall is only useful if extraction is less eager about generic
+  product-management filler.
+
+Smoke test:
+
+```sh
+cd /home/daniel/Documents/Projekter/Daniel90mm.github.io/flightrecorder
+.venv/bin/python -m pytest tests/unit/test_idea_capture.py -q
+```
+
+Hand-back:
+- When the command passes, stop. Do not commit.
+
+## S199 - Move obsolete docs into an archive folder
+
+Where:
+- `flightrecorder/docs/`
+- `flightrecorder/docs/NAVIGATION.md`
+- `flightrecorder/docs/SMOKE_COMMANDS.md`
+
+What:
+- This is the only docs-heavy task in this batch, and it is cleanup, not
+  writing new prose.
+- Create `flightrecorder/docs/archive/`.
+- Move obviously obsolete planning/status docs there. Good candidates include
+  old build-status snapshots, old missing-work/status audits, and early API
+  draft/review docs that no longer describe the current app.
+- Do not move active operator docs such as `JUNIOR_TASKS.md`,
+  `SMOKE_COMMANDS.md`, `TERMUX_DEPENDENCIES.md`, provider/runtime docs, or
+  docs that are referenced by tests unless you update those references.
+- Update `NAVIGATION.md` so links do not point at moved files.
+- Keep the moved file contents unchanged.
+
+Why:
+- The docs folder is too noisy because earlier junior work created many
+  standalone status artifacts. This task reduces noise without losing history.
+
+Smoke test:
+
+```sh
+cd /home/daniel/Documents/Projekter/Daniel90mm.github.io/flightrecorder
+.venv/bin/python tests/smoke/smoke_frontend_static.py
+.venv/bin/python tests/smoke/smoke_docs_navigation_consistency.py
 ```
 
 Hand-back:
 - When both commands pass, stop. Do not commit.
-
-## S196 - Wire web_search as a model-invoked tool in the chat loop
-
-Where:
-- `flightrecorder/src/backend/flightrecorder/providers.py`
-- `flightrecorder/src/backend/flightrecorder/api.py`
-- `flightrecorder/src/backend/flightrecorder/storage.py` (only if "sys" role messages don't round-trip; check first)
-- `flightrecorder/prompts/brainstorm-system.md` (with a versioned backup in `prompts/_archive/`)
-- `flightrecorder/src/frontend/app.js`
-- `flightrecorder/tests/integration/test_chat_endpoint.py`
-- Any other `tests/integration/*.py` that calls a provider's `chat()` directly (signature change).
-
-What:
-- Replace the chat endpoint's single-turn call with an agentic loop that lets
-  DeepSeek (and any OpenAI-compatible provider) invoke a `web_search` tool
-  while answering. The manual `/api/search` route stays; the frontend search
-  panel was already removed; the model is now the only caller.
-
-Confirmed scope (do not re-litigate):
-1. Pass the full session history to the provider every turn (no truncation
-   in v1). Filter out any persisted `role=="sys"` messages when building the
-   provider message list - they are audit traces, not LLM context.
-2. Show each tool round in the transcript as a muted `· sys` turn with text
-   like `-> web_search("query") -> 3 results` (or `-> error: ...` on failure).
-   Persist those sys turns to the session .md file so they survive reload.
-3. Tool history is not replayed back to the model on later turns. Within a
-   single user turn the model sees its own tool_call + tool_result during
-   the agentic loop, but on the next turn only the final `user` and
-   `assistant` text is replayed.
-4. Prompt guidance: the model should consider searching for (a) explicit
-   user asks ("search for X", "look up Y"), (b) uncertainty / hedging, and
-   (c) time-sensitive queries (news, releases, prices, dates). Otherwise
-   skip. Match the existing terse second-person tone of
-   `prompts/brainstorm-system.md`.
-5. Budget guard runs before every provider call inside the loop; cost
-   logging records every provider call. The search call itself is a
-   non-LLM API and does not go through `ProviderUsage`. Cap rounds at
-   `MAX_TOOL_ROUNDS = 4` per user turn, then force one final tool-less call.
-
-Detailed implementation notes:
-
-Providers (`providers.py`):
-- Add `ToolCallEvent` dataclass: `id: str`, `name: str`, `arguments: str`
-  (the JSON string the provider returned, unparsed). Add it to the
-  `ChatEvent` union.
-- Extend `Message` (still frozen): `tool_calls: tuple[dict, ...] = ()`,
-  `tool_call_id: str | None = None`, `name: str | None = None`. Tuple, not
-  list, because frozen.
-- Add `tools: list[dict] | None = None` kwarg to every `chat()` override
-  (`Provider` protocol, `ConfiguredProvider`, `OpenAICompatibleChatProvider`,
-  `DeepSeekChatProvider` inherits, `AnthropicChatProvider`,
-  `PrototypeProvider`).
-- `OpenAICompatibleChatProvider.chat`: pass `tools=tools` to
-  `chat.completions.create` when not None. When building `request_messages`,
-  accept role `"tool"` (with `tool_call_id` and `name`) and pass through
-  `assistant.tool_calls`. Accumulate streamed `delta.tool_calls` chunks by
-  their `index` field (only the first chunk per index carries `id` and
-  `function.name`; arguments arrive incrementally). When the choice
-  finishes with `finish_reason == "tool_calls"`, emit one `ToolCallEvent`
-  per accumulated call before the final `UsageEvent`.
-- `AnthropicChatProvider.chat`: accept the kwarg. If `tools is not None`,
-  raise `NotImplementedError` with a TODO comment. DeepSeek is the default
-  provider; anthropic tools can wait.
-- `PrototypeProvider.chat`: accept the kwarg and ignore it.
-
-Chat endpoint (`api.py`):
-- Add module-scope `MAX_TOOL_ROUNDS = 4` and the `WEB_SEARCH_TOOL` schema:
-  `{ "type": "function", "function": { "name": "web_search", "description":
-  "Search the public web for current or factual information. Use when the
-  user explicitly asks, when you are uncertain or hedging, or when the
-  answer depends on time-sensitive state (news, releases, prices, dates).",
-  "parameters": { "type": "object", "properties": { "query": { "type":
-  "string", "description": "The search query." }, "max_results": { "type":
-  "integer", "minimum": 1, "maximum": 10, "default": 5 } }, "required":
-  ["query"] } } }`. ASCII-only.
-- Rewrite `send_message` as an agentic loop:
-  1. Load full session history. Persist the new user message
-     (`add_message`). Build provider `messages` list from persisted history,
-     skipping `role=="sys"` entries. Convert each remaining ChatMessage to
-     a provider `Message`.
-  2. Loop up to `MAX_TOOL_ROUNDS` iterations. Each iteration:
-     - Run `runtime.guard().check_before_call(...)`.
-     - If `runtime.search_client is None`, call `chat(messages, system=...,
-       tools=None)`. If present, pass `tools=[WEB_SEARCH_TOOL]`. On the
-       last allowed iteration force `tools=None` to require a final answer.
-     - Stream TokenEvents to the SSE client. Collect ToolCallEvents in a
-       list. Capture the final UsageEvent.
-     - Call `record_usage(...)` for this round.
-     - If the round produced no tool calls: break out of the loop.
-     - Otherwise: for each tool call, parse `arguments` JSON, run
-       `runtime.search_client.search(SearchRequest(query=..., max_results=
-       ...))`. On exception, capture the error string as the tool result
-       content. Emit a `tool_round` SSE event per call. Append a `sys`
-       ChatMessage to the session with ASCII text like `-> web_search(
-       "query") -> 3 results` (or `-> error: ...`). Then append to the
-       provider message list: one `assistant` Message carrying every
-       `tool_call` from this round (empty content), then one `tool`
-       Message per call with content = json.dumps(result_list).
-  3. After the loop, persist the assistant final text as a single
-     `assistant` ChatMessage. Emit `done`.
-- New SSE event: `tool_round` with payload
-  `{"name": "web_search", "query": "...", "result_count": 3, "ok": true}`
-  or `{"name": "web_search", "query": "...", "ok": false, "error": "..."}`.
-
-Storage (`storage.py`):
-- Check that the parser accepts `role="sys"`. If not, widen the allowed
-  roles set. Do not change the on-disk format otherwise. Do not change
-  the sqlite schema.
-
-Prompt (`prompts/brainstorm-system.md`):
-- Copy the current file to `prompts/_archive/brainstorm-system-YYYY-MM-DD.md`
-  before editing (today's ISO date).
-- Insert a short paragraph in the same terse second-person voice as the
-  existing prompt:
-  > You have access to a `web_search` tool that queries the public web.
-  > Call it when the user explicitly asks you to look something up, when
-  > you are uncertain or hedging, or when the question depends on
-  > time-sensitive state (news, recent releases, dates, prices, current
-  > versions). Skip it for stable concepts or things you already know
-  > with confidence. After receiving results, integrate them naturally
-  > and cite urls when relevant.
-
-Frontend (`app.js`):
-- In the SSE handler inside `sendMessage`, handle the new `tool_round`
-  event. On receipt, INSERT a new `sys` turn into the transcript
-  immediately before the in-progress assistant turn, with text rendered as
-  `↳ web_search("query") → N results` (or `↳ web_search("query") → error:
-  ...`). Use the existing `createTurnElement("sys", text, time)` helper
-  and the existing `isPinnedToBottom` autoscroll logic. Do not add any
-  search UI.
-
-Tests:
-- Any test that previously called `provider.chat(messages, system=...)`
-  or asserted its signature must accept the new `tools` kwarg. Update
-  signatures only - don't widen test scope.
-
-Do not:
-- Touch the curator / reviewer / publisher / redaction pipeline.
-- Add new dependencies.
-- Change `/api/search` shape or path.
-- Change `idea_capture` to use tools.
-- Use unicode in Python source (ASCII-only rule). Frontend may keep
-  unicode glyphs (↳, ●, →) - that is existing UI convention.
-- Change `metadata.db` schema or any sqlite table.
-
-Smoke test:
-
-```sh
-cd /home/daniel/Documents/Projekter/Daniel90mm.github.io/flightrecorder
-.venv/bin/python -c "from flightrecorder import api, providers, storage; print('imports ok')"
-.venv/bin/python -m pytest tests -x -q 2>&1 | tail -20
-```
-
-Hand-back:
-- Both commands clean (imports ok, pytest all green). Stop. Do not commit.
