@@ -32,6 +32,60 @@ class SearchResult:
     raw_content: str | None = None
 
 
+RAW_CONTENT_EXCERPT_CHARS = 2_000
+
+
+def search_result_to_spaghetti_body(
+    result: SearchResult,
+    raw_content_max_chars: int = RAW_CONTENT_EXCERPT_CHARS,
+) -> str:
+    """Convert a SearchResult into a safe spaghetti-note body string.
+
+    Includes title, URL attribution, snippet, and a capped raw-content
+    excerpt when present. Does not write files or call sqlite.
+    """
+
+    title = _single_markdown_line(result.title, fallback="Untitled search result")
+    url = _single_markdown_line(result.url, fallback="unknown")
+    lines = [
+        f"## {title}",
+        "",
+        f"URL: {url}",
+    ]
+    if result.snippet:
+        lines.append("")
+        lines.extend(_blockquote_lines(result.snippet))
+    if result.raw_content:
+        raw = result.raw_content.replace("\r\n", "\n").replace("\r", "\n")
+        raw = raw.replace("```", "` ` `")
+        raw_content_max_chars = max(0, raw_content_max_chars)
+        if len(raw) > raw_content_max_chars:
+            raw = raw[:raw_content_max_chars] + "..."
+        lines.append("")
+        lines.append("Raw content excerpt:")
+        lines.append("")
+        lines.append("```text")
+        lines.append(raw)
+        lines.append("```")
+    return "\n".join(lines) + "\n"
+
+
+def _single_markdown_line(value: str, fallback: str) -> str:
+    """Collapse untrusted text to one markdown line."""
+
+    normalized = " ".join(value.strip().split())
+    return normalized or fallback
+
+
+def _blockquote_lines(value: str) -> list[str]:
+    """Render untrusted snippet text as markdown blockquote lines."""
+
+    lines = value.strip().splitlines()
+    if not lines:
+        return []
+    return ["> " + line.strip() if line.strip() else ">" for line in lines]
+
+
 class SearchClient(Protocol):
     """Protocol for any web search backend."""
 
