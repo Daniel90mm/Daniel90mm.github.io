@@ -82,3 +82,20 @@ What has **not** been run on pa-server:
   `docs/TERMUX_DEPENDENCIES.md`).
 
 phone execution still pending
+
+## Dogfood deployment checklist
+
+Steps to get the dogfood loop running on the phone:
+
+- [ ] Copy `config.example.toml` to `~/flightrecorder/config.toml` with a real
+  API key.
+- [ ] Copy `pricing.example.toml` to `~/flightrecorder/pricing.toml` with real
+  rates.
+- [ ] Set `export FLIGHTRECORDER_CONFIG=~/flightrecorder/config.toml`.
+- [ ] Install dev deps: `cd flightrecorder && pip install -e ".[dev]"`.
+- [ ] Start backend: `scripts/dev-backend.sh`.
+- [ ] Open browser at `http://<phone-ip>:8000/`.
+- [ ] Check the runtime readiness panel: `brainstorm` and `idea_capture` should
+  show `ok`.
+- [ ] Check the budget panel before any chat/extract.
+- [ ] Dogfood: create session, chat, extract, inspect documents/spaghetti.

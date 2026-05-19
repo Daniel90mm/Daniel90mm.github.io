@@ -11,6 +11,7 @@ The first usable loop is now visible enough to judge from the outside:
 - Extraction writes project documents and spaghetti ideas.
 - Read-only APIs expose those artifacts back to the browser.
 - Budget status is visible before real-provider dogfooding.
+- A local `prototype` provider runs the same loop without API keys.
 
 The next work is making real-provider setup obvious and hard to misconfigure:
 example config, pricing smoke, runtime readiness, and a Termux checklist.

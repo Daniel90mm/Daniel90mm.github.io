@@ -4,10 +4,13 @@
   var state = {
     currentSessionId: null,
     currentSession: null,
+    runtimeReady: false,
   };
 
   var DOM = {
     sessionForm: document.getElementById("session-form"),
+    providerInput: document.getElementById("provider"),
+    modelInput: document.getElementById("model"),
     sessionList: document.getElementById("session-list"),
     chatArea: document.getElementById("chat-area"),
     transcript: document.getElementById("transcript"),
@@ -17,6 +20,7 @@
     extractBtn: document.getElementById("extract-btn"),
     statusArea: document.getElementById("status-area"),
     budgetSummary: document.getElementById("budget-summary"),
+    runtimeStatus: document.getElementById("runtime-status"),
     readPanels: document.getElementById("read-panels"),
     documentList: document.getElementById("document-list"),
     documentBody: document.getElementById("document-body"),
@@ -53,9 +57,10 @@
   }
 
   function setChatEnabled(enabled) {
-    DOM.messageInput.disabled = !enabled;
-    DOM.sendBtn.disabled = !enabled;
-    DOM.extractBtn.disabled = !enabled;
+    var active = enabled && state.runtimeReady;
+    DOM.messageInput.disabled = !active;
+    DOM.sendBtn.disabled = !active;
+    DOM.extractBtn.disabled = !active;
   }
 
   function createSession(provider, model, slug) {
@@ -97,6 +102,54 @@
     }).catch(function (err) {
       DOM.budgetSummary.textContent = "Failed: " + err.message;
       DOM.budgetSummary.className = "budget-error";
+    });
+  }
+
+  function loadRuntime() {
+    return api("/api/runtime").then(function (res) {
+      return res.json();
+    });
+  }
+
+  function refreshRuntime() {
+    loadRuntime().then(function (status) {
+      DOM.runtimeStatus.innerHTML = "";
+      var roles = status.roles || {};
+      state.runtimeReady = Boolean(
+        roles.brainstorm && roles.brainstorm.configured &&
+        roles.idea_capture && roles.idea_capture.configured
+      );
+      Object.keys(roles).forEach(function (name) {
+        var role = roles[name];
+        var el = document.createElement("span");
+        var issues = role.issues || [];
+        el.className = "role-entry " + (role.configured ? "configured" : "unconfigured");
+        el.textContent = name + ": " + role.provider + "/" + role.model
+          + " (" + (role.configured ? "ok" : issues.join(", ")) + ")";
+        DOM.runtimeStatus.appendChild(el);
+      });
+      if (roles.brainstorm && roles.brainstorm.provider !== "none") {
+        DOM.providerInput.value = roles.brainstorm.provider;
+        DOM.modelInput.value = roles.brainstorm.model;
+      }
+      if (status.runtime_home) {
+        var home = document.createElement("span");
+        home.className = "role-entry";
+        home.textContent = "home: " + status.runtime_home;
+        DOM.runtimeStatus.appendChild(home);
+      }
+      setChatEnabled(Boolean(state.currentSessionId));
+      if (!state.runtimeReady) {
+        setStatus("Runtime is not ready for chat/extract; check provider config and pricing.", "status-error");
+      }
+    }).catch(function (err) {
+      state.runtimeReady = false;
+      DOM.runtimeStatus.innerHTML = "";
+      var el = document.createElement("span");
+      el.className = "role-entry error";
+      el.textContent = "runtime: " + err.message;
+      DOM.runtimeStatus.appendChild(el);
+      setChatEnabled(false);
     });
   }
 
@@ -155,7 +208,9 @@
       DOM.chatArea.classList.remove("hidden");
       renderTranscript(session.messages);
       setChatEnabled(true);
-      clearStatus();
+      if (state.runtimeReady) {
+        clearStatus();
+      }
       refreshSessionList();
     }).catch(function (err) {
       setStatus("Failed to load session: " + err.message, "status-error");
@@ -408,6 +463,8 @@
     loadSession: loadSession,
     loadBudget: loadBudget,
     refreshBudget: refreshBudget,
+    loadRuntime: loadRuntime,
+    refreshRuntime: refreshRuntime,
     sendMessage: sendMessage,
     runExtraction: runExtraction,
     createSSEParser: createSSEParser,
@@ -419,6 +476,7 @@
 
   refreshSessionList();
   refreshBudget();
+  refreshRuntime();
   DOM.readPanels.classList.remove("hidden");
   refreshDocumentList();
   refreshSpaghettiList();

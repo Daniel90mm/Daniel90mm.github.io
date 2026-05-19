@@ -27,6 +27,8 @@ at `GET /` and `GET /assets/*`.
 
 Create/list sessions, chat over SSE, run extraction, watch budget status, and
 inspect returned session transcript plus extracted documents/spaghetti.
+The frontend should call `GET /api/runtime` on page load and display
+provider readiness before enabling chat/extract.
 
 **Status: implemented.** Static shell (`src/frontend/index.html`) served
 by the backend at `GET /` with session CRUD, chat SSE streaming, extraction

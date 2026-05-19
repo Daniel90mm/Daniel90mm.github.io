@@ -62,3 +62,24 @@ print('all imports ok')
 # Run the test suite
 python -m pytest tests/ -v
 ```
+
+## Dogfood deployment checklist
+
+Steps to get the FastAPI dogfood loop running on the phone with a real config:
+
+- [ ] Create `~/flightrecorder/config.toml` by copying `config.example.toml`
+  from this repo.
+- [ ] Set `export FLIGHTRECORDER_CONFIG=~/flightrecorder/config.toml`.
+- [ ] Replace the placeholder API key.
+- [ ] Create `~/flightrecorder/pricing.toml` by copying `pricing.example.toml`
+  and filling in real rates.
+- [ ] Install the package: `pip install -e ".[dev]"` from the `flightrecorder/`
+  directory.
+- [ ] Start the backend: `scripts/dev-backend.sh`.
+- [ ] Open `http://<phone-ip>:8000/` in a browser on the same Tailscale
+  network.
+- [ ] Verify the runtime readiness panel shows `brainstorm` and `idea_capture`
+  as configured (ok).
+- [ ] Verify the budget panel shows `ok` status before chat/extract.
+- [ ] Create a session, send a chat message, run extraction.
+- [ ] Inspect project documents and spaghetti ideas through the read panels.

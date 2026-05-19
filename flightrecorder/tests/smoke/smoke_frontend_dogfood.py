@@ -122,6 +122,7 @@ def main() -> None:
         assert '"/api/budget"' in app_js_text or "api/budget" in app_js_text
         assert '"/api/documents"' in app_js_text or "api/documents" in app_js_text
         assert '"/api/spaghetti"' in app_js_text or "api/spaghetti" in app_js_text
+        assert '"/api/runtime"' in app_js_text or "api/runtime" in app_js_text
 
         budget_resp = client.get("/api/budget")
         assert budget_resp.status_code == 200

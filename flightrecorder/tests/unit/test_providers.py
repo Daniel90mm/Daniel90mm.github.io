@@ -11,6 +11,7 @@ from flightrecorder.providers import (
     ConfiguredProvider,
     Message,
     ProviderError,
+    PrototypeProvider,
     TokenEvent,
     UsageEvent,
     create_provider,
@@ -39,6 +40,7 @@ def test_create_provider_descriptors() -> None:
     anthropic = create_provider("anthropic", "claude-haiku-4-5", "test-key")
     google = create_provider("google", "gemini-2.5-pro", "test-key")
     openai = create_provider("openai", "gpt-5-mini", "test-key")
+    prototype = create_provider("prototype", "prototype-brainstorm", "")
 
     assert isinstance(anthropic, AnthropicChatProvider)
     assert anthropic.supports_images is True
@@ -47,6 +49,9 @@ def test_create_provider_descriptors() -> None:
     assert google.supports_images is True
     assert google.max_context_tokens == 0
     assert openai.name == "openai"
+    assert isinstance(prototype, PrototypeProvider)
+    assert prototype.is_configured is True
+    assert prototype.supports_images is False
 
 
 def test_create_provider_rejects_unknown_provider() -> None:
@@ -263,6 +268,31 @@ def test_anthropic_provider_without_api_key_fails_closed() -> None:
     assert provider.is_configured is False
     with pytest.raises(ProviderError):
         asyncio.run(_drain_chat(provider, [Message(role="user", content="hi")]))
+
+
+def test_prototype_provider_streams_deterministic_brainstorm_response() -> None:
+    provider = create_provider("prototype", "prototype-brainstorm", "")
+
+    events = asyncio.run(
+        _drain_chat(provider, [Message(role="user", content="Build the MVP loop")])
+    )
+
+    text = "".join(event.text for event in events if isinstance(event, TokenEvent))
+    assert "Prototype response" in text
+    assert isinstance(events[-1], UsageEvent)
+
+
+def test_prototype_provider_can_emit_idea_capture_json() -> None:
+    provider = create_provider("prototype", "prototype-idea-capture", "")
+
+    events = asyncio.run(
+        _drain_chat(provider, [Message(role="user", content="## user\nBuild visible MVP")])
+    )
+
+    text = "".join(event.text for event in events if isinstance(event, TokenEvent))
+    assert '"type": "project_append"' in text
+    assert '"type": "spaghetti"' in text
+    assert isinstance(events[-1], UsageEvent)
 
 
 async def _drain_chat(

@@ -4,6 +4,10 @@
 |------|---------|
 | `flightrecorder-spec.md` | Canonical product and architecture spec. |
 | `AGENTS.md` / `CLAUDE.md` | Agent operating manual for this source tree. |
+| `config.example.toml` | Example Anthropic-only config with placeholder key for MVP dogfood. |
+| `config.prototype.toml` | Offline no-key prototype config for local end-to-end dogfood. |
+| `pricing.example.toml` | Example pricing table matching the example config models. |
+| `pricing.prototype.toml` | Zero-cost pricing table for the offline prototype provider. |
 | `README.md` | Short project entry point. |
 | `DESIGN_PRINCIPLES.md` | Implementation priorities and UI principles. |
 | `RESEARCH_LOG.md` | Append-only decision and open-question log. |
@@ -29,6 +33,7 @@
 | `docs/POKEMON_MAPPING_READINESS.md` | Pre-implementation notes for pokemon pseudonymization step. |
 | `docs/PROJECT_REGISTRY_CONTRACT.md` | Draft `projects.json` fields and open questions. |
 | `docs/PUBLISHER_ADVERSARIAL_FIXTURES.md` | Adversarial fixture categories for redaction tests. |
+| `docs/RUNTIME_PROVIDER_STATUS.md` | Contract for `GET /api/runtime`: safe provider readiness without secrets. |
 | `docs/RUNTIME_DATA_SAFETY.md` | Checklist of files that must never be committed. |
 | `docs/SESSION_CLOSE_PIPELINE.md` | Intended session-close sequence with exist/missing marks. |
 | `docs/SPAGHETTI_FORMAT.md` | Spaghetti idea markdown/frontmatter shape from render_spaghetti_idea(). |

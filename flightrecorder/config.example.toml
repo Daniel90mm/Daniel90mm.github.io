@@ -1,0 +1,23 @@
+# Example configuration for Anthropic-only dogfood MVP.
+# Copy to $FLIGHTRECORDER_HOME/config.toml and replace the placeholder API key.
+
+[providers.anthropic]
+api_key = "sk-ant-api03-CHANGEME"
+
+[roles.brainstorm]
+provider = "anthropic"
+model = "claude-sonnet-4-5"
+
+[roles.idea_capture]
+provider = "anthropic"
+model = "claude-haiku-4-5"
+
+[budget]
+currency = "DKK"
+warn_at_dkk = 225
+hard_stop_dkk = 600
+
+[paths]
+runtime_home = "~/flightrecorder"
+hugo_site = "~/hugo-site"
+pricing_path = "~/flightrecorder/pricing.toml"

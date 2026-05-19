@@ -18,6 +18,7 @@ directory.
 | `tests/smoke/smoke_imports.py` | `.venv/bin/python tests/smoke/smoke_imports.py` |
 | `tests/smoke/smoke_pricing.py` | `.venv/bin/python tests/smoke/smoke_pricing.py` |
 | `tests/smoke/smoke_budget_api.py` | `.venv/bin/python tests/smoke/smoke_budget_api.py` |
+| `tests/smoke/smoke_prototype_dogfood.py` | `.venv/bin/python tests/smoke/smoke_prototype_dogfood.py` |
 | `tests/smoke/smoke_project_documents.py` | `.venv/bin/python tests/smoke/smoke_project_documents.py` |
 | `tests/smoke/smoke_documents_git.py` | `.venv/bin/python tests/smoke/smoke_documents_git.py` |
 | `tests/smoke/smoke_budget_hard_stop.py` | `.venv/bin/python tests/smoke/smoke_budget_hard_stop.py` |
@@ -44,6 +45,8 @@ directory.
 | `tests/smoke/smoke_frontend_dogfood.py` | `.venv/bin/python tests/smoke/smoke_frontend_dogfood.py` |
 | `tests/smoke/smoke_documents_api.py` | `.venv/bin/python tests/smoke/smoke_documents_api.py` |
 | `tests/smoke/smoke_spaghetti_api.py` | `.venv/bin/python tests/smoke/smoke_spaghetti_api.py` |
+| `tests/smoke/smoke_example_config.py` | `.venv/bin/python tests/smoke/smoke_example_config.py` |
+| `tests/smoke/smoke_runtime_status_api.py` | `.venv/bin/python tests/smoke/smoke_runtime_status_api.py` |
 
 Scripts that don't require FastAPI use the system Python directly.
 Scripts that import FastAPI or FastAPI-dependent modules use `.venv/bin/python`.
@@ -53,7 +56,7 @@ Scripts that import FastAPI or FastAPI-dependent modules use `.venv/bin/python`.
 ```sh
 for script in tests/smoke/smoke_*.py; do
     case "$script" in
-            *smoke_adversarial_fixtures*|*smoke_api_current_state*|*smoke_backend_health*|*smoke_budget*|*smoke_budget_api*|*smoke_budget_hard_stop*|*smoke_docs_navigation*|*smoke_documents_api*|*smoke_documents_git*|*smoke_frontend_dogfood*|*smoke_handoff_templates*|*smoke_idea_capture*|*smoke_imports*|*smoke_pricing*|*smoke_project_document_fixture*|*smoke_project_documents*|*smoke_project_registry*|*smoke_project_registry_fixture*|*smoke_provider_call_guard*|*smoke_provider_usage_fixtures*|*smoke_session_api*|*smoke_small_model_tasks*|*smoke_spaghetti_api*|*smoke_spaghetti_fixture*|*smoke_termux_helper*)
+            *smoke_adversarial_fixtures*|*smoke_api_current_state*|*smoke_backend_health*|*smoke_budget*|*smoke_budget_api*|*smoke_budget_hard_stop*|*smoke_docs_navigation*|*smoke_documents_api*|*smoke_documents_git*|*smoke_example_config*|*smoke_frontend_dogfood*|*smoke_handoff_templates*|*smoke_idea_capture*|*smoke_imports*|*smoke_pricing*|*smoke_project_document_fixture*|*smoke_project_documents*|*smoke_project_registry*|*smoke_project_registry_fixture*|*smoke_prototype_dogfood*|*smoke_provider_call_guard*|*smoke_provider_usage_fixtures*|*smoke_runtime_status_api*|*smoke_session_api*|*smoke_small_model_tasks*|*smoke_spaghetti_api*|*smoke_spaghetti_fixture*|*smoke_termux_helper*)
             python=".venv/bin/python" ;;
         *)
             python="python" ;;

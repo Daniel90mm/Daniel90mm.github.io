@@ -1,0 +1,21 @@
+# Example pricing for Anthropic-only dogfood MVP.
+# Placeholder rates -- verify against the provider's current pricing page.
+
+[models."claude-sonnet-4-5"]
+provider = "anthropic"
+input_per_1k = 0.0
+output_per_1k = 0.0
+cached_per_1k = 0.0
+currency = "USD"
+
+[models."claude-haiku-4-5"]
+provider = "anthropic"
+input_per_1k = 0.0
+output_per_1k = 0.0
+cached_per_1k = 0.0
+currency = "USD"
+
+[exchange_rates_to_dkk]
+DKK = 1.0
+USD = 7.0
+EUR = 7.46

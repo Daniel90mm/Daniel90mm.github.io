@@ -20,6 +20,7 @@ Summary of implemented vs draft-only API routes. Source: code inspection of
 - `GET /api/documents/{ref}` - return a project document body and metadata.
 - `GET /api/spaghetti` - list spaghetti ideas from sqlite.
 - `GET /api/spaghetti/{idea_id}` - return one spaghetti idea body and metadata.
+- `GET /api/runtime` - return safe provider readiness status (no secrets).
 - `POST /api/matchmaker/run` - run the structural matchmaker over spaghetti ideas.
 
 All implemented routes follow the shapes in `docs/API_CONTRACT_DRAFT.md`.

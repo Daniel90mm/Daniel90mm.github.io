@@ -1,0 +1,23 @@
+# Offline prototype configuration.
+# Use this when you want the browser MVP to run end-to-end without API keys.
+
+[providers.prototype]
+api_key = ""
+
+[roles.brainstorm]
+provider = "prototype"
+model = "prototype-brainstorm"
+
+[roles.idea_capture]
+provider = "prototype"
+model = "prototype-idea-capture"
+
+[budget]
+currency = "DKK"
+warn_at_dkk = 225
+hard_stop_dkk = 600
+
+[paths]
+runtime_home = "/tmp/flightrecorder-prototype"
+hugo_site = "~/hugo-site"
+pricing_path = "./pricing.prototype.toml"

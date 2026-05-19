@@ -5,6 +5,7 @@ from __future__ import annotations
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 from dataclasses import dataclass
+import json
 from typing import Any, Protocol
 
 from flightrecorder.config import AppConfig, RoleConfig
@@ -183,6 +184,77 @@ class AnthropicChatProvider(ConfiguredProvider):
         )
 
 
+class PrototypeProvider(ConfiguredProvider):
+    """Deterministic local provider for offline dogfood demos.
+
+    This is intentionally simple: no network, no secrets, and no hidden model
+    behavior. It lets the browser MVP run end-to-end before paid providers are
+    configured.
+    """
+
+    def __init__(self, model: str) -> None:
+        super().__init__(
+            name="prototype",
+            model=model,
+            api_key="prototype",
+            supports_images=False,
+            max_context_tokens=16_000,
+        )
+
+    async def chat(
+        self,
+        messages: list[Message],
+        system: str | None = None,
+    ) -> AsyncIterator[ChatEvent]:
+        prompt = messages[-1].content.strip() if messages else ""
+        if "idea-capture" in self.model or "idea_capture" in self.model:
+            text = self._idea_capture_response(prompt)
+        else:
+            text = self._brainstorm_response(prompt)
+
+        for index in range(0, len(text), 32):
+            yield TokenEvent(text=text[index : index + 32])
+        yield UsageEvent(
+            input_tokens=max(1, len(prompt.split())),
+            output_tokens=max(1, len(text.split())),
+            cached_tokens=0,
+        )
+
+    def _brainstorm_response(self, prompt: str) -> str:
+        topic = _summarize_prompt(prompt)
+        return (
+            "Prototype response: capture the main idea, decide whether it "
+            f"belongs in a project note, and keep one loose follow-up about {topic}."
+        )
+
+    def _idea_capture_response(self, transcript: str) -> str:
+        topic = _summarize_prompt(transcript)
+        return json.dumps(
+            [
+                {
+                    "type": "project_append",
+                    "project_ref": "prototype",
+                    "section": "Ideas",
+                    "content": f"Prototype captured a project note about {topic}.",
+                },
+                {
+                    "type": "spaghetti",
+                    "tags": ["prototype"],
+                    "topics": ["dogfood"],
+                    "content": f"Loose follow-up from prototype session: {topic}.",
+                },
+            ]
+        )
+
+
+def _summarize_prompt(prompt: str) -> str:
+    words = [word.strip(".,:;!?()[]{}\"'").lower() for word in prompt.split()]
+    useful = [word for word in words if len(word) > 3]
+    if not useful:
+        return "the session"
+    return " ".join(useful[:8])
+
+
 def _default_anthropic_client(api_key: str) -> Any:
     """Build a real AsyncAnthropic client. Imported lazily so tests can skip the SDK."""
 
@@ -195,6 +267,7 @@ PROVIDER_DESCRIPTORS = {
     "anthropic": ProviderDescriptor(supports_images=True, max_context_tokens=200_000),
     "google": ProviderDescriptor(supports_images=True, max_context_tokens=0),
     "openai": ProviderDescriptor(supports_images=True, max_context_tokens=0),
+    "prototype": ProviderDescriptor(supports_images=False, max_context_tokens=16_000),
 }
 
 
@@ -214,6 +287,8 @@ def create_provider(name: str, model: str, api_key: str) -> ConfiguredProvider:
             max_context_tokens=descriptor.max_context_tokens,
             client=_default_anthropic_client(api_key) if api_key else _UnconfiguredClient(),
         )
+    if name == "prototype":
+        return PrototypeProvider(model=model)
 
     return ConfiguredProvider(
         name=name,

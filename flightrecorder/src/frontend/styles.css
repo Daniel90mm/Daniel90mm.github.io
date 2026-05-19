@@ -224,6 +224,46 @@ button:disabled {
   margin-top: 0.75rem;
 }
 
+#runtime-panel {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 0.5rem 0.75rem;
+  background: var(--surface);
+  font-size: 0.8rem;
+  margin-bottom: 1rem;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  align-items: center;
+}
+
+#runtime-status {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  width: 100%;
+}
+
+#runtime-status .role-entry {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+#runtime-status .role-entry.configured {
+  color: var(--success);
+}
+
+#runtime-status .role-entry.unconfigured {
+  color: var(--text-dim);
+}
+
+#runtime-status .role-entry.error {
+  color: var(--error);
+}
+
 #budget-summary {
   display: inline-block;
   padding: 0.4rem 0.6rem;

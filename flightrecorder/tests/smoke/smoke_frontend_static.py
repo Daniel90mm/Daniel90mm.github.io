@@ -17,6 +17,7 @@ REQUIRED_ROUTES = [
     '"/api/budget"',
     '"/api/documents"',
     '"/api/spaghetti"',
+    '"/api/runtime"',
 ]
 
 
@@ -42,6 +43,9 @@ def main() -> None:
             sys.exit(1)
     if 'id="budget-summary"' not in index_html:
         print("missing budget summary in index.html", file=sys.stderr)
+        sys.exit(1)
+    if 'id="runtime-status"' not in index_html:
+        print("missing runtime status in index.html", file=sys.stderr)
         sys.exit(1)
 
     print("frontend static files smoke test passed")

@@ -26,6 +26,9 @@ The MVP loop is in place locally:
 4. Inspect generated project documents and spaghetti ideas in the browser.
 5. Watch provider spend through the budget panel before and after calls.
 
+There is also an offline prototype provider now, so this loop can run without
+API keys while the real Anthropic config path is being hardened.
+
 The public site is still static Hugo. Flightrecorder is the private runtime
 that should eventually decide what is safe and worth publishing here.
 

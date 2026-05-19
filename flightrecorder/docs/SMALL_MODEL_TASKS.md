@@ -194,182 +194,73 @@ regression is found:
 | S138 | Frontend read panels for documents and spaghetti, verified by senior agent. |
 | S139 | Dogfood read round-trip integration test. |
 | S140 | Dogfood read workflow docs. |
+| S141 | Real-provider Anthropic dogfood config examples. |
+| S142 | Example config/pricing smoke, extended by senior agent for prototype config. |
+| S143 | Runtime provider status API contract. |
+| S144 | Runtime provider status API, tightened by senior agent for API-key/readiness issues. |
+| S145 | Frontend runtime readiness panel, hardened by senior agent for safe text rendering. |
+| S146 | Termux real-provider dogfood checklist. |
 
 ## Active queue
 
 Pick from the top unless Daniel or the senior agent says otherwise.
 
-## S141 - Add real-provider dogfood config example
+## S147 - Add one-command prototype launcher
 
 Where:
-- `flightrecorder/config.example.toml` (new file)
-- `flightrecorder/pricing.example.toml` (new file)
+- `flightrecorder/scripts/dev-prototype.sh` (new file)
 - `flightrecorder/README.md`
-- `flightrecorder/docs/NAVIGATION.md`
-
-What:
-- Add copyable example files for an Anthropic-only MVP dogfood run.
-- `config.example.toml` should include:
-  1. `[providers.anthropic]` with an obvious placeholder key.
-  2. `[roles.brainstorm]` and `[roles.idea_capture]` both using `anthropic`.
-  3. Conservative budget thresholds.
-  4. `runtime_home`, `hugo_site`, and `pricing_path` examples.
-- `pricing.example.toml` should include one Anthropic model entry matching
-  the example config model. Use clearly marked placeholder prices if exact
-  rates are not already in repo data.
-- README should point to the examples and state that real provider dogfood
-  needs `FLIGHTRECORDER_CONFIG` plus real API keys.
-- Add both new example files to `docs/NAVIGATION.md`.
-- Do not include secrets.
-
-Why:
-- The MVP is now runnable with stubs, but the next bottleneck is making a real
-  Anthropic-only dogfood run easy and repeatable.
-
-Smoke test:
-
-```sh
-cd /home/daniel/Documents/Projekter/Daniel90mm.github.io/flightrecorder
-test -f config.example.toml
-test -f pricing.example.toml
-grep -q "FLIGHTRECORDER_CONFIG" README.md
-PYTHONPATH=src/backend python tests/smoke/smoke_docs_navigation_consistency.py
-```
-
-Hand-back:
-- When all commands pass, stop. Do not commit.
-
-## S142 - Smoke the example config and pricing files
-
-Where:
-- `flightrecorder/tests/smoke/smoke_example_config.py` (new file)
+- `flightrecorder/tests/smoke/smoke_dev_prototype_script.py` (new file)
 - `flightrecorder/docs/SMOKE_COMMANDS.md`
 
 What:
-- Add a smoke script that parses `config.example.toml` with
-  `flightrecorder.config.load_config`.
-- Parse `pricing.example.toml` with `flightrecorder.costs.load_pricing`.
-- Verify:
-  1. `brainstorm` and `idea_capture` roles exist.
-  2. Both roles reference providers that exist in the example config.
-  3. Every role model used by those two roles has pricing.
-  4. `paths.pricing_path` in the example points to `pricing.example.toml`.
-- Add the smoke command to `docs/SMOKE_COMMANDS.md` and the all-smokes
-  one-liner if needed.
-- Do not edit provider implementation.
+- Add a small shell script that starts the FastAPI backend with
+  `FLIGHTRECORDER_CONFIG=$PWD/config.prototype.toml`.
+- It should run from the `flightrecorder/` directory and fail with a clear
+  message if `config.prototype.toml` or `pricing.prototype.toml` is missing.
+- Keep it simple: no daemonization, no process manager, no Termux service work.
+- README should mention `scripts/dev-prototype.sh` as the fastest way to try
+  the MVP without API keys.
+- Add a smoke script that verifies the launcher exists, is executable, and
+  references `config.prototype.toml` plus `uvicorn` or `scripts/dev-backend.sh`.
+- Update `docs/SMOKE_COMMANDS.md`.
 
 Why:
-- Example files are only useful if they stay loadable as config parsing
-  changes.
+- The prototype is now real, but the command should be obvious and hard to
+  mistype.
 
 Smoke test:
 
 ```sh
 cd /home/daniel/Documents/Projekter/Daniel90mm.github.io/flightrecorder
-.venv/bin/python tests/smoke/smoke_example_config.py
+test -x scripts/dev-prototype.sh
+.venv/bin/python tests/smoke/smoke_dev_prototype_script.py
 PYTHONPATH=src/backend python tests/smoke/smoke_small_model_tasks.py
 ```
 
 Hand-back:
 - When all commands pass, stop. Do not commit.
 
-## S143 - Add runtime provider status API contract
+## S148 - Auto-select visible prototype artifacts in the frontend
 
 Where:
-- `flightrecorder/docs/API_CURRENT_STATE.md`
-- `flightrecorder/docs/FRONTEND_SCOPE.md`
-- `flightrecorder/docs/RUNTIME_PROVIDER_STATUS.md` (new file)
-- `flightrecorder/docs/NAVIGATION.md`
-
-What:
-- Draft a concise read-only contract for `GET /api/runtime`.
-- Response should include only safe runtime status:
-  1. configured roles for `brainstorm` and `idea_capture`;
-  2. provider name and model;
-  3. whether each role is configured;
-  4. `runtime_home`;
-  5. no API keys or secrets.
-- Mark the route draft-only in `API_CURRENT_STATE.md`.
-- Mention in `FRONTEND_SCOPE.md` that the frontend should show provider
-  readiness before chat/extract.
-- Add the new doc to `docs/NAVIGATION.md`.
-- Do not implement the route in this task.
-
-Why:
-- Before real-provider dogfood, the browser should make misconfigured roles
-  obvious without exposing secrets.
-
-Smoke test:
-
-```sh
-cd /home/daniel/Documents/Projekter/Daniel90mm.github.io/flightrecorder
-grep -q "GET /api/runtime" docs/RUNTIME_PROVIDER_STATUS.md
-PYTHONPATH=src/backend python tests/smoke/smoke_docs_navigation_consistency.py
-```
-
-Hand-back:
-- When all commands pass, stop. Do not commit.
-
-## S144 - Implement read-only runtime provider status API
-
-Where:
-- `flightrecorder/src/backend/flightrecorder/api.py`
-- `flightrecorder/tests/integration/test_runtime_status_api.py` (new file)
-- `flightrecorder/tests/smoke/smoke_runtime_status_api.py` (new file)
-- `flightrecorder/docs/API_CURRENT_STATE.md`
-- `flightrecorder/docs/SMOKE_COMMANDS.md`
-
-What:
-- Implement `GET /api/runtime` from `docs/RUNTIME_PROVIDER_STATUS.md`.
-- Return safe JSON only. Do not include API keys, environment variables, or
-  raw config objects.
-- Include role entries for `brainstorm` and `idea_capture`; each entry should
-  include provider, model, and configured boolean.
-- Add integration tests for configured and missing-role cases.
-- Add a smoke script using `TestClient`.
-- Update `API_CURRENT_STATE.md` and `SMOKE_COMMANDS.md`.
-
-Why:
-- This is the simplest way to catch "the backend is running but no real model
-  is wired" before the user hits chat/extract.
-
-Smoke test:
-
-```sh
-cd /home/daniel/Documents/Projekter/Daniel90mm.github.io/flightrecorder
-.venv/bin/python -m pytest tests/integration/test_runtime_status_api.py -q
-.venv/bin/python tests/smoke/smoke_runtime_status_api.py
-PYTHONPATH=src/backend python tests/smoke/smoke_api_current_state.py
-```
-
-Hand-back:
-- When all commands pass, stop. Do not commit.
-
-## S145 - Add frontend runtime readiness panel
-
-Where:
-- `flightrecorder/src/frontend/index.html`
-- `flightrecorder/src/frontend/styles.css`
 - `flightrecorder/src/frontend/app.js`
 - `flightrecorder/tests/smoke/smoke_frontend_static.py`
 - `flightrecorder/tests/smoke/smoke_frontend_dogfood.py`
-- `flightrecorder/docs/FRONTEND_SCOPE.md`
 
 What:
-- Add a compact runtime readiness panel next to the budget panel.
-- It should call `GET /api/runtime` on page load and render:
-  1. brainstorm provider/model/configured status;
-  2. idea_capture provider/model/configured status;
-  3. runtime home.
-- Use `textContent`; do not render HTML from API values.
-- Do not block the existing stub dogfood flow if the runtime route fails;
-  show a clear failure string in the panel.
-- Update frontend smokes to assert the route string and panel element exist.
-- Update `FRONTEND_SCOPE.md` to mark runtime readiness visible.
+- When document list refreshes and has at least one document, automatically
+  load the first document body unless the user has already selected one.
+- When spaghetti list refreshes and has at least one idea, automatically load
+  the first idea body unless the user has already selected one.
+- Keep safe rendering: use `textContent`, never `innerHTML`, for bodies and
+  labels sourced from APIs.
+- Add lightweight frontend smoke assertions for the new helper/function names
+  or behavior strings.
 
 Why:
-- Real dogfood needs the browser to show whether chat and extract are actually
-  backed by configured providers.
+- A prototype screenshot and first-run experience should show actual generated
+  content, not empty body panels that require extra clicks.
 
 Smoke test:
 
@@ -382,37 +273,141 @@ PYTHONPATH=src/backend python tests/smoke/smoke_frontend_static.py
 Hand-back:
 - When both commands pass, stop. Do not commit.
 
-## S146 - Add Termux real-provider dogfood checklist
+## S149 - Add read-only provider call ledger API
 
 Where:
-- `flightrecorder/docs/TERMUX_DEPENDENCIES.md`
-- `flightrecorder/docs/TERMUX_PHONE_PATTERN.md`
-- `flightrecorder/README.md`
+- `flightrecorder/src/backend/flightrecorder/api.py`
+- `flightrecorder/tests/integration/test_api_calls_api.py` (new file)
+- `flightrecorder/tests/smoke/smoke_api_calls_api.py` (new file)
+- `flightrecorder/docs/API_CURRENT_STATE.md`
+- `flightrecorder/docs/SMOKE_COMMANDS.md`
 
 What:
-- Add a short checklist for running the current FastAPI dogfood UI on Termux
-  with a real Anthropic config.
-- Include:
-  1. creating/copying config from `config.example.toml`;
-  2. setting `FLIGHTRECORDER_CONFIG`;
-  3. installing the package with dev dependencies;
-  4. running `scripts/dev-backend.sh`;
-  5. opening the phone/browser URL;
-  6. checking budget and runtime readiness panels before chat/extract.
-- Keep it as a checklist, not a long tutorial.
-- Do not edit scripts or source code in this task.
+- Add `GET /api/api-calls`.
+- Return newest provider call rows from sqlite with fields:
+  `timestamp`, `provider`, `model`, `role`, `input_tokens`,
+  `output_tokens`, `cached_tokens`, `cost_dkk`, and `session_id`.
+- Support `limit` query param with default 20 and max 100.
+- The route must be read-only and must return `{"api_calls": []}` when there
+  are no rows.
+- Add integration tests using `log_api_call`.
+- Add a smoke script with `TestClient`.
+- Update API state and smoke docs.
 
 Why:
-- The next MVP milestone is running the dogfood loop on the intended phone
-  deployment target, not only on a laptop.
+- Budget status is useful, but an MVP needs to show what calls produced the
+  spend and whether chat/extract were actually logged.
 
 Smoke test:
 
 ```sh
 cd /home/daniel/Documents/Projekter/Daniel90mm.github.io/flightrecorder
-grep -q "FLIGHTRECORDER_CONFIG" docs/TERMUX_DEPENDENCIES.md
-grep -q "runtime readiness" docs/TERMUX_PHONE_PATTERN.md
-PYTHONPATH=src/backend python tests/smoke/smoke_small_model_tasks.py
+.venv/bin/python -m pytest tests/integration/test_api_calls_api.py -q
+.venv/bin/python tests/smoke/smoke_api_calls_api.py
+PYTHONPATH=src/backend python tests/smoke/smoke_api_current_state.py
+```
+
+Hand-back:
+- When all commands pass, stop. Do not commit.
+
+## S150 - Show provider call ledger in the frontend
+
+Where:
+- `flightrecorder/src/frontend/index.html`
+- `flightrecorder/src/frontend/styles.css`
+- `flightrecorder/src/frontend/app.js`
+- `flightrecorder/tests/smoke/smoke_frontend_static.py`
+- `flightrecorder/tests/smoke/smoke_frontend_dogfood.py`
+- `flightrecorder/docs/FRONTEND_SCOPE.md`
+
+What:
+- Add a compact "Calls" panel near Budget.
+- Call `GET /api/api-calls?limit=5` on page load and after chat/extract.
+- Render the latest calls as text rows: role, model, tokens, and DKK cost.
+- Use `textContent`, not `innerHTML`, for all API-derived values.
+- Empty state should read `No provider calls`.
+- Update frontend smokes and frontend scope.
+
+Why:
+- The dogfood UI should make provider activity and cost logging visible during
+  the prototype loop.
+
+Smoke test:
+
+```sh
+cd /home/daniel/Documents/Projekter/Daniel90mm.github.io/flightrecorder
+PYTHONPATH=src/backend python tests/smoke/smoke_frontend_static.py
+.venv/bin/python tests/smoke/smoke_frontend_dogfood.py
+```
+
+Hand-back:
+- When both commands pass, stop. Do not commit.
+
+## S151 - Add image upload control to the dogfood frontend
+
+Where:
+- `flightrecorder/src/frontend/index.html`
+- `flightrecorder/src/frontend/styles.css`
+- `flightrecorder/src/frontend/app.js`
+- `flightrecorder/tests/smoke/smoke_frontend_static.py`
+- `flightrecorder/tests/smoke/smoke_frontend_dogfood.py`
+
+What:
+- Add a file input and upload button in the selected session/chat area.
+- Wire it to existing `POST /api/sessions/{session_id}/upload`.
+- Show uploaded image count or latest asset filename using `textContent`.
+- Keep the control disabled until a session is selected.
+- Do not change provider message semantics in this task; just expose the
+  already-implemented upload endpoint.
+- Update frontend smokes to assert `/upload` and the upload control exist.
+
+Why:
+- Real brainstorming often starts with screenshots/photos. The backend route
+  exists; the MVP frontend should expose it.
+
+Smoke test:
+
+```sh
+cd /home/daniel/Documents/Projekter/Daniel90mm.github.io/flightrecorder
+PYTHONPATH=src/backend python tests/smoke/smoke_frontend_static.py
+.venv/bin/python tests/smoke/smoke_frontend_dogfood.py
+```
+
+Hand-back:
+- When both commands pass, stop. Do not commit.
+
+## S152 - Document and smoke the offline prototype walkthrough
+
+Where:
+- `flightrecorder/docs/PROTOTYPE_WALKTHROUGH.md` (new file)
+- `flightrecorder/docs/NAVIGATION.md`
+- `flightrecorder/README.md`
+- `flightrecorder/tests/smoke/smoke_prototype_walkthrough.py` (new file)
+- `flightrecorder/docs/SMOKE_COMMANDS.md`
+
+What:
+- Write a concise walkthrough for the no-key prototype:
+  1. start with `scripts/dev-prototype.sh`;
+  2. open `http://127.0.0.1:8000/`;
+  3. verify runtime readiness is green;
+  4. create session;
+  5. chat;
+  6. extract;
+  7. inspect document/spaghetti panels;
+  8. check budget/calls panels.
+- Add it to navigation and README.
+- Add a smoke script that checks the doc exists and mentions the commands and
+  panels above.
+
+Why:
+- The MVP should be demoable by following one short page.
+
+Smoke test:
+
+```sh
+cd /home/daniel/Documents/Projekter/Daniel90mm.github.io/flightrecorder
+.venv/bin/python tests/smoke/smoke_prototype_walkthrough.py
+PYTHONPATH=src/backend python tests/smoke/smoke_docs_navigation_consistency.py
 ```
 
 Hand-back:

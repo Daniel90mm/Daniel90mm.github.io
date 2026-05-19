@@ -65,6 +65,19 @@ Open `http://127.0.0.1:8000/`. The minimal dogfood workflow:
 Tests use stubs. Real providers require `config.toml` with API keys
 configured in the `[providers]` and `[roles]` sections.
 
+For an offline end-to-end prototype with no API keys:
+
+```sh
+FLIGHTRECORDER_CONFIG=$PWD/config.prototype.toml scripts/dev-backend.sh
+```
+
+Then open `http://127.0.0.1:8000/`, create a session, chat, extract, and
+inspect the generated document/spaghetti panels.
+
+Copy `config.example.toml` and `pricing.example.toml` as starting points,
+set `FLIGHTRECORDER_CONFIG` to your config path, and replace the placeholder
+API key with a real one.
+
 ## Layout
 
 - `prompts/` - versioned LLM prompts.

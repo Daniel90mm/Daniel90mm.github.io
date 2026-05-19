@@ -12,16 +12,20 @@
   </header>
 
   <main>
+    <section id="runtime-panel">
+      <div id="runtime-status">Loading runtime status...</div>
+    </section>
+
     <section id="session-create">
       <h2>New Session</h2>
       <form id="session-form">
         <label>
           Provider
-          <input type="text" id="provider" placeholder="openai" value="openai">
+          <input type="text" id="provider" placeholder="anthropic" value="anthropic">
         </label>
         <label>
           Model
-          <input type="text" id="model" placeholder="gpt-5-mini" value="gpt-5-mini">
+          <input type="text" id="model" placeholder="claude-sonnet-4-5" value="claude-sonnet-4-5">
         </label>
         <label>
           Slug

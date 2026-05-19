@@ -387,6 +387,60 @@ async def list_projects(request: Request) -> dict[str, object]:
     }
 
 
+@router.get("/runtime")
+async def get_runtime_status(request: Request) -> dict[str, object]:
+    """Return safe runtime provider status without secrets. Read-only."""
+
+    runtime = request.app.state.runtime
+
+    def role_status(role_name: str) -> dict[str, object]:
+        role = runtime.config.roles.get(role_name)
+        if role is None:
+            return {
+                "provider": "none",
+                "model": "none",
+                "configured": False,
+                "issues": ["role_missing"],
+            }
+
+        issues: list[str] = []
+        has_provider = role.provider in runtime.config.providers
+        if not has_provider:
+            issues.append("provider_missing")
+        else:
+            api_key = runtime.config.providers[role.provider].api_key.strip()
+            if role.provider != "prototype" and (
+                not api_key or "CHANGEME" in api_key
+            ):
+                issues.append("api_key_missing")
+
+        if role.provider not in {"anthropic", "prototype"}:
+            issues.append("provider_not_implemented")
+
+        has_model = role.model in runtime.pricing.models
+        if not has_model:
+            issues.append("pricing_missing")
+        else:
+            pricing_model = runtime.pricing.models[role.model]
+            if pricing_model.provider != role.provider:
+                issues.append("pricing_provider_mismatch")
+
+        return {
+            "provider": role.provider,
+            "model": role.model,
+            "configured": not issues,
+            "issues": issues,
+        }
+
+    return {
+        "runtime_home": str(runtime.config.paths.runtime_home),
+        "roles": {
+            "brainstorm": role_status("brainstorm"),
+            "idea_capture": role_status("idea_capture"),
+        },
+    }
+
+
 @router.get("/budget")
 async def get_budget(request: Request) -> dict[str, object]:
     """Return current monthly budget status. Read-only."""
