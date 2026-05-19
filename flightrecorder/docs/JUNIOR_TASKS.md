@@ -252,6 +252,11 @@ regression is found:
 | S188 | Local Tavily config template. |
 | S189 | Frontend search panel without chat integration. |
 | S190 | Search-to-spaghetti capture flow contract. |
+| S191 | Search API smoke script, verified by senior agent. |
+| S192 | Chat web-search tool-loop integration tests, verified by senior agent. |
+| S193 | Search result capture helper, verified by senior agent. |
+| S194 | Search-to-spaghetti backend endpoint, verified by senior agent. |
+| S195 | Rejected manual capture-source frontend form; backend capture remains tool-only for now. |
 | S196 | Web search wired as a model-invoked chat tool, verified by senior agent. |
 
 ## Active queue
@@ -274,163 +279,6 @@ Treat every task as production code:
 - Do not delete or overwrite user/senior work.
 - If the implementation seems to require files outside `Where:`, stop and
   report exactly which file and why.
-
-## S191 - Add search API smoke script
-
-Where:
-- `flightrecorder/tests/smoke/smoke_search_api.py` (new file)
-- `flightrecorder/docs/SMOKE_COMMANDS.md`
-
-What:
-- Add a smoke script for `GET /api/search` using an injected fake search
-  client. Do not call the real Tavily network.
-- Assert:
-  1. configured fake client returns normalized results;
-  2. missing search client returns 503;
-  3. `include_raw_content=true` is passed through.
-- Add the smoke command to `docs/SMOKE_COMMANDS.md`.
-
-Why:
-- The feature now has a backend route and model-invoked tool path. It needs a
-  cheap FastAPI smoke test that does not depend on Tavily network access.
-
-Smoke test:
-
-```sh
-cd /home/daniel/Documents/Projekter/Daniel90mm.github.io/flightrecorder
-.venv/bin/python tests/smoke/smoke_search_api.py
-```
-
-Hand-back:
-- When the command passes, stop. Do not commit.
-
-## S192 - Add chat web-search tool-loop integration tests
-
-Where:
-- `flightrecorder/tests/integration/test_chat_endpoint.py`
-
-What:
-- Add integration coverage for the current model-invoked `web_search` loop.
-- Extend the existing `StubProvider` locally if needed so it can return a
-  different event sequence on each `chat()` call.
-- Add a fake search client in this test file only.
-- Cover:
-  1. provider receives a non-empty `tools` argument when search is configured;
-  2. a `ToolCallEvent` triggers a fake search request;
-  3. the SSE stream includes a `tool_round` event;
-  4. the persisted session contains a `sys` audit message and a final
-     assistant message;
-  5. a later normal chat turn does not replay persisted `sys` messages back
-     to the provider.
-- Do not change backend code unless the test exposes a real bug. If it does,
-  stop and report the failure instead of widening scope.
-
-Why:
-- Web search is now hidden behind the chat model. We need strong tests proving
-  the user-visible behavior works without a real network call.
-
-Smoke test:
-
-```sh
-cd /home/daniel/Documents/Projekter/Daniel90mm.github.io/flightrecorder
-.venv/bin/python -m pytest tests/integration/test_chat_endpoint.py -q
-```
-
-Hand-back:
-- When the command passes, stop. Do not commit.
-
-## S193 - Add search result capture helper
-
-Where:
-- `flightrecorder/src/backend/flightrecorder/web_search.py`
-- `flightrecorder/tests/unit/test_web_search.py`
-
-What:
-- Add a pure helper that converts a `SearchResult` into a safe spaghetti-note
-  body string.
-- Include the title, URL attribution, snippet, and a capped raw-content excerpt
-  when present.
-- Do not write files, touch sqlite, or add an API route in this task.
-- Unit-test escaping/formatting boundaries and raw-content truncation.
-
-Why:
-- Search should feed the spaghetti wall, but the formatting contract should be
-  pure and testable before storage/API work.
-
-Smoke test:
-
-```sh
-cd /home/daniel/Documents/Projekter/Daniel90mm.github.io/flightrecorder
-.venv/bin/python -m pytest tests/unit/test_web_search.py -q
-```
-
-Hand-back:
-- When the command passes, stop. Do not commit.
-
-## S194 - Add search-to-spaghetti backend endpoint
-
-Where:
-- `flightrecorder/src/backend/flightrecorder/api.py`
-- `flightrecorder/src/backend/flightrecorder/web_search.py`
-- `flightrecorder/tests/integration/test_search_to_spaghetti_api.py` (new file)
-- `flightrecorder/docs/API_CONTRACT_DRAFT.md`
-
-What:
-- Add `POST /api/spaghetti/from-search`.
-- Request body should accept `title`, `url`, `snippet`, and optional
-  `raw_content`.
-- Use the pure helper from S193 and existing spaghetti render/write/index
-  helpers.
-- Do not call a provider and do not perform a web request.
-- Add integration coverage proving a spaghetti idea file and sqlite row are
-  created with source attribution.
-
-Why:
-- The product value is not search alone; it is capturing sourced external
-  context into the existing idea pipeline.
-
-Smoke test:
-
-```sh
-cd /home/daniel/Documents/Projekter/Daniel90mm.github.io/flightrecorder
-.venv/bin/python -m pytest tests/integration/test_search_to_spaghetti_api.py -q
-```
-
-Hand-back:
-- When the command passes, stop. Do not commit.
-
-## S195 - Add frontend capture for pasted/sourced search results
-
-Where:
-- `flightrecorder/src/frontend/index.html`
-- `flightrecorder/src/frontend/styles.css`
-- `flightrecorder/src/frontend/app.js`
-- `flightrecorder/tests/smoke/smoke_frontend_static.py`
-
-What:
-- Add a compact "capture source" form in the Spaghetti detail/read area. It
-  should have fields for title, URL, snippet, and optional raw content.
-- The form calls `POST /api/spaghetti/from-search`.
-- On success, clear the form, refresh the spaghetti grid/list, and show a
-  concise success status.
-- Render with DOM APIs/textContent, not string-built HTML.
-- Do not re-add the old standalone search panel. Web search is invoked by the
-  model during chat; this form is only for manually saving a specific source
-  the user already has.
-
-Why:
-- This gives Daniel a visible way to turn sourced external material into a
-  Spaghetti item without waiting for extraction tuning.
-
-Smoke test:
-
-```sh
-cd /home/daniel/Documents/Projekter/Daniel90mm.github.io/flightrecorder
-.venv/bin/python tests/smoke/smoke_frontend_static.py
-```
-
-Hand-back:
-- When the command passes, stop. Do not commit.
 
 ## S197 - Inject text attachment context into chat requests
 
@@ -825,6 +673,50 @@ Smoke test:
 ```sh
 cd /home/daniel/Documents/Projekter/Daniel90mm.github.io/flightrecorder
 .venv/bin/python -m pytest tests/integration/test_documents_api.py -q
+.venv/bin/python tests/smoke/smoke_frontend_static.py
+```
+
+Hand-back:
+- When both commands pass, stop. Do not commit.
+
+## S207 - Backburner: selected chat text to Spaghetti suggestion
+
+Where:
+- `flightrecorder/src/backend/flightrecorder/api.py`
+- `flightrecorder/src/backend/flightrecorder/idea_capture.py`
+- `flightrecorder/tests/integration/test_spaghetti_api.py`
+- `flightrecorder/src/frontend/app.js`
+- `flightrecorder/src/frontend/index.html`
+- `flightrecorder/src/frontend/styles.css`
+- `flightrecorder/tests/smoke/smoke_frontend_static.py`
+
+What:
+- Do not start this until S197-S206 are done or the senior agent explicitly
+  asks for it.
+- Add a lightweight path for Daniel to select text inside the chat transcript
+  and propose it as a Spaghetti candidate.
+- This must not be a URL/title/snippet form. The user-facing action should be
+  about the selected conversation text, for example "suggest as spaghetti".
+- Keep the selected quote visible in a small anchored affordance near the
+  transcript. Add one optional short note field such as "why / project hints".
+- The backend should store it as a normal Spaghetti idea with source session
+  attribution and a tag such as `user-suggested`.
+- Preserve automatic extraction as the primary path. This is only a low-friction
+  correction path for ideas Daniel notices before the model does.
+- Add tests for empty selection rejection, stored source attribution, and
+  frontend static strings/routes.
+
+Why:
+- The Spaghetti wall should mostly be produced by LLM extraction with voice,
+  search, image, and file context. Manual URL entry is the wrong product
+  direction. A selected-chat-text gesture is a better human correction path
+  because it starts from the actual brainstorm.
+
+Smoke test:
+
+```sh
+cd /home/daniel/Documents/Projekter/Daniel90mm.github.io/flightrecorder
+.venv/bin/python -m pytest tests/integration/test_spaghetti_api.py -q
 .venv/bin/python tests/smoke/smoke_frontend_static.py
 ```
 

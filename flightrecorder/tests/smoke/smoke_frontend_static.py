@@ -115,6 +115,9 @@ def main() -> None:
     if "deleteSpaghettiIdea" not in app_js:
         print("missing frontend spaghetti delete handler", file=sys.stderr)
         sys.exit(1)
+    if "capture-source" in index_html or "captureSourceResult" in app_js:
+        print("frontend must not expose manual capture-source fields", file=sys.stderr)
+        sys.exit(1)
 
     print("frontend static files smoke test passed")
 
