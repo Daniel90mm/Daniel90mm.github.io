@@ -31,3 +31,6 @@ __pycache__/
 *.pyc
 .DS_Store
 artifacts/
+flightrecorder/.env*
+flightrecorder/config*.local.toml
+flightrecorder/pricing*.local.toml
