@@ -76,6 +76,15 @@ def main() -> None:
         resp = client.get("/api/spaghetti/nope")
         assert resp.status_code == 404
 
+        resp = client.delete("/api/spaghetti/smoke-idea-xyz001")
+        assert resp.status_code == 200
+        assert resp.json()["deleted"] == "smoke-idea-xyz001"
+        assert (spag_dir / "smoke-idea-xyz001.md").exists() is False
+
+        resp = client.get("/api/spaghetti")
+        assert resp.status_code == 200
+        assert resp.json()["ideas"] == []
+
         print("spaghetti API smoke test passed")
 
 

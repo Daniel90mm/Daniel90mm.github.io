@@ -48,6 +48,7 @@
     documentBody: document.getElementById("document-body"),
     spaghettiList: document.getElementById("spaghetti-list"),
     spaghettiBody: document.getElementById("spaghetti-body"),
+    deleteSpagBtn: document.getElementById("delete-spag-btn"),
     spaghettiGrid: document.getElementById("spaghetti-grid"),
     spaghettiCountTitle: document.getElementById("spaghetti-count-title"),
     previewSessionBtn: document.getElementById("preview-session-btn"),
@@ -763,6 +764,11 @@
   function loadDocument(ref) { return api("/api/documents/" + encodeURIComponent(ref)).then(function (res) { return res.json(); }); }
   function loadSpaghetti() { return api("/api/spaghetti").then(function (res) { return res.json(); }); }
   function loadSpaghettiIdea(ideaId) { return api("/api/spaghetti/" + encodeURIComponent(ideaId)).then(function (res) { return res.json(); }); }
+  function deleteSpaghettiIdea(ideaId) {
+    return api("/api/spaghetti/" + encodeURIComponent(ideaId), {
+      method: "DELETE",
+    }).then(function (res) { return res.json(); });
+  }
 
   function refreshDocumentList() {
     loadDocuments().then(function (data) {
@@ -884,6 +890,7 @@
       note.addEventListener("click", function () {
         state.spaghettiSelected = true;
         state.currentSpaghettiId = idea.idea_id;
+        DOM.deleteSpagBtn.disabled = false;
         renderSpaghettiGrid(state.spaghetti);
         loadSpaghettiIdea(idea.idea_id).then(function (ideaData) {
           DOM.spaghettiBody.textContent = ideaData.body || "";
@@ -909,6 +916,7 @@
       if (ideas.length === 0) {
         DOM.spaghettiList.textContent = "No ideas";
         DOM.spaghettiBody.textContent = "";
+        DOM.deleteSpagBtn.disabled = true;
         return;
       }
       var firstId = ideas[0].idea_id;
@@ -921,6 +929,7 @@
         el.addEventListener("click", function () {
           state.spaghettiSelected = true;
           state.currentSpaghettiId = idea.idea_id;
+          DOM.deleteSpagBtn.disabled = false;
           var items = DOM.spaghettiList.querySelectorAll("span");
           items.forEach(function (item) { item.classList.remove("active"); });
           el.classList.add("active");
@@ -935,15 +944,19 @@
       });
       if (!state.spaghettiSelected) {
         state.currentSpaghettiId = firstId;
+        DOM.deleteSpagBtn.disabled = false;
         loadSpaghettiIdea(firstId).then(function (ideaData) {
           DOM.spaghettiBody.textContent = ideaData.body || "";
         }).catch(function (err) {
           DOM.spaghettiBody.textContent = "Error: " + err.message;
         });
+      } else {
+        DOM.deleteSpagBtn.disabled = !state.currentSpaghettiId;
       }
     }).catch(function (err) {
       DOM.spaghettiList.textContent = "Failed: " + err.message;
       DOM.spaghettiGrid.innerHTML = "";
+      DOM.deleteSpagBtn.disabled = true;
     });
   }
 
@@ -1094,6 +1107,25 @@
     runMatchmakerForIdea(state.currentSpaghettiId);
   });
 
+  DOM.deleteSpagBtn.addEventListener("click", function () {
+    var ideaId = state.currentSpaghettiId;
+    if (!ideaId) return;
+    DOM.deleteSpagBtn.disabled = true;
+    setStatus("Deleting spaghetti idea…", "status-info");
+    deleteSpaghettiIdea(ideaId).then(function () {
+      state.spaghettiSelected = false;
+      state.currentSpaghettiId = null;
+      DOM.spaghettiBody.textContent = "";
+      DOM.matchmakerResult.textContent = "No spaghetti idea selected.";
+      DOM.previewResult.textContent = "No source selected. Select a document or spaghetti idea, then click a preview button.";
+      clearStatus();
+      refreshSpaghettiList();
+    }).catch(function (err) {
+      setStatus("Delete failed: " + err.message, "status-error");
+      DOM.deleteSpagBtn.disabled = false;
+    });
+  });
+
 
   function createSSEParser() {
     var buffer = "";
@@ -1154,6 +1186,7 @@
     loadDocument: loadDocument,
     loadSpaghetti: loadSpaghetti,
     loadSpaghettiIdea: loadSpaghettiIdea,
+    deleteSpaghettiIdea: deleteSpaghettiIdea,
     fetchPublishPreview: fetchPublishPreview,
     runMatchmakerForIdea: runMatchmakerForIdea,
     deleteAsset: deleteAsset,

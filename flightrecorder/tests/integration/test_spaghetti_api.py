@@ -138,6 +138,31 @@ def test_get_spaghetti_not_found(tmp_path: Path) -> None:
     assert response.status_code == 404
 
 
+def test_delete_spaghetti_removes_file_and_index_row(tmp_path: Path) -> None:
+    setup_spaghetti_fixtures(tmp_path)
+    client = make_app(tmp_path)
+    idea_path = tmp_path / "spaghetti" / "idea-alpha-abc001.md"
+
+    response = client.delete("/api/spaghetti/idea-alpha-abc001")
+
+    assert response.status_code == 200
+    assert response.json() == {"deleted": "idea-alpha-abc001"}
+    assert idea_path.exists() is False
+    assert client.get("/api/spaghetti/idea-alpha-abc001").status_code == 404
+
+    list_response = client.get("/api/spaghetti")
+    ids = {idea["idea_id"] for idea in list_response.json()["ideas"]}
+    assert ids == {"idea-beta-def002"}
+
+
+def test_delete_spaghetti_not_found(tmp_path: Path) -> None:
+    client = make_app(tmp_path)
+
+    response = client.delete("/api/spaghetti/nope")
+
+    assert response.status_code == 404
+
+
 def test_get_spaghetti_rejects_path_outside_runtime(tmp_path: Path) -> None:
     setup_spaghetti_fixtures(tmp_path)
     outside = tmp_path.parent / "outside-spaghetti.md"

@@ -969,6 +969,33 @@ async def get_spaghetti(idea_id: str, request: Request) -> dict[str, object]:
     }
 
 
+@router.delete("/spaghetti/{idea_id}")
+async def delete_spaghetti(idea_id: str, request: Request) -> dict[str, object]:
+    """Delete one spaghetti idea markdown file and sqlite index row."""
+
+    runtime = request.app.state.runtime
+    row = runtime.database.execute(
+        "SELECT path FROM ideas WHERE idea_id = ?",
+        (idea_id,),
+    ).fetchone()
+
+    if row is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"unknown idea_id: {idea_id}",
+        )
+
+    runtime_home = runtime.config.paths.runtime_home.resolve()
+    path = Path(row[0]).resolve()
+    runtime.database.execute("DELETE FROM ideas WHERE idea_id = ?", (idea_id,))
+    runtime.database.commit()
+
+    if path.is_file() and runtime_home in path.parents:
+        path.unlink()
+
+    return {"deleted": idea_id}
+
+
 class MatchmakerRunRequest(BaseModel):
     idea_ids: list[str] = Field(min_length=1)
 

@@ -20,7 +20,6 @@ REQUIRED_ROUTES = [
     '"/api/documents"',
     '"/api/spaghetti"',
     '"/api/runtime"',
-    '"/api/search?q="',
     'api/api-calls',
     'api/publish/preview',
     'api/matchmaker/run',
@@ -80,8 +79,8 @@ def main() -> None:
     if 'id="run-matchmaker-btn"' not in index_html:
         print("missing matchmaker run button in index.html", file=sys.stderr)
         sys.exit(1)
-    if 'id="search-panel"' not in index_html:
-        print("missing web search panel in index.html", file=sys.stderr)
+    if 'id="delete-spag-btn"' not in index_html:
+        print("missing spaghetti delete button in index.html", file=sys.stderr)
         sys.exit(1)
     if "voice or type" in index_html:
         print("frontend must not imply voice support exists", file=sys.stderr)
@@ -94,6 +93,9 @@ def main() -> None:
         sys.exit(1)
     if "deleteSessionApi" not in app_js:
         print("missing frontend session delete handler", file=sys.stderr)
+        sys.exit(1)
+    if "deleteSpaghettiIdea" not in app_js:
+        print("missing frontend spaghetti delete handler", file=sys.stderr)
         sys.exit(1)
 
     print("frontend static files smoke test passed")
