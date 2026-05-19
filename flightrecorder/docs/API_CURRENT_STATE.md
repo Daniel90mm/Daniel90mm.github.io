@@ -10,8 +10,8 @@ Summary of implemented vs draft-only API routes. Source: code inspection of
 - `GET /assets/{asset_path:path}` - serves static frontend assets from `src/frontend/`.
 - `POST /api/sessions` - create a new session.
 - `GET /api/sessions` - list sessions (newest first, with pagination).
-- `GET /api/sessions/{session_id}` - fetch one session with transcript.
-- `POST /api/sessions/{session_id}/upload` - upload an image asset.
+- `GET /api/sessions/{session_id}` - fetch one session with transcript and uploaded asset metadata.
+- `POST /api/sessions/{session_id}/upload` - upload an image asset and return its metadata.
 - `POST /api/sessions/{session_id}/messages` - chat SSE endpoint.
 - `POST /api/sessions/{session_id}/extract` - run idea capture for a session.
 - `GET /api/budget` - read current monthly spend, thresholds, and hard-stop sentinel status.
@@ -23,6 +23,7 @@ Summary of implemented vs draft-only API routes. Source: code inspection of
 - `GET /api/runtime` - return safe provider readiness status (no secrets).
 - `GET /api/api-calls` - list newest provider call rows (limit param, read-only).
 - `POST /api/matchmaker/run` - run the structural matchmaker over spaghetti ideas.
+- `GET /api/publish/preview` - return fail-closed publish preview/audit summary (see `docs/PUBLISH_PREVIEW_API.md`).
 
 All implemented routes follow the shapes in `docs/API_CONTRACT_DRAFT.md`.
 Implementation lives in `src/backend/flightrecorder/api.py` (auto-generated

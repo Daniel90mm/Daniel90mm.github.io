@@ -55,6 +55,7 @@ def test_list_and_get_session(tmp_path: Path) -> None:
     assert list_response.json()["sessions"][0]["session_id"] == created["session_id"]
     assert detail_response.status_code == 200
     assert detail_response.json()["messages"] == []
+    assert detail_response.json()["assets"] == []
 
 
 def test_list_sessions_limit_offset_and_curated_filter(tmp_path: Path) -> None:
@@ -112,7 +113,13 @@ def test_upload_session_asset(tmp_path: Path) -> None:
 
     assert response.status_code == 201
     assert response.json()["asset_path"].endswith("pcb_photo.jpg")
+    assert response.json()["asset"]["filename"].endswith("pcb_photo.jpg")
+    assert response.json()["asset"]["relative_path"].startswith("sessions/_assets/")
     assert response.json()["image_count"] == 1
+
+    detail_response = client.get(f"/api/sessions/{created['session_id']}")
+    assert detail_response.status_code == 200
+    assert len(detail_response.json()["assets"]) == 1
 
 
 def test_upload_missing_session_returns_404(tmp_path: Path) -> None:

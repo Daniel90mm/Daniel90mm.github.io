@@ -41,11 +41,27 @@ from flightrecorder.matchmaker import (
 )
 from flightrecorder.project_registry import ProjectRegistryError, load_project_registry
 from flightrecorder.providers import Message, TokenEvent, UsageEvent
-from flightrecorder.serializers import session_detail_to_dict, session_metadata_to_dict
+from flightrecorder.publisher import run_publish_pipeline
+from flightrecorder.serializers import (
+    asset_to_dict,
+    session_detail_to_dict,
+    session_metadata_to_dict,
+)
 from flightrecorder.storage import AssetTooLargeError, ChatMessage
 
 
 router = APIRouter(prefix="/api")
+
+
+def _session_assets(runtime_home: Path, session_id: str) -> list[dict[str, object]]:
+    asset_dir = runtime_home / "sessions" / "_assets"
+    if not asset_dir.is_dir():
+        return []
+    return [
+        asset_to_dict(path, runtime_home)
+        for path in sorted(asset_dir.glob(f"{session_id}-*"))
+        if path.is_file()
+    ]
 
 
 class CreateSessionRequest(BaseModel):
@@ -118,7 +134,9 @@ async def get_session(session_id: str, request: Request) -> dict[str, object]:
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Session not found",
         ) from exc
-    return session_detail_to_dict(metadata, messages)
+    detail = session_detail_to_dict(metadata, messages)
+    detail["assets"] = _session_assets(runtime.config.paths.runtime_home, session_id)
+    return detail
 
 
 @router.post(
@@ -154,6 +172,7 @@ async def upload_session_asset(
     metadata, _messages = runtime.sessions.get_session(session_id)
     return {
         "asset_path": asset_path.name,
+        "asset": asset_to_dict(asset_path, runtime.config.paths.runtime_home),
         "image_count": metadata.image_count,
     }
 
@@ -727,4 +746,104 @@ async def list_api_calls(
             }
             for row in rows
         ]
+    }
+
+
+VALID_SOURCE_KINDS = frozenset({"session", "document", "spaghetti"})
+
+
+@router.get("/publish/preview")
+async def publish_preview(
+    request: Request,
+    source_kind: str = Query(...),
+    source_id: str = Query(...),
+) -> dict[str, object]:
+    """Return a read-only publish preview/audit summary for one source artifact.
+
+    Runs the publisher pipeline with the current fail-closed defaults
+    (Null curator + Null reviewer), so publishable is always false until
+    real stages are wired. The route must not write files, sqlite rows,
+    git commits, or Hugo content.
+    """
+
+    if source_kind not in VALID_SOURCE_KINDS:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="source_kind must be session, document, or spaghetti",
+        )
+
+    runtime = request.app.state.runtime
+    runtime_home = runtime.config.paths.runtime_home
+
+    source_body: str
+    if source_kind == "session":
+        try:
+            _metadata, messages = runtime.sessions.get_session(source_id)
+        except FileNotFoundError as exc:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="session not found",
+            ) from exc
+        source_body = transcript_from_messages(messages)
+    elif source_kind == "document":
+        try:
+            sanitized = sanitize_project_ref(source_id)
+        except ProjectDocumentError as exc:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="document not found",
+            ) from exc
+        doc_file = documents_dir(runtime_home) / f"{sanitized}.md"
+        if not doc_file.is_file():
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"document not found: {sanitized}",
+            )
+        source_body = doc_file.read_text(encoding="utf-8")
+    else:
+        row = runtime.database.execute(
+            "SELECT path FROM ideas WHERE idea_id = ?",
+            (source_id,),
+        ).fetchone()
+        if row is None:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"unknown idea_id: {source_id}",
+            )
+        path = Path(row[0])
+        if not path.is_file():
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"idea markdown file missing: {source_id}",
+            )
+        source_body = _read_spaghetti_body(path)
+
+    result = run_publish_pipeline(
+        source_kind=source_kind,
+        source_id=source_id,
+        source_body=source_body,
+    )
+    rejection_reason = result.rejection_reason
+    if rejection_reason is None and not result.approved:
+        rejection_reason = "reviewer rejected all snippets"
+
+    return {
+        "source_kind": result.source_kind,
+        "source_id": result.source_id,
+        "publishable": rejection_reason is None,
+        "rejection_reason": rejection_reason,
+        "approved_count": len(result.approved),
+        "snippets": [
+            {
+                "snippet_id": s.snippet_id,
+                "source_kind": s.source_kind,
+                "source_id": s.source_id,
+                "drafted_at": s.drafted_at,
+                "publish_after": s.publish_after,
+                "tags": s.tags,
+                "project_ref": s.project_ref,
+                "body": s.body,
+            }
+            for s in result.approved
+        ],
     }

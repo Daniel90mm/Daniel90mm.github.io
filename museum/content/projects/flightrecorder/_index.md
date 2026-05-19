@@ -22,12 +22,16 @@ The MVP loop is in place locally:
 
 1. Create or reopen a session.
 2. Chat through the backend streaming endpoint.
-3. Run idea extraction on the transcript.
-4. Inspect generated project documents and spaghetti ideas in the browser.
-5. Watch provider spend through the budget panel before and after calls.
+3. Upload images into sessions.
+4. Run idea extraction on the transcript.
+5. Inspect generated project documents and spaghetti ideas in the browser.
+6. Watch provider spend through the budget and calls ledger panels.
+7. Preview what would be publishable via the fail-closed publish preview panel
+   (currently always rejected until the real curator is wired).
 
-There is also an offline prototype provider now, so this loop can run without
-API keys while the real Anthropic config path is being hardened.
+There is also an offline prototype provider, launchable with a single command,
+so this loop can run without API keys while the real Anthropic config path is
+being hardened.
 
 The public site is still static Hugo. Flightrecorder is the private runtime
 that should eventually decide what is safe and worth publishing here.

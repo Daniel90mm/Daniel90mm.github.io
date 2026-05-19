@@ -7,6 +7,8 @@
     runtimeReady: false,
     documentSelected: false,
     spaghettiSelected: false,
+    currentDocRef: null,
+    currentSpaghettiId: null,
   };
 
   var DOM = {
@@ -14,6 +16,7 @@
     providerInput: document.getElementById("provider"),
     modelInput: document.getElementById("model"),
     sessionList: document.getElementById("session-list"),
+    sessionSummary: document.getElementById("session-summary"),
     chatArea: document.getElementById("chat-area"),
     transcript: document.getElementById("transcript"),
     messageForm: document.getElementById("message-form"),
@@ -32,6 +35,10 @@
     documentBody: document.getElementById("document-body"),
     spaghettiList: document.getElementById("spaghetti-list"),
     spaghettiBody: document.getElementById("spaghetti-body"),
+    previewSessionBtn: document.getElementById("preview-session-btn"),
+    previewDocBtn: document.getElementById("preview-doc-btn"),
+    previewSpagBtn: document.getElementById("preview-spag-btn"),
+    previewResult: document.getElementById("publish-preview-result"),
   };
 
   function api(path, options) {
@@ -220,6 +227,28 @@
     DOM.transcript.scrollTop = DOM.transcript.scrollHeight;
   }
 
+  function renderSessionSummary(session) {
+    DOM.sessionSummary.innerHTML = "";
+    if (!session) {
+      DOM.sessionSummary.textContent = "No session selected";
+      return;
+    }
+    var fields = [
+      ["provider", session.provider || "unknown"],
+      ["model", session.model || "unknown"],
+      ["messages", session.message_count || 0],
+      ["images", session.image_count || 0],
+      ["assets", session.assets ? session.assets.length : 0],
+      ["extracted", session.extracted ? "yes" : "no"],
+    ];
+    fields.forEach(function (field) {
+      var item = document.createElement("span");
+      item.className = "session-summary-item";
+      item.textContent = field[0] + ": " + field[1];
+      DOM.sessionSummary.appendChild(item);
+    });
+  }
+
   function createMessageElement(role, content) {
     var div = document.createElement("div");
     div.className = "transcript-msg " + role;
@@ -245,6 +274,7 @@
       state.currentSession = session;
       DOM.chatArea.classList.remove("hidden");
       renderTranscript(session.messages);
+      renderSessionSummary(session);
       setChatEnabled(true);
       if (state.runtimeReady) {
         clearStatus();
@@ -252,6 +282,7 @@
       refreshSessionList();
     }).catch(function (err) {
       setStatus("Failed to load session: " + err.message, "status-error");
+      renderSessionSummary(null);
     });
   }
 
@@ -325,6 +356,10 @@
       .then(function (result) {
         renderExtractionResult(result);
         setStatus("Extraction complete", "status-success");
+        loadSession(state.currentSessionId).then(function (session) {
+          state.currentSession = session;
+          renderSessionSummary(session);
+        }).catch(function () {});
         refreshDocumentList();
         refreshSpaghettiList();
         refreshBudget();
@@ -333,6 +368,27 @@
       })
       .catch(function (err) {
         setStatus("Extraction failed: " + err.message, "status-error");
+      });
+  }
+
+  function fetchPublishPreview(sourceKind, sourceId) {
+    DOM.previewResult.textContent = "Loading...";
+    api("/api/publish/preview?source_kind=" + encodeURIComponent(sourceKind)
+      + "&source_id=" + encodeURIComponent(sourceId))
+      .then(function (res) { return res.json(); })
+      .then(function (data) {
+        var lines = [];
+        lines.push("source: " + data.source_kind + " / " + data.source_id);
+        lines.push("publishable: " + data.publishable);
+        lines.push("rejection_reason: " + (data.rejection_reason || "none"));
+        lines.push("approved_count: " + data.approved_count);
+        if (data.snippets && data.snippets.length > 0) {
+          lines.push("snippets: " + data.snippets.length);
+        }
+        DOM.previewResult.textContent = lines.join("\n");
+      })
+      .catch(function (err) {
+        DOM.previewResult.textContent = "Error: " + err.message;
       });
   }
 
@@ -377,6 +433,7 @@
         }
         el.addEventListener("click", function () {
           state.documentSelected = true;
+          state.currentDocRef = doc.ref;
           var items = DOM.documentList.querySelectorAll("span");
           items.forEach(function (item) { item.classList.remove("active"); });
           el.classList.add("active");
@@ -389,6 +446,7 @@
         DOM.documentList.appendChild(el);
       });
       if (!state.documentSelected) {
+        state.currentDocRef = firstRef;
         loadDocument(firstRef).then(function (docData) {
           DOM.documentBody.textContent = docData.body || "";
         }).catch(function (err) {
@@ -417,6 +475,7 @@
         }
         el.addEventListener("click", function () {
           state.spaghettiSelected = true;
+          state.currentSpaghettiId = idea.idea_id;
           var items = DOM.spaghettiList.querySelectorAll("span");
           items.forEach(function (item) { item.classList.remove("active"); });
           el.classList.add("active");
@@ -429,6 +488,7 @@
         DOM.spaghettiList.appendChild(el);
       });
       if (!state.spaghettiSelected) {
+        state.currentSpaghettiId = firstId;
         loadSpaghettiIdea(firstId).then(function (ideaData) {
           DOM.spaghettiBody.textContent = ideaData.body || "";
         }).catch(function (err) {
@@ -503,9 +563,39 @@
     }).then(function (result) {
       DOM.uploadStatus.textContent = "Uploaded: " + file.name
         + " (" + result.image_count + " images in session)";
+      loadSession(state.currentSessionId).then(function (session) {
+        state.currentSession = session;
+        renderSessionSummary(session);
+      }).catch(function (err) {
+        DOM.uploadStatus.textContent = "Uploaded, but refresh failed: " + err.message;
+      });
     }).catch(function (err) {
       DOM.uploadStatus.textContent = "Upload failed: " + err.message;
     });
+  });
+
+  DOM.previewSessionBtn.addEventListener("click", function () {
+    if (!state.currentSessionId) {
+      DOM.previewResult.textContent = "No session selected.";
+      return;
+    }
+    fetchPublishPreview("session", state.currentSessionId);
+  });
+
+  DOM.previewDocBtn.addEventListener("click", function () {
+    if (!state.currentDocRef) {
+      DOM.previewResult.textContent = "No document selected.";
+      return;
+    }
+    fetchPublishPreview("document", state.currentDocRef);
+  });
+
+  DOM.previewSpagBtn.addEventListener("click", function () {
+    if (!state.currentSpaghettiId) {
+      DOM.previewResult.textContent = "No spaghetti idea selected.";
+      return;
+    }
+    fetchPublishPreview("spaghetti", state.currentSpaghettiId);
   });
 
   function createSSEParser() {
@@ -560,6 +650,7 @@
     refreshCalls: refreshCalls,
     loadRuntime: loadRuntime,
     refreshRuntime: refreshRuntime,
+    renderSessionSummary: renderSessionSummary,
     sendMessage: sendMessage,
     runExtraction: runExtraction,
     createSSEParser: createSSEParser,
@@ -567,6 +658,7 @@
     loadDocument: loadDocument,
     loadSpaghetti: loadSpaghetti,
     loadSpaghettiIdea: loadSpaghettiIdea,
+    fetchPublishPreview: fetchPublishPreview,
   };
 
   refreshSessionList(true);

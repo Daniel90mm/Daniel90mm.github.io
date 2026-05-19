@@ -206,85 +206,18 @@ regression is found:
 | S150 | Frontend provider call ledger panel, hardened by senior agent for safe text rendering. |
 | S151 | Image upload control in dogfood frontend. |
 | S152 | Offline prototype walkthrough doc and smoke. |
+| S153 | Publish preview API contract. |
+| S154 | Read-only fail-closed publish preview API. |
+| S155 | Frontend publish preview panel, extended by senior agent with session preview and selected-session summary. |
+| S156 | Prototype UI screenshot smoke. |
+| S157 | Upload round-trip smoke, tightened by senior agent for returned asset metadata. |
+| S158 | Public flightrecorder page update for prototype state. |
 
 ## Active queue
 
 Pick from the top unless Daniel or the senior agent says otherwise.
 
-## S153 - Draft publish preview API contract
-
-Where:
-- `flightrecorder/docs/PUBLISH_PREVIEW_API.md` (new file)
-- `flightrecorder/docs/API_CURRENT_STATE.md`
-- `flightrecorder/docs/NAVIGATION.md`
-
-What:
-- Draft a concise contract for `GET /api/publish/preview`.
-- It should be read-only and accept:
-  1. `source_kind=session|document|spaghetti`
-  2. `source_id=<session_id|document_ref|idea_id>`
-- Response should include:
-  `source_kind`, `source_id`, `publishable`, `rejection_reason`,
-  `approved_count`, and `snippets`.
-- State clearly that the current Null publisher is fail-closed and can return
-  `publishable=false` with a rejection reason.
-- Mark the route draft-only in `API_CURRENT_STATE.md`.
-- Add the new doc to navigation.
-- Do not implement the route in this task.
-
-Why:
-- The MVP needs a visible bridge from private capture to public Hugo output,
-  but publisher safety must stay explicit and fail-closed.
-
-Smoke test:
-
-```sh
-cd /home/daniel/Documents/Projekter/Daniel90mm.github.io/flightrecorder
-grep -q "GET /api/publish/preview" docs/PUBLISH_PREVIEW_API.md
-PYTHONPATH=src/backend python tests/smoke/smoke_docs_navigation_consistency.py
-```
-
-Hand-back:
-- When all commands pass, stop. Do not commit.
-
-## S154 - Implement read-only publish preview API
-
-Where:
-- `flightrecorder/src/backend/flightrecorder/api.py`
-- `flightrecorder/tests/integration/test_publish_preview_api.py` (new file)
-- `flightrecorder/tests/smoke/smoke_publish_preview_api.py` (new file)
-- `flightrecorder/docs/API_CURRENT_STATE.md`
-- `flightrecorder/docs/SMOKE_COMMANDS.md`
-
-What:
-- Implement `GET /api/publish/preview` from `docs/PUBLISH_PREVIEW_API.md`.
-- Resolve source bodies for:
-  1. `source_kind=session` from session transcript;
-  2. `source_kind=document` from project document markdown;
-  3. `source_kind=spaghetti` from spaghetti idea markdown body.
-- Run the existing `run_publish_pipeline` with default fail-closed stages.
-- Return the preview/audit summary as JSON.
-- Return 404 for unknown sources and 422 for unknown `source_kind`.
-- The route must not write files, sqlite rows, git commits, or Hugo content.
-- Add integration and smoke tests.
-
-Why:
-- Users need to see the public-publishing gate, even before the real curator
-  is wired. Fail-closed preview is still product progress.
-
-Smoke test:
-
-```sh
-cd /home/daniel/Documents/Projekter/Daniel90mm.github.io/flightrecorder
-.venv/bin/python -m pytest tests/integration/test_publish_preview_api.py -q
-.venv/bin/python tests/smoke/smoke_publish_preview_api.py
-PYTHONPATH=src/backend python tests/smoke/smoke_api_current_state.py
-```
-
-Hand-back:
-- When all commands pass, stop. Do not commit.
-
-## S155 - Add publish preview panel to the frontend
+## S159 - Add uploaded asset list to the frontend
 
 Where:
 - `flightrecorder/src/frontend/index.html`
@@ -295,17 +228,17 @@ Where:
 - `flightrecorder/docs/FRONTEND_SCOPE.md`
 
 What:
-- Add a compact "Publish Preview" panel under the document/spaghetti panels.
-- Provide buttons for selected document and selected spaghetti idea.
-- Call `GET /api/publish/preview` with the selected source.
-- Render `publishable`, `rejection_reason`, and snippet count using
-  `textContent`.
-- Empty state should explain that no source is selected.
-- Update frontend smokes and docs.
+- Add a compact uploaded-assets list for the selected session.
+- Use the `assets` array from `GET /api/sessions/{id}`.
+- Show filename and size in bytes for each asset.
+- Update the list immediately after an upload by reloading the selected
+  session detail.
+- Render with DOM nodes and `textContent`; do not use `innerHTML` for asset
+  rows.
 
 Why:
-- The MVP should make the future public-publishing path visible from the
-  browser, not hidden in backend tests.
+- Image upload is now visible as a button and API response, but the MVP should
+  show what is attached to the active session without inspecting the filesystem.
 
 Smoke test:
 
@@ -318,66 +251,128 @@ PYTHONPATH=src/backend python tests/smoke/smoke_frontend_static.py
 Hand-back:
 - When both commands pass, stop. Do not commit.
 
-## S156 - Add prototype UI screenshot smoke
+## S160 - Add session asset metadata integration test
 
 Where:
-- `flightrecorder/tests/smoke/smoke_prototype_ui_screenshot.py` (new file)
+- `flightrecorder/tests/integration/test_session_assets_api.py` (new file)
+- `flightrecorder/docs/API_CONTRACT_DRAFT.md`
 - `flightrecorder/docs/SMOKE_COMMANDS.md`
 
 What:
-- Add a smoke script that:
-  1. skips cleanly if `google-chrome` is unavailable;
-  2. starts the app with `config.prototype.toml` using `TestClient` or a local
-     subprocess;
-  3. creates a prototype session, chat, and extraction;
-  4. captures a screenshot to `/tmp/flightrecorder-prototype-ui.png`;
-  5. verifies the screenshot file exists and is non-empty.
-- Keep it smoke-level; do not add Playwright.
-- Update `docs/SMOKE_COMMANDS.md`.
+- Add an integration test that creates a session, uploads two tiny images, then
+  fetches `GET /api/sessions/{id}`.
+- Assert that `image_count == 2` and `assets` contains two objects with
+  `filename`, `relative_path`, and `size_bytes`.
+- Assert `relative_path` never exposes an absolute path.
+- Add the pytest command to the smoke command docs.
 
 Why:
-- We need a repeatable way to prove the browser surface is not just API-green.
+- Uploaded asset metadata is now part of the MVP API surface and needs direct
+  regression coverage beyond the smoke script.
 
 Smoke test:
 
 ```sh
 cd /home/daniel/Documents/Projekter/Daniel90mm.github.io/flightrecorder
-.venv/bin/python tests/smoke/smoke_prototype_ui_screenshot.py
-```
-
-Hand-back:
-- When the command passes or skips cleanly, stop. Do not commit.
-
-## S157 - Add upload round-trip smoke
-
-Where:
-- `flightrecorder/tests/smoke/smoke_upload_api.py` (new file)
-- `flightrecorder/docs/SMOKE_COMMANDS.md`
-
-What:
-- Add a smoke script using `TestClient` that:
-  1. creates a session;
-  2. uploads a tiny in-memory PNG or JPEG to
-     `POST /api/sessions/{session_id}/upload`;
-  3. verifies `image_count` increments;
-  4. fetches the session detail and verifies the asset metadata is present.
-- Update smoke command docs.
-
-Why:
-- The frontend now exposes image upload; the backend upload path should have
-  a direct dogfood smoke.
-
-Smoke test:
-
-```sh
-cd /home/daniel/Documents/Projekter/Daniel90mm.github.io/flightrecorder
-.venv/bin/python tests/smoke/smoke_upload_api.py
+.venv/bin/python -m pytest tests/integration/test_session_assets_api.py -q
 ```
 
 Hand-back:
 - When the command passes, stop. Do not commit.
 
-## S158 - Update public flightrecorder page for prototype state
+## S161 - Add publish preview frontend dogfood assertions
+
+Where:
+- `flightrecorder/tests/smoke/smoke_frontend_dogfood.py`
+- `flightrecorder/tests/smoke/smoke_publish_preview_api.py`
+
+What:
+- Extend the frontend dogfood smoke to verify `/assets/app.js` references:
+  1. `preview-session-btn`;
+  2. `preview-doc-btn`;
+  3. `preview-spag-btn`;
+  4. `api/publish/preview`.
+- Extend the publish preview smoke to cover the session/document/spaghetti
+  paths plus one unknown-source 404.
+- Do not add a browser dependency here.
+
+Why:
+- The publish preview is now a visible MVP gate; smoke coverage should catch
+  accidental frontend/API drift.
+
+Smoke test:
+
+```sh
+cd /home/daniel/Documents/Projekter/Daniel90mm.github.io/flightrecorder
+.venv/bin/python tests/smoke/smoke_frontend_dogfood.py
+.venv/bin/python tests/smoke/smoke_publish_preview_api.py
+```
+
+Hand-back:
+- When both commands pass, stop. Do not commit.
+
+## S162 - Document the prototype publish-preview walkthrough
+
+Where:
+- `flightrecorder/docs/PROTOTYPE_WALKTHROUGH.md`
+- `flightrecorder/tests/smoke/smoke_prototype_walkthrough.py`
+- `flightrecorder/docs/NAVIGATION.md`
+
+What:
+- Update the walkthrough with the current UI flow:
+  1. start `scripts/dev-prototype.sh`;
+  2. create or auto-select a session;
+  3. chat and extract;
+  4. inspect session summary and uploaded assets;
+  5. run session/document/spaghetti publish preview and observe fail-closed
+     output.
+- Update the walkthrough smoke so it checks these concrete phrases.
+
+Why:
+- The local prototype should be runnable by Daniel without remembering which
+  parts landed in which commit.
+
+Smoke test:
+
+```sh
+cd /home/daniel/Documents/Projekter/Daniel90mm.github.io/flightrecorder
+.venv/bin/python tests/smoke/smoke_prototype_walkthrough.py
+```
+
+Hand-back:
+- When the command passes, stop. Do not commit.
+
+## S163 - Add prototype server health smoke for the launcher
+
+Where:
+- `flightrecorder/tests/smoke/smoke_dev_prototype_script.py`
+- `flightrecorder/docs/SMOKE_COMMANDS.md`
+
+What:
+- Extend the launcher smoke to verify `scripts/dev-prototype.sh` contains:
+  1. `config.prototype.toml`;
+  2. `FLIGHTRECORDER_CONFIG`;
+  3. `uvicorn`;
+  4. `cd "$ROOT"`;
+  5. `exec uvicorn`.
+- Add a note in smoke docs that this is a static launcher smoke and does not
+  start a long-running server.
+
+Why:
+- The launcher is the fastest path to visible progress; regressions here are
+  expensive during dogfooding.
+
+Smoke test:
+
+```sh
+cd /home/daniel/Documents/Projekter/Daniel90mm.github.io/flightrecorder
+.venv/bin/python tests/smoke/smoke_dev_prototype_script.py
+```
+
+Hand-back:
+- When the command passes, stop. Do not commit.
+
+## S164 - Update public page for publish-preview visibility
 
 Where:
 - `museum/content/projects/flightrecorder/_index.md`
@@ -386,17 +381,14 @@ Where:
 - `flightrecorder/tests/smoke/smoke_hugo_internal_links.py`
 
 What:
-- Update public copy to mention:
-  1. one-command prototype launcher;
-  2. calls ledger panel;
-  3. image upload control;
-  4. publish preview is next/fail-closed.
-- Do not over-market it; keep the tone factual.
-- Run Hugo build and internal link smokes.
+- Update the public Flight Recorder copy to mention the now-visible publish
+  preview panel and selected-session summary.
+- Keep it factual: fail-closed preview, no real auto-publishing yet.
+- Do not change layouts, archetypes, or unrelated museum pages.
 
 Why:
-- The public site should keep reflecting visible product progress as the MVP
-  becomes more real.
+- The public site should keep showing real product movement, not only backend
+  internals.
 
 Smoke test:
 

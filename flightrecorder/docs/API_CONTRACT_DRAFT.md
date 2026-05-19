@@ -101,6 +101,13 @@ Fetch a single session by ID, including the full transcript.
     "spaghetti": false,
     "extracted": false,
     "curated": false,
+    "assets": [
+        {
+            "filename": "2026-05-18-1730-spaghetti-abcd1234-pcb_photo.jpg",
+            "relative_path": "sessions/_assets/2026-05-18-1730-spaghetti-abcd1234-pcb_photo.jpg",
+            "size_bytes": 12345
+        }
+    ],
     "messages": [
         {
             "role": "user",
@@ -137,6 +144,11 @@ Upload an image asset to a session. Cap: 5 MiB.
 ```json
 {
     "asset_path": "2026-05-18-1730-spaghetti-abcd1234-pcb_photo.jpg",
+    "asset": {
+        "filename": "2026-05-18-1730-spaghetti-abcd1234-pcb_photo.jpg",
+        "relative_path": "sessions/_assets/2026-05-18-1730-spaghetti-abcd1234-pcb_photo.jpg",
+        "size_bytes": 12345
+    },
     "image_count": 1
 }
 ```

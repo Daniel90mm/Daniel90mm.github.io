@@ -11,17 +11,20 @@ at `GET /` and `GET /assets/*`.
 - `GET /health`
 - `POST /api/sessions` - create a session
 - `GET /api/sessions` - list sessions (newest first, paginated)
-- `GET /api/sessions/{id}` - session detail with transcript
-- `POST /api/sessions/{id}/upload` - image upload
+- `GET /api/sessions/{id}` - session detail with transcript and asset metadata
+- `POST /api/sessions/{id}/upload` - image upload with returned asset metadata
 - `POST /api/sessions/{id}/messages` - chat SSE endpoint
 - `POST /api/sessions/{id}/extract` - run idea capture
 - `GET /api/budget` - monthly spend and hard-stop status
+- `GET /api/runtime` - safe provider readiness status
+- `GET /api/api-calls` - newest provider calls
 - `GET /api/projects` - active project registry entries
 - `GET /api/documents` - document list
 - `GET /api/documents/{ref}` - document body
 - `GET /api/spaghetti` - spaghetti idea list
 - `GET /api/spaghetti/{idea_id}` - spaghetti body
 - `POST /api/matchmaker/run` - run matchmaker
+- `GET /api/publish/preview` - fail-closed publish preview/audit summary
 
 ## First dogfood frontend target
 
@@ -32,8 +35,9 @@ provider readiness before enabling chat/extract.
 
 **Status: implemented.** Static shell (`src/frontend/index.html`) served
 by the backend at `GET /` with session CRUD, chat SSE streaming, extraction
-trigger, budget status, and read panels for project documents and spaghetti
-ideas.
+trigger, budget status, read panels for project documents and spaghetti
+ideas, uploaded asset counts, provider call ledger, and a publish preview
+panel with fail-closed feedback for sessions, documents, and spaghetti ideas.
 
 ## Still missing from backend
 

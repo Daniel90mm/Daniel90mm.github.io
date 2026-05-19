@@ -20,6 +20,7 @@ REQUIRED_ROUTES = [
     '"/api/spaghetti"',
     '"/api/runtime"',
     'api/api-calls',
+    'api/publish/preview',
 ]
 
 
@@ -60,6 +61,12 @@ def main() -> None:
         sys.exit(1)
     if 'id="upload-file"' not in index_html:
         print("missing upload file input in index.html", file=sys.stderr)
+        sys.exit(1)
+    if 'id="session-summary"' not in index_html:
+        print("missing selected-session summary in index.html", file=sys.stderr)
+        sys.exit(1)
+    if 'id="preview-session-btn"' not in index_html:
+        print("missing session publish preview button in index.html", file=sys.stderr)
         sys.exit(1)
 
     print("frontend static files smoke test passed")
