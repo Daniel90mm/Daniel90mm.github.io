@@ -693,6 +693,17 @@ body {
   line-height: 1.6;
 }
 
+.fr-subsection-h {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 8px;
+  align-items: center;
+  margin: 12px 0 4px;
+  color: var(--muted);
+  font-size: 10.5px;
+  text-transform: uppercase;
+}
+
 /* sessions log */
 .fr-session-log {
   display: flex;
