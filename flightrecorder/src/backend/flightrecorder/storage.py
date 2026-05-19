@@ -391,6 +391,42 @@ class SessionStore:
         index_session(self.connection, updated_metadata, session_path)
         return updated_metadata
 
+    def delete_session(self, session_id: str) -> None:
+        """Delete one session: file, uploaded assets, sqlite index row.
+
+        Preserves api_calls rows (cost history) and downstream artifacts
+        (ideas, project documents, spaghetti notes). Raises FileNotFoundError
+        if neither the session file nor an index row exists. Raises
+        sqlite3.IntegrityError if foreign-key linked rows still reference
+        the session (e.g. extracted ideas).
+        """
+
+        session_path = self.session_path(session_id)
+        file_exists = session_path.is_file()
+        row = self.connection.execute(
+            "SELECT 1 FROM sessions WHERE session_id = ?",
+            (session_id,),
+        ).fetchone()
+        if not file_exists and row is None:
+            raise FileNotFoundError(f"session not found: {session_id}")
+
+        self.connection.execute(
+            "DELETE FROM sessions WHERE session_id = ?",
+            (session_id,),
+        )
+        self.connection.commit()
+
+        asset_dir = self.runtime_home / "sessions" / "_assets"
+        if asset_dir.is_dir():
+            for asset in asset_dir.glob(f"{session_id}-*"):
+                try:
+                    asset.unlink()
+                except FileNotFoundError:
+                    pass
+
+        if file_exists:
+            session_path.unlink()
+
     def list_sessions(self) -> list[SessionMetadata]:
         """List indexed sessions newest first."""
 

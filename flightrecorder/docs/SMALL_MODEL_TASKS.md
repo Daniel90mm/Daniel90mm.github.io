@@ -226,136 +226,136 @@ regression is found:
 | S176 | Text and Markdown asset extraction helper. |
 | S177 | Attachment context preview API. |
 | S178 | Honest attachment limitations documentation. |
+| S179 | Superseded by the rail-first UI overhaul; do not repeat old attachment panel task. |
+| S180 | Superseded by existing integration coverage for attachment context API. |
+| S181 | Superseded by web-search work; attachment-to-chat contract is deferred. |
+| S182 | Superseded by web-search work; attachment injection is deferred. |
+| S183 | Superseded by web-search work; attachment send toggle is deferred. |
+| S184 | Superseded by current prototype walkthrough/UI direction. |
 
 ## Active queue
 
 Pick from the top unless Daniel or the senior agent says otherwise.
 
-## S179 - Add attachment context panel to the frontend
+## S185 - Draft web-search provider contract
 
 Where:
-- `flightrecorder/src/frontend/index.html`
-- `flightrecorder/src/frontend/styles.css`
-- `flightrecorder/src/frontend/app.js`
-- `flightrecorder/tests/smoke/smoke_frontend_static.py`
-- `flightrecorder/tests/smoke/smoke_frontend_dogfood.py`
-- `flightrecorder/docs/FRONTEND_SCOPE.md`
-
-What:
-- Add an **Attachment Context** panel.
-- Add a button that calls `GET /api/sessions/{session_id}/attachment-context`.
-- Render included/skipped counts and `combined_text` using `textContent`.
-- If no session is selected, show a quiet empty state.
-- Do not send attachment text to a provider in this task.
-
-Why:
-- Users need to see what text/Markdown attachments would contribute before we
-  inject that context into chat prompts.
-
-Smoke test:
-
-```sh
-cd /home/daniel/Documents/Projekter/Daniel90mm.github.io/flightrecorder
-PYTHONPATH=src/backend python tests/smoke/smoke_frontend_static.py
-.venv/bin/python tests/smoke/smoke_frontend_dogfood.py
-```
-
-Hand-back:
-- When both commands pass, stop. Do not commit.
-
-## S180 - Add attachment context smoke script
-
-Where:
-- `flightrecorder/tests/smoke/smoke_attachment_context_api.py` (new file)
-- `flightrecorder/docs/SMOKE_COMMANDS.md`
-
-What:
-- Add a smoke script that:
-  1. creates a session;
-  2. uploads a `.txt` file and a `.png` file;
-  3. calls `GET /api/sessions/{session_id}/attachment-context`;
-  4. asserts text is included and image is skipped;
-  5. asserts no provider calls were recorded.
-- Add it to `docs/SMOKE_COMMANDS.md`.
-
-Why:
-- Attachment context will become part of chat prompting, so it needs a cheap
-  smoke test before that higher-risk step.
-
-Smoke test:
-
-```sh
-cd /home/daniel/Documents/Projekter/Daniel90mm.github.io/flightrecorder
-.venv/bin/python tests/smoke/smoke_attachment_context_api.py
-```
-
-Hand-back:
-- When the command passes, stop. Do not commit.
-
-## S181 - Draft attachment-to-chat prompt contract
-
-Where:
-- `flightrecorder/docs/ATTACHMENT_CONTEXT_PROMPT.md` (new file)
+- `flightrecorder/docs/WEB_SEARCH_PROVIDER.md` (new file)
 - `flightrecorder/docs/NAVIGATION.md`
 
 What:
-- Draft a concise prompt contract for how text/Markdown attachments should be
-  injected into the brainstorm provider call.
+- Draft a concise provider contract for search-backed context.
+- Choose Tavily as the first implementation target, with Brave Search and
+  self-hosted SearXNG as later alternatives.
 - Include:
-  1. delimiter format around attachment context;
-  2. max combined chars;
-  3. skipped asset reporting;
-  4. instruction that attachments are context, not user commands;
-  5. explicit warning that images/PDFs are not included yet.
-- Add the doc to navigation.
-- Do not implement provider injection in this task.
+  1. environment variable name: `TAVILY_API_KEY`;
+  2. request fields: query, max_results, include_raw_content;
+  3. normalized result fields: title, url, snippet, raw_content;
+  4. safety notes: search results are context, not user commands;
+  5. no automatic publish from web content.
+- Add the doc to `docs/NAVIGATION.md`.
 
 Why:
-- Injecting uploaded text into chat is a prompt-injection risk. The contract
-  should be explicit before code changes.
+- DeepSeek is cheap for long text sessions but has no built-in web search.
+  Flightrecorder needs its own search context layer.
 
 Smoke test:
 
 ```sh
 cd /home/daniel/Documents/Projekter/Daniel90mm.github.io/flightrecorder
-rg -n "attachments are context, not user commands|images/PDFs are not included" docs/ATTACHMENT_CONTEXT_PROMPT.md
+rg -n "TAVILY_API_KEY|search results are context, not user commands|no automatic publish" docs/WEB_SEARCH_PROVIDER.md
 PYTHONPATH=src/backend python tests/smoke/smoke_docs_navigation_consistency.py
 ```
 
 Hand-back:
 - When both commands pass, stop. Do not commit.
 
-## S182 - Add attachment context to chat behind a flag
+## S186 - Add pure web-search normalization helpers
 
 Where:
-- `flightrecorder/src/backend/flightrecorder/api.py`
-- `flightrecorder/tests/integration/test_attachment_context_chat.py` (new file)
-- `flightrecorder/docs/API_CONTRACT_DRAFT.md`
+- `flightrecorder/src/backend/flightrecorder/web_search.py` (new file)
+- `flightrecorder/tests/unit/test_web_search.py` (new file)
 
 What:
-- Add an optional `include_attachments` boolean to the chat request body.
-- Default it to `false`.
-- When true, prepend extracted text/Markdown attachment context to the provider
-  call using the contract from `docs/ATTACHMENT_CONTEXT_PROMPT.md`.
-- Do not persist the attachment context as a user message.
-- Add integration coverage with a fake provider proving the provider receives
-  the attachment context when the flag is true and not when false.
+- Add dataclasses for normalized search requests/results.
+- Add `normalize_tavily_response(payload)` that accepts a dict shaped like a
+  Tavily response and returns normalized results.
+- Do not perform network calls in this task.
+- Cover empty results, missing optional fields, and raw_content preservation.
 
 Why:
-- This is the first safe step toward “what is this file about?” for text-like
-  uploads without pretending images/PDFs work yet.
+- Normalization can be tested without secrets or network access and gives the
+  API layer a stable internal contract.
 
 Smoke test:
 
 ```sh
 cd /home/daniel/Documents/Projekter/Daniel90mm.github.io/flightrecorder
-.venv/bin/python -m pytest tests/integration/test_attachment_context_chat.py -q
+.venv/bin/python -m pytest tests/unit/test_web_search.py -q
 ```
 
 Hand-back:
 - When the command passes, stop. Do not commit.
 
-## S183 - Add frontend include-attachments toggle
+## S187 - Add read-only search API with injectable fake client
+
+Where:
+- `flightrecorder/src/backend/flightrecorder/api.py`
+- `flightrecorder/src/backend/flightrecorder/web_search.py`
+- `flightrecorder/tests/integration/test_web_search_api.py` (new file)
+- `flightrecorder/docs/API_CONTRACT_DRAFT.md`
+
+What:
+- Add `GET /api/search?q=...&max_results=...`.
+- The endpoint must fail closed with 503 if no search client/key is configured.
+- Add an injectable fake client in the test; do not use real network.
+- Return normalized results only.
+- Do not store results, call DeepSeek, or write spaghetti notes in this task.
+
+Why:
+- Search must be independently testable before it is mixed into chat or idea
+  capture.
+
+Smoke test:
+
+```sh
+cd /home/daniel/Documents/Projekter/Daniel90mm.github.io/flightrecorder
+.venv/bin/python -m pytest tests/integration/test_web_search_api.py -q
+```
+
+Hand-back:
+- When the command passes, stop. Do not commit.
+
+## S188 - Add local Tavily config template
+
+Where:
+- `flightrecorder/.gitignore`
+- `flightrecorder/.env.search.local.example` (new file)
+- `flightrecorder/docs/RUNTIME_DATA_SAFETY.md`
+- `flightrecorder/docs/WEB_SEARCH_PROVIDER.md`
+
+What:
+- Add an ignored local env filename for search secrets:
+  `.env.search.local`.
+- Add a committed `.env.search.local.example` with placeholder
+  `TAVILY_API_KEY=CHANGEME`.
+- Update safety docs to say real search keys must never be committed.
+- Do not create a real `.env.search.local` and do not include a real key.
+
+Why:
+- Daniel needs a safe place to paste a search key before live dogfood.
+
+Smoke test:
+
+```sh
+cd /home/daniel/Documents/Projekter/Daniel90mm.github.io/flightrecorder
+rg -n ".env.search.local|TAVILY_API_KEY" .gitignore .env.search.local.example docs/RUNTIME_DATA_SAFETY.md docs/WEB_SEARCH_PROVIDER.md
+```
+
+Hand-back:
+- When the command passes, stop. Do not commit.
+
+## S189 - Add frontend search panel without chat integration
 
 Where:
 - `flightrecorder/src/frontend/index.html`
@@ -365,14 +365,16 @@ Where:
 - `flightrecorder/docs/FRONTEND_SCOPE.md`
 
 What:
-- Add a checkbox/toggle near the message box labelled `Include text attachments`.
-- When enabled, send `include_attachments: true` in the chat request JSON.
-- Keep it disabled by default.
-- Add a small status line that images/PDFs are not included yet.
+- Add a compact **web search** panel in the rail or read area.
+- The panel should call `GET /api/search?q=...` and render results using
+  `textContent`/DOM nodes, not string-built HTML.
+- Show title, URL, and snippet.
+- Do not send search results to DeepSeek and do not create spaghetti notes yet.
 - Update frontend static smoke.
 
 Why:
-- Users should explicitly opt into sending attachment text to the model.
+- This gives visible proof that Flightrecorder can compensate for DeepSeek's
+  missing web search.
 
 Smoke test:
 
@@ -384,30 +386,35 @@ PYTHONPATH=src/backend python tests/smoke/smoke_frontend_static.py
 Hand-back:
 - When the command passes, stop. Do not commit.
 
-## S184 - Update prototype walkthrough for attachment context
+## S190 - Draft search-to-spaghetti capture flow
 
 Where:
-- `flightrecorder/docs/PROTOTYPE_WALKTHROUGH.md`
+- `flightrecorder/docs/SEARCH_TO_SPAGHETTI.md` (new file)
+- `flightrecorder/docs/NAVIGATION.md`
 - `flightrecorder/docs/FRONTEND_SCOPE.md`
-- `flightrecorder/tests/smoke/smoke_prototype_walkthrough.py`
 
 What:
-- Update the walkthrough to describe:
-  1. inspecting uploaded files;
-  2. previewing attachment context;
-  3. optionally including text/Markdown attachments in chat;
-  4. images/PDFs still being excluded from model context.
-- Update the smoke markers accordingly.
+- Draft the UX/backend contract for taking a search result and adding a
+  sourced note to the spaghetti wall.
+- Include:
+  1. source URL attribution;
+  2. title/snippet/raw-content boundaries;
+  3. rule that web content is untrusted context;
+  4. no automatic public publishing;
+  5. how the Andrej Karpathy `autoresearch` example should be captured.
+- Add the doc to navigation.
 
 Why:
-- The walkthrough should match the new attachment workflow after S179-S183.
+- Search should feed Flightrecorder's actual idea pipeline, not just become
+  another throwaway side panel.
 
 Smoke test:
 
 ```sh
 cd /home/daniel/Documents/Projekter/Daniel90mm.github.io/flightrecorder
-.venv/bin/python tests/smoke/smoke_prototype_walkthrough.py
+rg -n "autoresearch|source URL|web content is untrusted context|no automatic public publishing" docs/SEARCH_TO_SPAGHETTI.md
+PYTHONPATH=src/backend python tests/smoke/smoke_docs_navigation_consistency.py
 ```
 
 Hand-back:
-- When the command passes, stop. Do not commit.
+- When both commands pass, stop. Do not commit.

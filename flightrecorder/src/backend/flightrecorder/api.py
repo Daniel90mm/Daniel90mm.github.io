@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import mimetypes
+import sqlite3
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
@@ -223,6 +224,36 @@ async def upload_session_asset(
         "asset": asset_to_dict(asset_path, runtime.config.paths.runtime_home),
         "image_count": metadata.image_count,
     }
+
+
+@router.delete("/sessions/{session_id}")
+async def delete_session(
+    session_id: str,
+    request: Request,
+) -> dict[str, object]:
+    """Delete one session: TOML file + uploaded assets + sqlite index row.
+
+    Preserves api_calls cost history and downstream artifacts (ideas,
+    documents, spaghetti notes).
+    """
+
+    runtime = request.app.state.runtime
+    try:
+        runtime.sessions.delete_session(session_id=session_id)
+    except FileNotFoundError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Session not found",
+        ) from exc
+    except sqlite3.IntegrityError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=(
+                "session has linked extracted ideas; remove them first "
+                "before deleting the session"
+            ),
+        ) from exc
+    return {"deleted": session_id}
 
 
 @router.delete("/sessions/{session_id}/assets/{filename}")

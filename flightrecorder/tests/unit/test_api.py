@@ -198,6 +198,53 @@ def test_delete_session_asset_rejects_wrong_session_and_traversal(tmp_path: Path
     assert traversal.status_code == 404
 
 
+def test_delete_session_removes_session_and_assets(tmp_path: Path) -> None:
+    client = make_client(tmp_path)
+    created = client.post(
+        "/api/sessions",
+        json={"provider": "google", "model": "gemini-2.5-pro", "slug": "delete-me"},
+    ).json()
+    upload = client.post(
+        f"/api/sessions/{created['session_id']}/upload",
+        files={"file": ("notes.txt", b"notes", "text/plain")},
+    ).json()
+    asset_path = tmp_path / upload["asset"]["relative_path"]
+
+    response = client.delete(f"/api/sessions/{created['session_id']}")
+
+    assert response.status_code == 200
+    assert response.json() == {"deleted": created["session_id"]}
+    assert client.get(f"/api/sessions/{created['session_id']}").status_code == 404
+    assert asset_path.exists() is False
+
+
+def test_delete_session_with_linked_idea_returns_409_and_preserves_file(
+    tmp_path: Path,
+) -> None:
+    client = make_client(tmp_path)
+    created = client.post(
+        "/api/sessions",
+        json={"provider": "google", "model": "gemini-2.5-pro", "slug": "linked"},
+    ).json()
+    session_id = created["session_id"]
+    runtime = client.app.state.runtime
+    runtime.database.execute(
+        """
+        INSERT INTO ideas (
+            idea_id, captured_at, source_session, tags_json, topics_json, path
+        )
+        VALUES ('idea-1', '2026-05-18T17:31:00+02:00', ?, '[]', '[]', 'spaghetti/idea-1.md')
+        """,
+        (session_id,),
+    )
+    runtime.database.commit()
+
+    response = client.delete(f"/api/sessions/{session_id}")
+
+    assert response.status_code == 409
+    assert client.get(f"/api/sessions/{session_id}").status_code == 200
+
+
 def test_upload_missing_session_returns_404(tmp_path: Path) -> None:
     client = make_client(tmp_path)
 

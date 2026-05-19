@@ -281,6 +281,73 @@ def test_session_store_deletes_asset_and_updates_image_count(tmp_path: Path) -> 
     assert loaded_metadata.image_count == 0
 
 
+def test_session_store_deletes_session_file_assets_and_index(tmp_path: Path) -> None:
+    connection = sqlite3.connect(":memory:")
+    initialize_database(connection)
+    store = SessionStore(tmp_path, connection)
+    metadata = store.create_session(
+        provider="google",
+        model="gemini-2.5-pro",
+        started_at=datetime.fromisoformat("2026-05-18T17:30:00+02:00"),
+        slug="delete-me",
+    )
+    asset_path = store.store_asset(
+        metadata.session_id,
+        filename="notes.txt",
+        data=b"notes",
+    )
+    session_path = store.session_path(metadata.session_id)
+
+    store.delete_session(metadata.session_id)
+
+    assert session_path.exists() is False
+    assert asset_path.exists() is False
+    assert connection.execute(
+        "SELECT 1 FROM sessions WHERE session_id = ?",
+        (metadata.session_id,),
+    ).fetchone() is None
+
+
+def test_session_store_delete_preserves_files_when_index_delete_fails(
+    tmp_path: Path,
+) -> None:
+    connection = sqlite3.connect(":memory:")
+    connection.execute("PRAGMA foreign_keys = ON")
+    initialize_database(connection)
+    store = SessionStore(tmp_path, connection)
+    metadata = store.create_session(
+        provider="google",
+        model="gemini-2.5-pro",
+        started_at=datetime.fromisoformat("2026-05-18T17:30:00+02:00"),
+        slug="linked",
+    )
+    asset_path = store.store_asset(
+        metadata.session_id,
+        filename="notes.txt",
+        data=b"notes",
+    )
+    connection.execute(
+        """
+        INSERT INTO ideas (
+            idea_id, captured_at, source_session, tags_json, topics_json, path
+        )
+        VALUES ('idea-1', '2026-05-18T17:31:00+02:00', ?, '[]', '[]', 'spaghetti/idea-1.md')
+        """,
+        (metadata.session_id,),
+    )
+    connection.commit()
+
+    with pytest.raises(sqlite3.IntegrityError):
+        store.delete_session(metadata.session_id)
+
+    assert store.session_path(metadata.session_id).exists()
+    assert asset_path.exists()
+    assert connection.execute(
+        "SELECT 1 FROM sessions WHERE session_id = ?",
+        (metadata.session_id,),
+    ).fetchone() == (1,)
+
+
 def test_safe_session_asset_path_rejects_traversal_and_wrong_session(tmp_path: Path) -> None:
     safe = safe_session_asset_path(tmp_path, "session-1", "session-1-photo.jpg")
     assert safe == (tmp_path / "sessions" / "_assets" / "session-1-photo.jpg").resolve()

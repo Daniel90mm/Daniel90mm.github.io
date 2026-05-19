@@ -55,9 +55,6 @@ def main() -> None:
     if 'id="budget-summary"' not in index_html:
         print("missing budget summary in index.html", file=sys.stderr)
         sys.exit(1)
-    if 'id="runtime-status"' not in index_html:
-        print("missing runtime status in index.html", file=sys.stderr)
-        sys.exit(1)
     if 'id="calls-list"' not in index_html:
         print("missing calls list in index.html", file=sys.stderr)
         sys.exit(1)
@@ -67,11 +64,11 @@ def main() -> None:
     if 'accept="image/*,.pdf,.txt,.md,text/plain,text/markdown,application/pdf"' not in index_html:
         print("upload file input must accept image/pdf/text/markdown", file=sys.stderr)
         sys.exit(1)
-    if 'id="session-summary"' not in index_html:
-        print("missing selected-session summary in index.html", file=sys.stderr)
-        sys.exit(1)
     if 'id="session-name-form"' not in index_html:
         print("missing session rename form in index.html", file=sys.stderr)
+        sys.exit(1)
+    if 'id="session-delete-btn"' not in index_html:
+        print("missing session delete button in index.html", file=sys.stderr)
         sys.exit(1)
     if 'id="preview-session-btn"' not in index_html:
         print("missing session publish preview button in index.html", file=sys.stderr)
@@ -82,23 +79,17 @@ def main() -> None:
     if 'id="run-matchmaker-btn"' not in index_html:
         print("missing matchmaker run button in index.html", file=sys.stderr)
         sys.exit(1)
-    if 'id="attachment-context-panel"' not in index_html:
-        print("missing attachment context panel in index.html", file=sys.stderr)
-        sys.exit(1)
-    if 'id="preview-attachments-btn"' not in index_html:
-        print("missing attachment context preview button in index.html", file=sys.stderr)
-        sys.exit(1)
     if "voice or type" in index_html:
         print("frontend must not imply voice support exists", file=sys.stderr)
         sys.exit(1)
     if "deleteAsset" not in app_js:
         print("missing frontend asset delete handler", file=sys.stderr)
         sys.exit(1)
-    if "previewAttachmentContext" not in app_js:
-        print("missing frontend attachment context handler", file=sys.stderr)
-        sys.exit(1)
     if "renameSession" not in app_js:
         print("missing frontend session rename handler", file=sys.stderr)
+        sys.exit(1)
+    if "deleteSessionApi" not in app_js:
+        print("missing frontend session delete handler", file=sys.stderr)
         sys.exit(1)
 
     print("frontend static files smoke test passed")

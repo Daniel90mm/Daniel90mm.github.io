@@ -25,22 +25,12 @@
       </nav>
     </header>
 
-    <pre class="fr-ascii" aria-hidden="true">███████╗██╗     ██╗ ██████╗ ██╗  ██╗████████╗██████╗ ███████╗ ██████╗ ██████╗ ██████╗ ███████╗██████╗
-██╔════╝██║     ██║██╔════╝ ██║  ██║╚══██╔══╝██╔══██╗██╔════╝██╔════╝██╔═══██╗██╔══██╗██╔════╝██╔══██╗
-█████╗  ██║     ██║██║  ███╗███████║   ██║   ██████╔╝█████╗  ██║     ██║   ██║██████╔╝█████╗  ██████╔╝
-██╔══╝  ██║     ██║██║   ██║██╔══██║   ██║   ██╔══██╗██╔══╝  ██║     ██║   ██║██╔══██╗██╔══╝  ██╔══██╗
-██║     ███████╗██║╚██████╔╝██║  ██║   ██║   ██║  ██║███████╗╚██████╗╚██████╔╝██║  ██║███████╗██║  ██║
-╚═╝     ╚══════╝╚═╝ ╚═════╝ ╚═╝  ╚═╝   ╚═╝   ╚═╝  ╚═╝╚══════╝ ╚═════╝ ╚═════╝ ╚═╝  ╚═╝╚══════╝╚═╝  ╚═╝</pre>
-
-    <p class="fr-description">
-      Local-first brainstorming. Drop a thought &mdash; high keyword-density fragments
-      get appended to the right project doc; loose cross-project ideas land on the spaghetti wall.
-      <span class="fr-muted">museum reads docs &middot; feed lag 30s &middot; #private kills publish</span>
-    </p>
-
-    <section id="runtime-panel" class="fr-runtime">
-      <div id="runtime-status">Loading runtime status&hellip;</div>
-    </section>
+    <pre class="fr-ascii" aria-hidden="true">███████╗██╗     ██╗ ██████╗ ██╗  ██╗████████╗██████╗ ███████╗ ██████╗ ██████╗ ██████╗ ██████╗ ███████╗██████╗
+██╔════╝██║     ██║██╔════╝ ██║  ██║╚══██╔══╝██╔══██╗██╔════╝██╔════╝██╔═══██╗██╔══██╗██╔══██╗██╔════╝██╔══██╗
+█████╗  ██║     ██║██║  ███╗███████║   ██║   ██████╔╝█████╗  ██║     ██║   ██║██████╔╝██║  ██║█████╗  ██████╔╝
+██╔══╝  ██║     ██║██║   ██║██╔══██║   ██║   ██╔══██╗██╔══╝  ██║     ██║   ██║██╔══██╗██║  ██║██╔══╝  ██╔══██╗
+██║     ███████╗██║╚██████╔╝██║  ██║   ██║   ██║  ██║███████╗╚██████╗╚██████╔╝██║  ██║██████╔╝███████╗██║  ██║
+╚═╝     ╚══════╝╚═╝ ╚═════╝ ╚═╝  ╚═╝   ╚═╝   ╚═╝  ╚═╝╚══════╝ ╚═════╝ ╚═════╝ ╚═╝  ╚═╝╚═════╝ ╚══════╝╚═╝  ╚═╝</pre>
 
     <section id="status-area" class="fr-status"></section>
 
@@ -68,7 +58,6 @@
         <!-- Composer V2 -->
         <form id="message-form" class="fr-composer" autocomplete="off">
           <div class="fr-composer-strip">
-            <span class="fr-cursor-block"></span>
             <span class="fr-muted">session</span>
             <span class="fr-fg" id="composer-session-id">&mdash;</span>
             <span class="fr-dim">&middot;</span>
@@ -110,30 +99,6 @@
           </div>
           <input type="file" id="upload-file" accept="image/*,.pdf,.txt,.md,text/plain,text/markdown,application/pdf" disabled hidden>
         </form>
-
-        <!-- New session form (collapsible-ish, terminal-styled) -->
-        <section id="session-create" class="fr-section">
-          <div class="fr-section-h">
-            <span class="fr-section-marker">##</span>
-            <span class="fr-section-title">new session</span>
-            <span class="fr-section-rule"></span>
-          </div>
-          <form id="session-form" class="fr-new-session">
-            <label class="fr-field">
-              <span>provider</span>
-              <input type="text" id="provider" placeholder="anthropic" value="anthropic">
-            </label>
-            <label class="fr-field">
-              <span>model</span>
-              <input type="text" id="model" placeholder="claude-sonnet-4-5" value="claude-sonnet-4-5">
-            </label>
-            <label class="fr-field">
-              <span>slug</span>
-              <input type="text" id="slug" placeholder="my-session">
-            </label>
-            <button type="submit" id="create-btn" class="fr-primary-btn">create</button>
-          </form>
-        </section>
 
         <!-- Read panels: docs + spaghetti detail -->
         <section id="read-panels" class="fr-read-panels hidden">
@@ -185,17 +150,6 @@
           <div id="matchmaker-result" class="fr-read-body">No spaghetti idea selected.</div>
         </section>
 
-        <section id="attachment-context-panel" class="fr-section">
-          <div class="fr-section-h">
-            <span class="fr-section-marker">##</span>
-            <span class="fr-section-title">attachment context</span>
-            <span class="fr-section-rule"></span>
-          </div>
-          <div class="action-row">
-            <button type="button" id="preview-attachments-btn" class="fr-ghost-btn">preview text attachments</button>
-          </div>
-          <div id="attachment-context-result" class="fr-read-body">No session selected.</div>
-        </section>
       </div>
 
       <!-- RIGHT: rail -->
@@ -211,6 +165,29 @@
           <div id="budget-meta" class="fr-budget-meta"></div>
         </section>
 
+        <section id="session-create" class="fr-rail-block">
+          <div class="fr-section-h">
+            <span class="fr-section-marker">##</span>
+            <span class="fr-section-title">new session</span>
+            <span class="fr-section-rule"></span>
+          </div>
+          <form id="session-form" class="fr-new-session">
+            <label class="fr-field">
+              <span>provider</span>
+              <input type="text" id="provider" placeholder="anthropic" value="anthropic">
+            </label>
+            <label class="fr-field">
+              <span>model</span>
+              <input type="text" id="model" placeholder="claude-sonnet-4-5" value="claude-sonnet-4-5">
+            </label>
+            <label class="fr-field">
+              <span>slug</span>
+              <input type="text" id="slug" placeholder="my-session">
+            </label>
+            <button type="submit" id="create-btn" class="fr-primary-btn">create</button>
+          </form>
+        </section>
+
         <section id="session-list-container" class="fr-rail-block">
           <div class="fr-section-h">
             <span class="fr-section-marker">##</span>
@@ -221,8 +198,8 @@
           <form id="session-name-form" class="fr-session-name-form">
             <input type="text" id="session-name-input" placeholder="rename selected session" disabled>
             <button type="submit" id="session-name-save" class="fr-ghost-btn" disabled>rename</button>
+            <button type="button" id="session-delete-btn" class="fr-ghost-btn fr-danger-btn" disabled title="delete selected session (file + assets only)">delete</button>
           </form>
-          <div id="session-summary" class="fr-session-summary">No session selected</div>
           <div id="asset-list" class="fr-asset-list"></div>
         </section>
 
