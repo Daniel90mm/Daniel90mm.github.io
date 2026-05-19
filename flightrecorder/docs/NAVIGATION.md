@@ -31,6 +31,7 @@
 | `docs/MATCHMAKER_INPUTS.md` | Files and tables the future matchmaker will read. |
 | `docs/MATCHMAKER_REJECTION_FIXTURES.md` | Scenarios to prove matchmaker rejects by default. |
 | `docs/POKEMON_MAPPING_READINESS.md` | Pre-implementation notes for pokemon pseudonymization step. |
+| `docs/PROTOTYPE_WALKTHROUGH.md` | No-key walkthrough: start prototype, chat, extract, inspect panels. |
 | `docs/PROJECT_REGISTRY_CONTRACT.md` | Draft `projects.json` fields and open questions. |
 | `docs/PUBLISHER_ADVERSARIAL_FIXTURES.md` | Adversarial fixture categories for redaction tests. |
 | `docs/RUNTIME_PROVIDER_STATUS.md` | Contract for `GET /api/runtime`: safe provider readiness without secrets. |

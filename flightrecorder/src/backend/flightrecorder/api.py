@@ -695,3 +695,36 @@ def _batch_to_dict(batch: MatchBatch) -> dict[str, object]:
         ],
         "rejected_idea_ids": batch.rejected_idea_ids,
     }
+
+
+@router.get("/api-calls")
+async def list_api_calls(
+    request: Request,
+    limit: int = Query(default=20, ge=1, le=100),
+) -> dict[str, object]:
+    """Return newest provider call rows. Read-only."""
+
+    runtime = request.app.state.runtime
+    rows = runtime.database.execute(
+        "SELECT timestamp, provider, model, role, input_tokens, "
+        "output_tokens, cached_tokens, cost_dkk, session_id "
+        "FROM api_calls ORDER BY id DESC LIMIT ?",
+        (limit,),
+    ).fetchall()
+
+    return {
+        "api_calls": [
+            {
+                "timestamp": row[0],
+                "provider": row[1],
+                "model": row[2],
+                "role": row[3],
+                "input_tokens": row[4],
+                "output_tokens": row[5],
+                "cached_tokens": row[6],
+                "cost_dkk": row[7],
+                "session_id": row[8],
+            }
+            for row in rows
+        ]
+    }

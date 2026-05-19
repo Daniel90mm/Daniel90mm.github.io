@@ -187,6 +187,13 @@ button:disabled {
   display: flex;
   gap: 0.5rem;
   margin-top: 0.5rem;
+  align-items: center;
+}
+
+#upload-status {
+  font-size: 0.75rem;
+  margin-top: 0.25rem;
+  color: var(--text-dim);
 }
 
 #status-area {
@@ -262,6 +269,21 @@ button:disabled {
 
 #runtime-status .role-entry.error {
   color: var(--error);
+}
+
+#calls-list {
+  font-size: 0.75rem;
+  line-height: 1.5;
+  color: var(--text-dim);
+}
+
+#calls-list .call-row {
+  padding: 0.15rem 0;
+  border-bottom: 1px solid var(--border);
+}
+
+#calls-list .call-row:last-child {
+  border-bottom: none;
 }
 
 #budget-summary {

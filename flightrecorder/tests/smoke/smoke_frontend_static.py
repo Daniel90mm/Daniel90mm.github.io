@@ -15,9 +15,11 @@ REQUIRED_ROUTES = [
     '"/messages"',
     '"/extract"',
     '"/api/budget"',
+    '"/upload"',
     '"/api/documents"',
     '"/api/spaghetti"',
     '"/api/runtime"',
+    'api/api-calls',
 ]
 
 
@@ -34,6 +36,12 @@ def main() -> None:
         if route not in app_js:
             print(f"missing route reference in app.js: {route}", file=sys.stderr)
             sys.exit(1)
+    if "refreshSessionList(true)" not in app_js:
+        print("missing initial session auto-select", file=sys.stderr)
+        sys.exit(1)
+    if "DOM.callsList.innerHTML = html" in app_js:
+        print("calls panel must not render API rows with innerHTML", file=sys.stderr)
+        sys.exit(1)
     print(f"route references in app.js: {len(REQUIRED_ROUTES)} found")
 
     index_html = (FE_DIR / "index.html").read_text(encoding="utf-8")
@@ -46,6 +54,12 @@ def main() -> None:
         sys.exit(1)
     if 'id="runtime-status"' not in index_html:
         print("missing runtime status in index.html", file=sys.stderr)
+        sys.exit(1)
+    if 'id="calls-list"' not in index_html:
+        print("missing calls list in index.html", file=sys.stderr)
+        sys.exit(1)
+    if 'id="upload-file"' not in index_html:
+        print("missing upload file input in index.html", file=sys.stderr)
         sys.exit(1)
 
     print("frontend static files smoke test passed")

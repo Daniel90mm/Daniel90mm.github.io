@@ -21,6 +21,7 @@ Summary of implemented vs draft-only API routes. Source: code inspection of
 - `GET /api/spaghetti` - list spaghetti ideas from sqlite.
 - `GET /api/spaghetti/{idea_id}` - return one spaghetti idea body and metadata.
 - `GET /api/runtime` - return safe provider readiness status (no secrets).
+- `GET /api/api-calls` - list newest provider call rows (limit param, read-only).
 - `POST /api/matchmaker/run` - run the structural matchmaker over spaghetti ideas.
 
 All implemented routes follow the shapes in `docs/API_CONTRACT_DRAFT.md`.

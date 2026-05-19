@@ -78,6 +78,10 @@ Copy `config.example.toml` and `pricing.example.toml` as starting points,
 set `FLIGHTRECORDER_CONFIG` to your config path, and replace the placeholder
 API key with a real one.
 
+For the offline prototype (no API keys): `scripts/dev-prototype.sh`.
+
+Full walkthrough: [docs/PROTOTYPE_WALKTHROUGH.md](docs/PROTOTYPE_WALKTHROUGH.md).
+
 ## Layout
 
 - `prompts/` - versioned LLM prompts.

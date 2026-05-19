@@ -45,6 +45,11 @@
       <div id="budget-summary">Loading...</div>
     </section>
 
+    <section id="calls-panel">
+      <h2>Calls</h2>
+      <div id="calls-list">No provider calls</div>
+    </section>
+
     <section id="chat-area" class="hidden">
       <h2>Chat</h2>
       <div id="transcript"></div>
@@ -53,7 +58,10 @@
         <div class="chat-buttons">
           <button type="submit" id="send-btn" disabled>Send</button>
           <button type="button" id="extract-btn" disabled>Extract Ideas</button>
+          <input type="file" id="upload-file" accept="image/*" disabled style="display:none">
+          <button type="button" id="upload-btn" disabled>Upload Image</button>
         </div>
+        <div id="upload-status"></div>
       </form>
     </section>
 

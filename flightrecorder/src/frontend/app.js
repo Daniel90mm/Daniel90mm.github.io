@@ -5,6 +5,8 @@
     currentSessionId: null,
     currentSession: null,
     runtimeReady: false,
+    documentSelected: false,
+    spaghettiSelected: false,
   };
 
   var DOM = {
@@ -18,8 +20,12 @@
     messageInput: document.getElementById("message-input"),
     sendBtn: document.getElementById("send-btn"),
     extractBtn: document.getElementById("extract-btn"),
+    uploadFile: document.getElementById("upload-file"),
+    uploadBtn: document.getElementById("upload-btn"),
+    uploadStatus: document.getElementById("upload-status"),
     statusArea: document.getElementById("status-area"),
     budgetSummary: document.getElementById("budget-summary"),
+    callsList: document.getElementById("calls-list"),
     runtimeStatus: document.getElementById("runtime-status"),
     readPanels: document.getElementById("read-panels"),
     documentList: document.getElementById("document-list"),
@@ -57,10 +63,13 @@
   }
 
   function setChatEnabled(enabled) {
-    var active = enabled && state.runtimeReady;
-    DOM.messageInput.disabled = !active;
-    DOM.sendBtn.disabled = !active;
-    DOM.extractBtn.disabled = !active;
+    var sessionSelected = Boolean(enabled);
+    var chatActive = sessionSelected && state.runtimeReady;
+    DOM.messageInput.disabled = !chatActive;
+    DOM.sendBtn.disabled = !chatActive;
+    DOM.extractBtn.disabled = !chatActive;
+    DOM.uploadFile.disabled = !sessionSelected;
+    DOM.uploadBtn.disabled = !sessionSelected;
   }
 
   function createSession(provider, model, slug) {
@@ -102,6 +111,35 @@
     }).catch(function (err) {
       DOM.budgetSummary.textContent = "Failed: " + err.message;
       DOM.budgetSummary.className = "budget-error";
+    });
+  }
+
+  function loadApiCalls() {
+    return api("/api/api-calls?limit=5").then(function (res) {
+      return res.json();
+    });
+  }
+
+  function refreshCalls() {
+    loadApiCalls().then(function (data) {
+      var calls = data.api_calls || [];
+      DOM.callsList.innerHTML = "";
+      if (calls.length === 0) {
+        DOM.callsList.textContent = "No provider calls";
+        return;
+      }
+      calls.forEach(function (call) {
+        var cost = Number(call.cost_dkk || 0).toFixed(4);
+        var row = document.createElement("div");
+        row.className = "call-row";
+        row.textContent = String(call.role || "unknown") + " " + String(call.model || "unknown")
+          + " in:" + call.input_tokens
+          + " out:" + call.output_tokens
+          + " " + cost + " DKK";
+        DOM.callsList.appendChild(row);
+      });
+    }).catch(function (err) {
+      DOM.callsList.textContent = "Failed: " + err.message;
     });
   }
 
@@ -238,6 +276,7 @@
           streamDone = true;
           clearStatus();
           refreshBudget();
+          refreshCalls();
         } else if (event.event === "error") {
           streamDone = true;
           setStatus("Chat error: " + (data.detail || data.error || "unknown"), "status-error");
@@ -289,6 +328,7 @@
         refreshDocumentList();
         refreshSpaghettiList();
         refreshBudget();
+        refreshCalls();
         DOM.readPanels.classList.remove("hidden");
       })
       .catch(function (err) {
@@ -328,10 +368,15 @@
         DOM.documentBody.textContent = "";
         return;
       }
+      var firstRef = data.documents[0].ref;
       data.documents.forEach(function (doc) {
         var el = document.createElement("span");
         el.textContent = doc.ref;
+        if (!state.documentSelected && doc.ref === firstRef) {
+          el.classList.add("active");
+        }
         el.addEventListener("click", function () {
+          state.documentSelected = true;
           var items = DOM.documentList.querySelectorAll("span");
           items.forEach(function (item) { item.classList.remove("active"); });
           el.classList.add("active");
@@ -343,6 +388,13 @@
         });
         DOM.documentList.appendChild(el);
       });
+      if (!state.documentSelected) {
+        loadDocument(firstRef).then(function (docData) {
+          DOM.documentBody.textContent = docData.body || "";
+        }).catch(function (err) {
+          DOM.documentBody.textContent = "Error: " + err.message;
+        });
+      }
     }).catch(function (err) {
       DOM.documentList.textContent = "Failed: " + err.message;
     });
@@ -356,10 +408,15 @@
         DOM.spaghettiBody.textContent = "";
         return;
       }
+      var firstId = data.ideas[0].idea_id;
       data.ideas.forEach(function (idea) {
         var el = document.createElement("span");
         el.textContent = idea.idea_id.slice(0, 30);
+        if (!state.spaghettiSelected && idea.idea_id === firstId) {
+          el.classList.add("active");
+        }
         el.addEventListener("click", function () {
+          state.spaghettiSelected = true;
           var items = DOM.spaghettiList.querySelectorAll("span");
           items.forEach(function (item) { item.classList.remove("active"); });
           el.classList.add("active");
@@ -371,14 +428,25 @@
         });
         DOM.spaghettiList.appendChild(el);
       });
+      if (!state.spaghettiSelected) {
+        loadSpaghettiIdea(firstId).then(function (ideaData) {
+          DOM.spaghettiBody.textContent = ideaData.body || "";
+        }).catch(function (err) {
+          DOM.spaghettiBody.textContent = "Error: " + err.message;
+        });
+      }
     }).catch(function (err) {
       DOM.spaghettiList.textContent = "Failed: " + err.message;
     });
   }
 
-  function refreshSessionList() {
+  function refreshSessionList(autoSelect) {
     listSessions().then(function (data) {
-      renderSessionList(data.sessions || data);
+      var sessions = data.sessions || data;
+      renderSessionList(sessions);
+      if (autoSelect && !state.currentSessionId && sessions && sessions.length > 0) {
+        selectSession(sessions[0].session_id);
+      }
     }).catch(function (err) {
       setStatus("Failed to list sessions: " + err.message, "status-error");
     });
@@ -412,6 +480,32 @@
 
   DOM.extractBtn.addEventListener("click", function () {
     runExtraction();
+  });
+
+  DOM.uploadBtn.addEventListener("click", function () {
+    DOM.uploadFile.click();
+  });
+
+  DOM.uploadFile.addEventListener("change", function () {
+    var file = DOM.uploadFile.files[0];
+    if (!file || !state.currentSessionId) return;
+    var formData = new FormData();
+    formData.append("file", file);
+    DOM.uploadStatus.textContent = "Uploading " + file.name + "...";
+    fetch("/api/sessions/" + state.currentSessionId + "/upload", {
+      method: "POST",
+      body: formData,
+    }).then(function (res) {
+      if (!res.ok) {
+        return res.text().then(function (text) { throw new Error(text); });
+      }
+      return res.json();
+    }).then(function (result) {
+      DOM.uploadStatus.textContent = "Uploaded: " + file.name
+        + " (" + result.image_count + " images in session)";
+    }).catch(function (err) {
+      DOM.uploadStatus.textContent = "Upload failed: " + err.message;
+    });
   });
 
   function createSSEParser() {
@@ -463,6 +557,7 @@
     loadSession: loadSession,
     loadBudget: loadBudget,
     refreshBudget: refreshBudget,
+    refreshCalls: refreshCalls,
     loadRuntime: loadRuntime,
     refreshRuntime: refreshRuntime,
     sendMessage: sendMessage,
@@ -474,8 +569,9 @@
     loadSpaghettiIdea: loadSpaghettiIdea,
   };
 
-  refreshSessionList();
+  refreshSessionList(true);
   refreshBudget();
+  refreshCalls();
   refreshRuntime();
   DOM.readPanels.classList.remove("hidden");
   refreshDocumentList();
