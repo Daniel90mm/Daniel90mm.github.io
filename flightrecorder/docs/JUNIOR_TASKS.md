@@ -535,3 +535,200 @@ cd /home/daniel/Documents/Projekter/Daniel90mm.github.io/flightrecorder
 
 Hand-back:
 - When both commands pass, stop. Do not commit.
+
+## S200 - Make publish preview fail-closed state useful in the UI
+
+Where:
+- `flightrecorder/src/frontend/app.js`
+- `flightrecorder/src/frontend/index.html`
+- `flightrecorder/src/frontend/styles.css`
+- `flightrecorder/tests/smoke/smoke_frontend_static.py`
+- `flightrecorder/tests/smoke/smoke_publish_preview_api.py`
+
+What:
+- Improve the `## publish preview` panel so `preview session`,
+  `preview document`, and `preview spaghetti` all show a clear fail-closed
+  result when the backend returns `rejection_reason: curator not configured`.
+- The user-facing text should make it obvious that the preview route is
+  reachable, but real curator/reviewer publishing is not configured yet.
+- Preserve the current fail-closed safety behavior. Do not make anything
+  publishable in this task.
+- Add/extend smoke assertions that cover all three source kinds and the
+  rendered frontend strings/routes.
+- If one of the preview buttons currently fails because no source is selected,
+  improve only the frontend empty-state message. Do not invent fake sources.
+
+Why:
+- Daniel currently sees this as "preview does not work." The MVP needs to
+  distinguish "route works but safe publishing is disabled" from broken UI.
+
+Smoke test:
+
+```sh
+cd /home/daniel/Documents/Projekter/Daniel90mm.github.io/flightrecorder
+.venv/bin/python tests/smoke/smoke_publish_preview_api.py
+.venv/bin/python tests/smoke/smoke_frontend_static.py
+```
+
+Hand-back:
+- When both commands pass, stop. Do not commit.
+
+## S201 - Convert spaghetti delete into a provenance-preserving dismissal
+
+Where:
+- `flightrecorder/src/backend/flightrecorder/api.py`
+- `flightrecorder/tests/integration/test_spaghetti_api.py`
+- `flightrecorder/tests/smoke/smoke_spaghetti_api.py`
+- `flightrecorder/src/frontend/app.js`
+- `flightrecorder/src/frontend/index.html`
+- `flightrecorder/tests/smoke/smoke_frontend_static.py`
+
+What:
+- Change `DELETE /api/spaghetti/{idea_id}` so it removes the idea from the
+  visible Spaghetti wall/list without destroying provenance needed for later
+  audit.
+- Use the existing `ideas.status` column. Suggested behavior:
+  - set `status = "dismissed"` and `updated_at = CURRENT_TIMESTAMP`;
+  - keep the sqlite row;
+  - keep the markdown file;
+  - exclude dismissed ideas from `GET /api/spaghetti`;
+  - `GET /api/spaghetti/{idea_id}` may still return the body with
+    `status: dismissed`, or may 404 only if the file/row is truly missing.
+- Update frontend copy from "delete selected" to "dismiss selected" or another
+  short label that fits the actual behavior. Keep the action one-click and no
+  confirmation prompt.
+- Update tests that currently expect row/file removal.
+
+Why:
+- If an extracted idea already influenced a project document, deleting the
+  loose Spaghetti item must not erase the audit trail. Project documents are
+  append-only; the wall is an inbox.
+
+Smoke test:
+
+```sh
+cd /home/daniel/Documents/Projekter/Daniel90mm.github.io/flightrecorder
+.venv/bin/python -m pytest tests/integration/test_spaghetti_api.py -q
+.venv/bin/python tests/smoke/smoke_spaghetti_api.py
+.venv/bin/python tests/smoke/smoke_frontend_static.py
+```
+
+Hand-back:
+- When all commands pass, stop. Do not commit.
+
+## S202 - Import museum project pages into Flightrecorder documents
+
+Where:
+- `flightrecorder/src/backend/flightrecorder/documents.py`
+- `flightrecorder/src/backend/flightrecorder/project_registry.py`
+- `flightrecorder/src/backend/flightrecorder/api.py`
+- `flightrecorder/tests/integration/test_documents_api.py` (new file if none exists)
+- `flightrecorder/tests/smoke/smoke_documents_api.py`
+
+What:
+- Add a read/import path that lets Flightrecorder seed its runtime
+  `documents/` and `projects.json` from the Hugo museum project pages under
+  the configured `hugo_site` path.
+- The import should read `content/projects/*/_index.md` style project pages,
+  extract at least `title`, `summary`, `status`, and the body, and create:
+  - one runtime project document per project;
+  - a matching `projects.json` entry with `name`, `ref`, `path`, `active`,
+    and `description`.
+- Keep it local and deterministic. Do not call Hugo, git, providers, or the
+  network.
+- Do not overwrite an existing runtime document unless the imported content is
+  being used only as an initial seed. Preserve any existing extracted bullets.
+- Add an API endpoint only if needed for dogfood, for example
+  `POST /api/documents/import-museum`, and protect it with tests.
+
+Why:
+- The local `## documents` panel should become the editable/private working
+  mirror of the public `/projects/` museum pages, so brainstormed ideas can be
+  routed into real project documents.
+
+Smoke test:
+
+```sh
+cd /home/daniel/Documents/Projekter/Daniel90mm.github.io/flightrecorder
+.venv/bin/python -m pytest tests/integration/test_documents_api.py -q
+.venv/bin/python tests/smoke/smoke_documents_api.py
+```
+
+Hand-back:
+- When both commands pass, stop. Do not commit.
+
+## S203 - Add model catalog API with provider labels and DKK pricing
+
+Where:
+- `flightrecorder/src/backend/flightrecorder/api.py`
+- `flightrecorder/src/backend/flightrecorder/costs.py`
+- `flightrecorder/tests/integration/test_runtime_status_api.py`
+- `flightrecorder/tests/smoke/smoke_runtime_status_api.py`
+
+What:
+- Add a read-only endpoint, suggested path `GET /api/models`, that returns the
+  available configured/priced models for UI selection.
+- Include for each model:
+  - `provider`;
+  - `model`;
+  - human-friendly `display_name`;
+  - whether it is currently configured/usable for the brainstorm role;
+  - input/output/cached price converted to DKK per 1K tokens;
+  - a concise comparison label such as `0.001 / 0.002 DKK per 1K`.
+- Add a small helper in `costs.py` if needed to convert model pricing to DKK.
+- Do not expose API keys or raw secret config.
+- For `deepseek/deepseek-chat`, use a display label that can say
+  `DeepSeek V4 Pro` when that mapping is known locally. If uncertain, use
+  `DeepSeek (deepseek-chat)` rather than a misleading generic label.
+
+Why:
+- Provider/model should be picked from known options, not free-text fields,
+  and the composer header should show the real selected model in human terms.
+
+Smoke test:
+
+```sh
+cd /home/daniel/Documents/Projekter/Daniel90mm.github.io/flightrecorder
+.venv/bin/python -m pytest tests/integration/test_runtime_status_api.py -q
+.venv/bin/python tests/smoke/smoke_runtime_status_api.py
+```
+
+Hand-back:
+- When both commands pass, stop. Do not commit.
+
+## S204 - Replace free-text provider/model fields with model picker UI
+
+Where:
+- `flightrecorder/src/frontend/index.html`
+- `flightrecorder/src/frontend/styles.css`
+- `flightrecorder/src/frontend/app.js`
+- `flightrecorder/tests/smoke/smoke_frontend_static.py`
+
+What:
+- Replace the advanced free-text `provider` and `model` inputs with a
+  dropdown/list populated from `GET /api/models`.
+- Keep session `name` as the primary field.
+- Show each model option with provider, human display name, configured status,
+  and DKK pricing comparison.
+- When a model is selected, populate the provider/model values used by
+  `POST /api/sessions` without requiring the user to type them.
+- Update the composer provider chip so it displays a human-friendly label,
+  for example `DeepSeek V4 Pro · deepseek-chat`, not only
+  `deepseek/deepseek-chat`.
+- Fail gracefully if `/api/models` is unavailable: keep the current runtime
+  brainstorm provider/model as the default and show a short status message.
+
+Why:
+- The app should feel like a configured tool, not a raw API form. Pricing and
+  real model identity should be visible at the point of choice.
+
+Smoke test:
+
+```sh
+cd /home/daniel/Documents/Projekter/Daniel90mm.github.io/flightrecorder
+.venv/bin/python tests/smoke/smoke_frontend_static.py
+.venv/bin/python tests/smoke/smoke_frontend_dogfood.py
+```
+
+Hand-back:
+- When both commands pass, stop. Do not commit.
