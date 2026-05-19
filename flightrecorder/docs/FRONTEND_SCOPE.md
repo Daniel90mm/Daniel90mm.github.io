@@ -1,10 +1,39 @@
 # Frontend scope
 
-v1 frontend surfaces from the spec. All are not started.
+v1 frontend surfaces from the spec. The first dogfood target is plain static HTML/CSS/JS -- no framework -- until
+dogfooding proves the API shape.
 
-## Surfaces
+Static frontend files live in `src/frontend/` and are served by the backend
+at `GET /` and `GET /assets/*`.
 
-### chat UI
+## Available backend routes for v1 dogfood frontend
+
+- `GET /health`
+- `POST /api/sessions` - create a session
+- `GET /api/sessions` - list sessions (newest first, paginated)
+- `GET /api/sessions/{id}` - session detail with transcript
+- `POST /api/sessions/{id}/upload` - image upload
+- `POST /api/sessions/{id}/messages` - chat SSE endpoint
+- `POST /api/sessions/{id}/extract` - run idea capture
+- `POST /api/matchmaker/run` - run matchmaker
+
+## First dogfood frontend target
+
+Create/list sessions, chat over SSE, run extraction, and inspect returned
+session transcript.
+
+**Status: implemented.** Static shell (`src/frontend/index.html`) served
+by the backend at `GET /` with session CRUD, chat SSE streaming, and
+extraction trigger buttons.
+
+## Still missing from backend
+
+Document/spaghetti listing routes, match decision routes, voice, budget API,
+publisher controls.
+
+## Full v1 surfaces (post-dogfood)
+
+### Chat UI
 The primary interaction surface. Responsive, mobile-first. Message input,
 streaming SSE display, image paste, session context. Installable as PWA on
 phone home screen.
@@ -26,18 +55,3 @@ frontmatter update.
 ### Wall view
 The public `/wall/` and `/wall/<idea-id>/` pages rendered by Hugo. Frontend
 only needs to display these, not manage them.
-
-## Available backend routes today
-
-- `POST /api/sessions` - create
-- `GET /api/sessions` - list
-- `GET /api/sessions/{id}` - detail with transcript
-- `POST /api/sessions/{id}/upload` - image upload
-
-## Draft/missing
-
-- Chat endpoint (SSE) - contract draft exists, not implemented
-- Session close - no contract draft, not implemented
-- Voice input - not implemented
-- All document, spaghetti, match, project, journey, budget, audit routes -
-  not implemented

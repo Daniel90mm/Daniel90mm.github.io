@@ -18,7 +18,7 @@ def main() -> None:
     text = state_path.read_text(encoding="utf-8")
 
     implemented_section = text.split("## Implemented")[1].split("## Draft-only")[0]
-    routes = re.findall(r"`([A-Z]+) (/[^`]+)`", implemented_section)
+    routes = re.findall(r"`([A-Z]+) (/[^`]*)`", implemented_section)
 
     api_py = REPO / "src" / "backend" / "flightrecorder" / "api.py"
     app_py = REPO / "src" / "backend" / "flightrecorder" / "app.py"
@@ -29,8 +29,11 @@ def main() -> None:
         app_text += app_py.read_text(encoding="utf-8")
 
     for method, path in routes:
-        path_search = path.replace("/api/", "/")
-        found = path_search in app_text
+        if path == "/":
+            found = '@app.get("/")' in app_text
+        else:
+            path_search = path.replace("/api/", "/")
+            found = path_search in app_text
         status = "ok" if found else "MISSING"
         print(f"{method} {path}: {status}")
         if not found:

@@ -38,11 +38,31 @@ the guard before provider calls and record usage after successful calls.
 - `POST /api/sessions/{session_id}/extract`
 - `POST /api/matchmaker/run`
 
+## Dogfood frontend
+
+The static frontend in `src/frontend/` lets you exercise the API loop
+without build tools.
+
+```sh
+scripts/dev-backend.sh
+```
+
+Open `http://127.0.0.1:8000/`. The minimal dogfood workflow:
+
+1. Create a session with provider, model, and optional slug.
+2. Click a session in the list to select it.
+3. Type a message and send -- the assistant response streams over SSE.
+4. Click "Extract Ideas" to run idea capture on the transcript.
+5. Inspect the transcript and extraction result.
+
+Tests use stubs. Real providers require `config.toml` with API keys
+configured in the `[providers]` and `[roles]` sections.
+
 ## Layout
 
 - `prompts/` - versioned LLM prompts.
 - `src/backend/` - FastAPI backend, provider wrappers, storage, pipelines.
-- `src/frontend/` - Svelte SPA.
+- `src/frontend/` - static dogfood frontend.
 - `src/cli/` - `fr` command.
 - `src/data/` - static data such as the pokemon list.
 - `tests/` - unit, integration, and adversarial tests.

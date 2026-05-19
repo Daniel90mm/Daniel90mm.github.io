@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>flightrecorder</title>
+  <link rel="stylesheet" href="/assets/styles.css">
+</head>
+<body>
+  <header>
+    <h1>flightrecorder</h1>
+  </header>
+
+  <main>
+    <section id="session-create">
+      <h2>New Session</h2>
+      <form id="session-form">
+        <label>
+          Provider
+          <input type="text" id="provider" placeholder="openai" value="openai">
+        </label>
+        <label>
+          Model
+          <input type="text" id="model" placeholder="gpt-5-mini" value="gpt-5-mini">
+        </label>
+        <label>
+          Slug
+          <input type="text" id="slug" placeholder="my-session">
+        </label>
+        <button type="submit" id="create-btn">Create Session</button>
+      </form>
+    </section>
+
+    <section id="session-list-container">
+      <h2>Sessions</h2>
+      <div id="session-list"></div>
+    </section>
+
+    <section id="chat-area" class="hidden">
+      <h2>Chat</h2>
+      <div id="transcript"></div>
+      <form id="message-form">
+        <textarea id="message-input" placeholder="Type a message..." rows="3"></textarea>
+        <div class="chat-buttons">
+          <button type="submit" id="send-btn" disabled>Send</button>
+          <button type="button" id="extract-btn" disabled>Extract Ideas</button>
+        </div>
+      </form>
+    </section>
+
+    <section id="status-area"></section>
+  </main>
+
+  <script src="/assets/app.js"></script>
+</body>
+</html>

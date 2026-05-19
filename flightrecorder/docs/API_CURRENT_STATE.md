@@ -6,6 +6,8 @@ Summary of implemented vs draft-only API routes. Source: code inspection of
 ## Implemented
 
 - `GET /health` - returns `{"status": "ok"}`.
+- `GET /` - serves the static frontend `index.html` (when `src/frontend/index.html` exists).
+- `GET /assets/{asset_path:path}` - serves static frontend assets from `src/frontend/`.
 - `POST /api/sessions` - create a new session.
 - `GET /api/sessions` - list sessions (newest first, with pagination).
 - `GET /api/sessions/{session_id}` - fetch one session with transcript.
