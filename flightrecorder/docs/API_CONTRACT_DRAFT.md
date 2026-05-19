@@ -279,3 +279,37 @@ configured.
 **Notes:**
 - Does not store results, call any LLM, or create spaghetti notes.
 - Search results are read-only context; no automatic publish.
+
+---
+
+### `POST /api/spaghetti/from-search`
+
+Capture a sourced search result as a spaghetti idea. No provider call or network
+request.
+
+**Request body:**
+
+| Name | Type | Required | Notes |
+|------|------|----------|-------|
+| `title` | string | yes | Result title, 1-500 chars. |
+| `url` | string | yes | Source URL, 1-2048 chars. |
+| `snippet` | string | no | Short snippet, default `""`. |
+| `raw_content` | string or null | no | Optional full-page text excerpt. |
+
+**Response (201):**
+
+```json
+{
+    "idea_id": "karpathy-on-search-url-https-karpathy-bl-89528f80",
+    "captured_at": "2026-05-19T16:00:00+00:00",
+    "title": "Karpathy on Search",
+    "url": "https://karpathy.blog/2025/search",
+    "path": "spaghetti/karpathy-on-search-url-...md"
+}
+```
+
+**Notes:**
+- Uses the pure `search_result_to_spaghetti_body` helper for formatting.
+- Idea is tagged `["web-search"]` with status `unmatched`.
+- The source session is recorded as `web-search-capture` for referential
+  integrity and attribution. It is not returned by `GET /api/sessions`.

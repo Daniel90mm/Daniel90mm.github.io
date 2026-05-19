@@ -32,8 +32,12 @@ from flightrecorder.idea_capture import (
     IdeaCaptureError,
     ProjectAppendOperation,
     apply_idea_operations,
+    index_spaghetti_idea,
+    make_idea_id,
     parse_idea_operations,
+    render_spaghetti_idea,
     run_idea_capture,
+    spaghetti_path,
     transcript_from_messages,
 )
 from flightrecorder.matchmaker import (
@@ -57,10 +61,16 @@ from flightrecorder.storage import (
     safe_session_asset_path,
 )
 
-from flightrecorder.web_search import SearchError, SearchRequest
+from flightrecorder.web_search import (
+    SearchError,
+    SearchRequest,
+    SearchResult,
+    search_result_to_spaghetti_body,
+)
 
 
 router = APIRouter(prefix="/api")
+WEB_SEARCH_CAPTURE_SESSION = "web-search-capture"
 
 
 def _load_prompt_text(filename: str) -> str:
@@ -169,6 +179,11 @@ async def list_sessions(
 
     runtime = request.app.state.runtime
     sessions = runtime.sessions.list_sessions()
+    sessions = [
+        metadata
+        for metadata in sessions
+        if metadata.session_id != WEB_SEARCH_CAPTURE_SESSION
+    ]
     if curated is not None:
         sessions = [metadata for metadata in sessions if metadata.curated is curated]
 
@@ -1338,4 +1353,92 @@ async def search_web(
             }
             for r in results
         ],
+    }
+
+
+class SearchCaptureRequest(BaseModel):
+    title: str = Field(min_length=1, max_length=500)
+    url: str = Field(min_length=1, max_length=2048)
+    snippet: str = ""
+    raw_content: str | None = None
+
+
+@router.post(
+    "/spaghetti/from-search",
+    status_code=status.HTTP_201_CREATED,
+)
+async def capture_search_result(
+    payload: SearchCaptureRequest,
+    request: Request,
+) -> dict[str, object]:
+    """Capture a sourced search result as a spaghetti idea.
+
+    Uses the pure search_result_to_spaghetti_body helper and existing
+    spaghetti write/index plumbing. No provider call or network request.
+    """
+
+    runtime = request.app.state.runtime
+    runtime_home = runtime.config.paths.runtime_home
+    now = datetime.now(timezone.utc)
+    captured_at = now.isoformat()
+
+    result = SearchResult(
+        title=payload.title,
+        url=payload.url,
+        snippet=payload.snippet,
+        raw_content=payload.raw_content,
+    )
+    body = search_result_to_spaghetti_body(result)
+
+    idea_id = make_idea_id(WEB_SEARCH_CAPTURE_SESSION, 0, body)
+    path = spaghetti_path(runtime_home, idea_id)
+    path.parent.mkdir(parents=True, exist_ok=True)
+
+    tags = ["web-search"]
+    topics: list[str] = []
+
+    path.write_text(
+        render_spaghetti_idea(
+            idea_id=idea_id,
+            captured_at=captured_at,
+            source_session=WEB_SEARCH_CAPTURE_SESSION,
+            tags=tags,
+            topics=topics,
+            content=body,
+        ),
+        encoding="utf-8",
+    )
+
+    # Ideas require a source_session row for referential integrity, but this
+    # sentinel is filtered out of the user-facing sessions list.
+    runtime.database.execute(
+        "INSERT OR IGNORE INTO sessions "
+        "(session_id, started_at, provider, model, path) "
+        "VALUES (?, ?, ?, ?, ?)",
+        (
+            WEB_SEARCH_CAPTURE_SESSION,
+            captured_at,
+            "web-search",
+            "web-search",
+            str(runtime_home / "sessions" / "_web-search-capture.md"),
+        ),
+    )
+    runtime.database.commit()
+
+    index_spaghetti_idea(
+        connection=runtime.database,
+        idea_id=idea_id,
+        captured_at=captured_at,
+        source_session=WEB_SEARCH_CAPTURE_SESSION,
+        tags=tags,
+        topics=topics,
+        path=path,
+    )
+
+    return {
+        "idea_id": idea_id,
+        "captured_at": captured_at,
+        "title": payload.title,
+        "url": payload.url,
+        "path": _runtime_relative_path(path, runtime_home),
     }
