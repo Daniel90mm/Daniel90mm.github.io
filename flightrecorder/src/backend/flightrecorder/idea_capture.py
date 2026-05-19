@@ -126,12 +126,26 @@ def _load_json_array(raw_output: str) -> list[object]:
                 candidate, _end = decoder.raw_decode(raw_output[index:])
             except json.JSONDecodeError:
                 continue
+            if isinstance(candidate, dict):
+                candidate = _array_from_mapping(candidate)
             if isinstance(candidate, list):
                 return candidate
         raise IdeaCaptureError("idea-capture output is not valid JSON") from exc
 
+    if isinstance(data, dict):
+        data = _array_from_mapping(data)
     if not isinstance(data, list):
         raise IdeaCaptureError("idea-capture output must be a JSON array")
+    return data
+
+
+def _array_from_mapping(data: dict[str, object]) -> object:
+    """Accept common wrapper keys without accepting arbitrary objects."""
+
+    for key in ("operations", "ideas", "items"):
+        value = data.get(key)
+        if isinstance(value, list):
+            return value
     return data
 
 

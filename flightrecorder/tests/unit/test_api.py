@@ -33,11 +33,15 @@ def test_create_session_returns_approved_shape(tmp_path: Path) -> None:
         "model",
         "message_count",
         "image_count",
+        "display_name",
+        "slug",
     }
     assert body["provider"] == "google"
     assert body["model"] == "gemini-2.5-pro"
     assert body["message_count"] == 0
     assert body["image_count"] == 0
+    assert body["display_name"] == "spaghetti"
+    assert body["slug"] == "spaghetti"
 
 
 def test_list_and_get_session(tmp_path: Path) -> None:
@@ -56,6 +60,26 @@ def test_list_and_get_session(tmp_path: Path) -> None:
     assert detail_response.status_code == 200
     assert detail_response.json()["messages"] == []
     assert detail_response.json()["assets"] == []
+
+
+def test_rename_session_updates_display_name_without_changing_id(tmp_path: Path) -> None:
+    client = make_client(tmp_path)
+    created = client.post(
+        "/api/sessions",
+        json={"provider": "openai", "model": "gpt-5-mini", "slug": "one"},
+    ).json()
+
+    response = client.patch(
+        f"/api/sessions/{created['session_id']}",
+        json={"display_name": "Pulse ox PCA ideas"},
+    )
+    detail_response = client.get(f"/api/sessions/{created['session_id']}")
+
+    assert response.status_code == 200
+    assert response.json()["session_id"] == created["session_id"]
+    assert response.json()["display_name"] == "Pulse ox PCA ideas"
+    assert response.json()["slug"] == "Pulse ox PCA ideas"
+    assert detail_response.json()["display_name"] == "Pulse ox PCA ideas"
 
 
 def test_list_sessions_limit_offset_and_curated_filter(tmp_path: Path) -> None:

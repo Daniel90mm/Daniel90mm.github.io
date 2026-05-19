@@ -30,6 +30,8 @@ def test_session_metadata_to_dict_uses_spec_fields() -> None:
         "extracted": False,
         "extracted_at": None,
         "curated": False,
+        "display_name": "Pulse ox session",
+        "slug": "Pulse ox session",
     }
 
 
@@ -90,4 +92,5 @@ def make_metadata() -> SessionMetadata:
         extracted=False,
         extracted_at=None,
         curated=False,
+        display_name="Pulse ox session",
     )

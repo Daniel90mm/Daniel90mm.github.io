@@ -49,7 +49,12 @@ from flightrecorder.serializers import (
     session_detail_to_dict,
     session_metadata_to_dict,
 )
-from flightrecorder.storage import AssetTooLargeError, ChatMessage, safe_session_asset_path
+from flightrecorder.storage import (
+    AssetTooLargeError,
+    ChatMessage,
+    StorageError,
+    safe_session_asset_path,
+)
 
 
 router = APIRouter(prefix="/api")
@@ -84,6 +89,10 @@ class ChatRequest(BaseModel):
     content: str = Field(max_length=32768)
 
 
+class RenameSessionRequest(BaseModel):
+    display_name: str = Field(min_length=1, max_length=120)
+
+
 @router.post(
     "/sessions",
     status_code=status.HTTP_201_CREATED,
@@ -108,6 +117,8 @@ async def create_session(
         "model": metadata.model,
         "message_count": metadata.message_count,
         "image_count": metadata.image_count,
+        "display_name": metadata.display_name,
+        "slug": metadata.display_name or payload.slug,
     }
 
 
@@ -147,6 +158,33 @@ async def get_session(session_id: str, request: Request) -> dict[str, object]:
     detail = session_detail_to_dict(metadata, messages)
     detail["assets"] = _session_assets(runtime.config.paths.runtime_home, session_id)
     return detail
+
+
+@router.patch("/sessions/{session_id}")
+async def rename_session(
+    session_id: str,
+    payload: RenameSessionRequest,
+    request: Request,
+) -> dict[str, object]:
+    """Update the human-visible name for a session."""
+
+    runtime = request.app.state.runtime
+    try:
+        metadata = runtime.sessions.rename_session(
+            session_id=session_id,
+            display_name=payload.display_name,
+        )
+    except FileNotFoundError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Session not found",
+        ) from exc
+    except StorageError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(exc),
+        ) from exc
+    return session_metadata_to_dict(metadata)
 
 
 @router.post(

@@ -307,6 +307,29 @@ body {
 .fr-turn-body strong { color: var(--fg); font-weight: 600; }
 .fr-turn-body em { color: var(--fg); font-style: italic; }
 
+.fr-turn-body h1,
+.fr-turn-body h2,
+.fr-turn-body h3,
+.fr-turn-body h4 {
+  color: var(--fg);
+  font-weight: 600;
+  letter-spacing: 0.3px;
+  margin: 10px 0 4px 0;
+  line-height: 1.3;
+}
+.fr-turn-body h1 { font-size: 16px; }
+.fr-turn-body h2 { font-size: 15px; }
+.fr-turn-body h3 { font-size: 14px; color: var(--accent); }
+.fr-turn-body h4 { font-size: 13.5px; color: var(--fg2); text-transform: none; }
+.fr-turn-body h1:first-child,
+.fr-turn-body h2:first-child,
+.fr-turn-body h3:first-child,
+.fr-turn-body h4:first-child { margin-top: 0; }
+
+.fr-turn-body .fr-math { font-style: normal; }
+.fr-turn-body .katex { font-size: 1em; }
+.fr-turn-body .katex-display { margin: 8px 0; }
+
 .fr-chat-empty {
   padding: 24px 4px;
   text-align: left;
@@ -688,6 +711,32 @@ body {
   color: var(--fg);
   font-size: 11px;
   overflow-wrap: anywhere;
+}
+
+.fr-session-name-form {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 6px;
+  margin-top: 10px;
+}
+.fr-session-name-form input {
+  min-width: 0;
+  height: 28px;
+  padding: 0 8px;
+  border: 1px solid var(--line2);
+  border-radius: 4px;
+  background: var(--bg2);
+  color: var(--fg);
+  font: inherit;
+  font-size: 11px;
+}
+.fr-session-name-form input:disabled {
+  opacity: 0.55;
+}
+.fr-session-name-form .fr-ghost-btn {
+  height: 28px;
+  padding: 0 9px;
+  font-size: 10.5px;
 }
 
 .fr-asset-list { font-size: 11px; line-height: 1.5; color: var(--fg2); margin-top: 8px; }

@@ -7,6 +7,17 @@ from pathlib import Path
 from flightrecorder.storage import ChatMessage, SessionMetadata
 
 
+def session_display_slug(metadata: SessionMetadata) -> str:
+    """Return the UI label for a session."""
+
+    if metadata.display_name:
+        return metadata.display_name
+    parts = metadata.session_id.split("-")
+    if len(parts) > 5:
+        return "-".join(parts[5:-1]) or metadata.session_id
+    return metadata.session_id
+
+
 def session_metadata_to_dict(metadata: SessionMetadata) -> dict[str, object]:
     """Serialize session metadata using the spec frontmatter field names."""
 
@@ -24,6 +35,8 @@ def session_metadata_to_dict(metadata: SessionMetadata) -> dict[str, object]:
         "extracted": metadata.extracted,
         "extracted_at": metadata.extracted_at,
         "curated": metadata.curated,
+        "display_name": metadata.display_name,
+        "slug": session_display_slug(metadata),
     }
 
 

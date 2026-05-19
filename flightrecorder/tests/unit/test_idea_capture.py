@@ -58,6 +58,8 @@ def test_parse_idea_operations_accepts_expected_shapes() -> None:
     [
         '```json\n[{"type":"spaghetti","tags":["pca"],"topics":["statistics"],"content":"Apply PCA to disordered multi-dimensional sensor data."}]\n```',
         'Here is the extraction:\n[{"type":"spaghetti","tags":["ecg","pulse-ox"],"topics":["biophotonics"],"content":"Use ECG as a timing reference to synchronize pulse oximeter heartbeat measurements."}]',
+        '{"operations":[{"type":"spaghetti","tags":["pca"],"topics":["statistics"],"content":"Apply PCA to disordered multi-dimensional sensor data."}]}',
+        '```json\n{"ideas":[{"type":"spaghetti","tags":["ecg"],"topics":["pulse-ox"],"content":"Use ECG to synchronize pulse oximeter heartbeat windows."}]}\n```',
     ],
 )
 def test_parse_idea_operations_accepts_wrapped_json_array(raw_output: str) -> None:

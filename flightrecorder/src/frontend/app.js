@@ -19,6 +19,9 @@
 
   var DOM = {
     sessionForm: document.getElementById("session-form"),
+    sessionNameForm: document.getElementById("session-name-form"),
+    sessionNameInput: document.getElementById("session-name-input"),
+    sessionNameSave: document.getElementById("session-name-save"),
     providerInput: document.getElementById("provider"),
     modelInput: document.getElementById("model"),
     sessionList: document.getElementById("session-list"),
@@ -107,6 +110,13 @@
     return api("/api/sessions", {
       method: "POST",
       body: { provider: provider, model: model, slug: slug || undefined },
+    }).then(function (res) { return res.json(); });
+  }
+
+  function renameSession(id, displayName) {
+    return api("/api/sessions/" + encodeURIComponent(id), {
+      method: "PATCH",
+      body: { display_name: displayName },
     }).then(function (res) { return res.json(); });
   }
 
@@ -287,11 +297,24 @@
       .replace(/>/g, "&gt;");
   }
 
-  // Tiny markdown renderer: fenced code, inline code, bold, italic.
-  // Input is already-escaped HTML; output stays safe because we only emit tags we control.
+  // Tiny markdown renderer: math passthrough, fenced code, inline code, headings, bold, italic.
+  // Math is extracted before escaping so '$X_{train}$' survives intact for KaTeX auto-render.
   function renderMarkdown(text) {
     if (!text) return "";
-    var html = escapeHtml(text);
+    var t = String(text);
+
+    var maths = [];
+    t = t.replace(/\$\$([\s\S]+?)\$\$/g, function (_, src) {
+      maths.push({ block: true, src: src });
+      return "%%FR_MATH_" + (maths.length - 1) + "%%";
+    });
+    t = t.replace(/\$([^\$\n]{1,500}?)\$/g, function (_, src) {
+      maths.push({ block: false, src: src });
+      return "%%FR_MATH_" + (maths.length - 1) + "%%";
+    });
+
+    var html = escapeHtml(t);
+
     var fences = [];
     html = html.replace(/```([\s\S]*?)```/g, function (_, code) {
       fences.push(code);
@@ -302,15 +325,41 @@
       inlines.push(code);
       return "%%FR_ICODE_" + (inlines.length - 1) + "%%";
     });
+
+    html = html.replace(/^####\s+(.+)$/gm, "<h4>$1</h4>");
+    html = html.replace(/^###\s+(.+)$/gm, "<h3>$1</h3>");
+    html = html.replace(/^##\s+(.+)$/gm, "<h2>$1</h2>");
+    html = html.replace(/^#\s+(.+)$/gm, "<h1>$1</h1>");
+
     html = html.replace(/\*\*([^*\n][\s\S]*?)\*\*/g, "<strong>$1</strong>");
     html = html.replace(/(^|[^*\w])\*([^*\s][^*\n]*?)\*(?!\*)/g, "$1<em>$2</em>");
+
     html = html.replace(/%%FR_ICODE_(\d+)%%/g, function (_, i) {
       return "<code>" + inlines[+i] + "</code>";
     });
     html = html.replace(/%%FR_FENCE_(\d+)%%/g, function (_, i) {
       return "<pre><code>" + fences[+i] + "</code></pre>";
     });
+    html = html.replace(/%%FR_MATH_(\d+)%%/g, function (_, i) {
+      var m = maths[+i];
+      var delim = m.block ? "$$" : "$";
+      return '<span class="fr-math">' + delim + escapeHtml(m.src) + delim + "</span>";
+    });
     return html;
+  }
+
+  function renderMathIn(el) {
+    if (!el || !window.renderMathInElement) return;
+    try {
+      window.renderMathInElement(el, {
+        delimiters: [
+          { left: "$$", right: "$$", display: true },
+          { left: "$",  right: "$",  display: false },
+        ],
+        throwOnError: false,
+        ignoredTags: ["script", "noscript", "style", "textarea", "pre", "code"],
+      });
+    } catch (e) { /* ignore */ }
   }
 
   function isPinnedToBottom(el) {
@@ -336,6 +385,7 @@
     var body = document.createElement("div");
     body.className = "fr-turn-body";
     body.innerHTML = renderMarkdown(content || "");
+    renderMathIn(body);
     div.appendChild(head);
     div.appendChild(body);
     return div;
@@ -372,15 +422,22 @@
       DOM.sessionBarStatus.className = "fr-session-status";
       DOM.sessionBarCounter.textContent = "0 turns";
       DOM.composerSessionId.textContent = "—";
+      DOM.sessionNameInput.value = "";
+      DOM.sessionNameInput.disabled = true;
+      DOM.sessionNameSave.disabled = true;
       return;
     }
-    DOM.sessionBarId.textContent = "session " + (session.slug || session.session_id || "").slice(0, 32);
+    var label = session.display_name || session.slug || session.session_id || "";
+    DOM.sessionBarId.textContent = "session " + label.slice(0, 32);
     DOM.sessionBarMeta.textContent = (session.provider || "?") + "/" + (session.model || "?");
     DOM.sessionBarStatus.textContent = "● live";
     DOM.sessionBarStatus.className = "fr-session-status live";
     var turns = session.message_count || (session.messages ? session.messages.length : 0);
     DOM.sessionBarCounter.textContent = turns + " turns";
-    DOM.composerSessionId.textContent = session.slug || (session.session_id || "").slice(0, 16);
+    DOM.composerSessionId.textContent = label.slice(0, 24);
+    DOM.sessionNameInput.value = session.display_name || session.slug || "";
+    DOM.sessionNameInput.disabled = false;
+    DOM.sessionNameSave.disabled = false;
   }
 
   function renderSessionSummary(session) {
@@ -392,6 +449,7 @@
       return;
     }
     var fields = [
+      ["name", session.display_name || session.slug || "unnamed"],
       ["provider", session.provider || "unknown"],
       ["model", session.model || "unknown"],
       ["messages", session.message_count || 0],
@@ -566,7 +624,10 @@
           assistantBody.innerHTML = renderMarkdown(assistantText);
           if (pinned) DOM.transcript.scrollTop = DOM.transcript.scrollHeight;
         } else if (event.event === "done") {
+          var pinnedDone = isPinnedToBottom(DOM.transcript);
           assistantBody.innerHTML = renderMarkdown(assistantText);
+          renderMathIn(assistantBody);
+          if (pinnedDone) DOM.transcript.scrollTop = DOM.transcript.scrollHeight;
           streamDone = true;
           clearStatus();
           refreshBudget();
@@ -936,6 +997,28 @@
     });
   });
 
+  DOM.sessionNameForm.addEventListener("submit", function (e) {
+    e.preventDefault();
+    if (!state.currentSessionId) return;
+    var displayName = DOM.sessionNameInput.value.trim();
+    if (!displayName) {
+      setStatus("Session name is required", "status-error");
+      return;
+    }
+    setStatus("Renaming session…", "status-info");
+    renameSession(state.currentSessionId, displayName).then(function () {
+      clearStatus();
+      return loadSession(state.currentSessionId);
+    }).then(function (session) {
+      state.currentSession = session;
+      renderSessionBar(session);
+      renderSessionSummary(session);
+      refreshSessionList();
+    }).catch(function (err) {
+      setStatus("Rename failed: " + err.message, "status-error");
+    });
+  });
+
   DOM.messageForm.addEventListener("submit", function (e) {
     e.preventDefault();
     var content = DOM.messageInput.value.trim();
@@ -1051,6 +1134,7 @@
     createSession: createSession,
     listSessions: listSessions,
     loadSession: loadSession,
+    renameSession: renameSession,
     loadBudget: loadBudget,
     refreshBudget: refreshBudget,
     refreshCalls: refreshCalls,

@@ -7,6 +7,9 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css" integrity="sha384-n8MVd4RsNIU0tAv4ct0nTaAbDJwPJzDEaqSD1odI+WdtXRGWt2kTvGFasHpSy3SV" crossorigin="anonymous">
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js" integrity="sha384-XjKyOOlGwcjNTAIQHIpgOno0Hl1YQqzUOEleOLALmuqehneUG+vnGctmUb0ZY0l8" crossorigin="anonymous"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js" integrity="sha384-+VBxd3r6XgURycqtZ117nYw44OOcIax56Z4dCRWbxyPt0Koah1uHoK0o4+/RRE05" crossorigin="anonymous"></script>
   <link rel="stylesheet" href="/assets/styles.css">
 </head>
 <body class="fr-theme-dark fr-accent-amber fr-density-comfortable">
@@ -215,6 +218,10 @@
             <span class="fr-section-rule"></span>
           </div>
           <div id="session-list" class="fr-session-log"></div>
+          <form id="session-name-form" class="fr-session-name-form">
+            <input type="text" id="session-name-input" placeholder="rename selected session" disabled>
+            <button type="submit" id="session-name-save" class="fr-ghost-btn" disabled>rename</button>
+          </form>
           <div id="session-summary" class="fr-session-summary">No session selected</div>
           <div id="asset-list" class="fr-asset-list"></div>
         </section>

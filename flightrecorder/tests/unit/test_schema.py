@@ -38,6 +38,46 @@ def test_api_calls_schema_matches_spec_columns() -> None:
     ]
 
 
+def test_sessions_schema_includes_display_name() -> None:
+    connection = sqlite3.connect(":memory:")
+    initialize_database(connection)
+
+    rows = connection.execute("PRAGMA table_info(sessions)").fetchall()
+    columns = [row[1] for row in rows]
+
+    assert "display_name" in columns
+
+
+def test_initialize_database_migrates_early_sessions_table() -> None:
+    connection = sqlite3.connect(":memory:")
+    connection.executescript(
+        """
+        CREATE TABLE sessions (
+            session_id TEXT PRIMARY KEY,
+            started_at TEXT NOT NULL,
+            ended_at TEXT,
+            provider TEXT NOT NULL,
+            model TEXT NOT NULL,
+            message_count INTEGER NOT NULL DEFAULT 0,
+            image_count INTEGER NOT NULL DEFAULT 0,
+            tags_json TEXT NOT NULL DEFAULT '[]',
+            project_ref TEXT,
+            spaghetti INTEGER NOT NULL DEFAULT 0,
+            extracted INTEGER NOT NULL DEFAULT 0,
+            extracted_at TEXT,
+            curated INTEGER NOT NULL DEFAULT 0,
+            path TEXT NOT NULL
+        );
+        """
+    )
+
+    initialize_database(connection)
+
+    rows = connection.execute("PRAGMA table_info(sessions)").fetchall()
+    columns = [row[1] for row in rows]
+    assert "display_name" in columns
+
+
 def test_initialize_database_migrates_early_api_calls_table() -> None:
     connection = sqlite3.connect(":memory:")
     connection.executescript(

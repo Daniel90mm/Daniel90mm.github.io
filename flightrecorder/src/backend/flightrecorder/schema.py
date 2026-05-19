@@ -5,7 +5,7 @@ from __future__ import annotations
 import sqlite3
 
 
-SCHEMA_VERSION = 1
+SCHEMA_VERSION = 2
 
 SCHEMA_SQL = """
 CREATE TABLE IF NOT EXISTS schema_version (
@@ -27,6 +27,7 @@ CREATE TABLE IF NOT EXISTS sessions (
     extracted INTEGER NOT NULL DEFAULT 0,
     extracted_at TEXT,
     curated INTEGER NOT NULL DEFAULT 0,
+    display_name TEXT,
     path TEXT NOT NULL,
     created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
@@ -82,6 +83,7 @@ def initialize_database(connection: sqlite3.Connection) -> None:
     """Apply the schema to an sqlite connection."""
 
     connection.executescript(SCHEMA_SQL)
+    _migrate_sessions_columns(connection)
     _migrate_api_calls_columns(connection)
     connection.execute(
         "CREATE INDEX IF NOT EXISTS idx_api_calls_session_id ON api_calls(session_id)"
@@ -91,6 +93,15 @@ def initialize_database(connection: sqlite3.Connection) -> None:
         (SCHEMA_VERSION,),
     )
     connection.commit()
+
+
+def _migrate_sessions_columns(connection: sqlite3.Connection) -> None:
+    """Add session columns introduced after early local dogfood databases."""
+
+    rows = connection.execute("PRAGMA table_info(sessions)").fetchall()
+    columns = {str(row[1]) for row in rows}
+    if "display_name" not in columns:
+        connection.execute("ALTER TABLE sessions ADD COLUMN display_name TEXT")
 
 
 def _migrate_api_calls_columns(connection: sqlite3.Connection) -> None:

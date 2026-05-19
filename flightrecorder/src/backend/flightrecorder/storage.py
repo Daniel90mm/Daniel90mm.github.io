@@ -45,6 +45,7 @@ class SessionMetadata:
     extracted: bool
     extracted_at: str | None
     curated: bool
+    display_name: str | None = None
 
 
 def write_session(
@@ -130,6 +131,7 @@ def parse_session_metadata(frontmatter: list[str]) -> SessionMetadata:
         extracted=bool(values["extracted"]),
         extracted_at=optional_str(values["extracted_at"]),
         curated=bool(values["curated"]),
+        display_name=optional_str(values.get("display_name")),
     )
 
 
@@ -193,9 +195,10 @@ def index_session(
             extracted,
             extracted_at,
             curated,
+            display_name,
             path
         )
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         ON CONFLICT(session_id) DO UPDATE SET
             started_at = excluded.started_at,
             ended_at = excluded.ended_at,
@@ -209,6 +212,7 @@ def index_session(
             extracted = excluded.extracted,
             extracted_at = excluded.extracted_at,
             curated = excluded.curated,
+            display_name = excluded.display_name,
             path = excluded.path,
             updated_at = CURRENT_TIMESTAMP
         """,
@@ -226,6 +230,7 @@ def index_session(
             int(metadata.extracted),
             metadata.extracted_at,
             int(metadata.curated),
+            metadata.display_name,
             str(path),
         ),
     )
@@ -274,6 +279,7 @@ class SessionStore:
             extracted=False,
             extracted_at=None,
             curated=False,
+            display_name=slug.strip() or None,
         )
         path = self.session_path(session_id)
         write_session(path, metadata, [])
@@ -303,6 +309,23 @@ class SessionStore:
             message_count=len(updated_messages),
         )
         write_session(path, updated_metadata, updated_messages)
+        index_session(self.connection, updated_metadata, path)
+        return updated_metadata
+
+    def rename_session(
+        self,
+        session_id: str,
+        display_name: str,
+    ) -> SessionMetadata:
+        """Update the human-visible name for a session without changing its id."""
+
+        path = self.session_path(session_id)
+        metadata, messages = read_session(path)
+        cleaned = display_name.strip()
+        if not cleaned:
+            raise StorageError("display name is required")
+        updated_metadata = replace(metadata, display_name=cleaned[:120])
+        write_session(path, updated_metadata, messages)
         index_session(self.connection, updated_metadata, path)
         return updated_metadata
 
@@ -386,7 +409,8 @@ class SessionStore:
                 spaghetti,
                 extracted,
                 extracted_at,
-                curated
+                curated,
+                display_name
             FROM sessions
             ORDER BY started_at DESC
             """
@@ -474,6 +498,7 @@ def session_frontmatter_items(
         ("extracted", metadata.extracted),
         ("extracted_at", metadata.extracted_at),
         ("curated", metadata.curated),
+        ("display_name", metadata.display_name),
     ]
 
 
@@ -542,4 +567,5 @@ def metadata_from_row(row: sqlite3.Row | tuple[object, ...]) -> SessionMetadata:
         extracted=bool(row[10]),
         extracted_at=optional_str(row[11]),
         curated=bool(row[12]),
+        display_name=optional_str(row[13]) if len(row) > 13 else None,
     )

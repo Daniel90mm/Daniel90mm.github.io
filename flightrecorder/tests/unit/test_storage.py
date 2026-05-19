@@ -173,6 +173,31 @@ def test_session_store_adds_message_and_updates_metadata(tmp_path: Path) -> None
     assert row[0] == 1
 
 
+def test_session_store_renames_session_without_changing_id(tmp_path: Path) -> None:
+    connection = sqlite3.connect(":memory:")
+    initialize_database(connection)
+    store = SessionStore(tmp_path, connection)
+    metadata = store.create_session(
+        provider="google",
+        model="gemini-2.5-pro",
+        started_at=datetime.fromisoformat("2026-05-18T17:30:00+02:00"),
+        slug="spaghetti",
+    )
+
+    renamed = store.rename_session(metadata.session_id, "Pulse ox PCA ideas")
+    loaded_metadata, messages = store.get_session(metadata.session_id)
+    row = connection.execute(
+        "SELECT display_name FROM sessions WHERE session_id = ?",
+        (metadata.session_id,),
+    ).fetchone()
+
+    assert renamed.session_id == metadata.session_id
+    assert renamed.display_name == "Pulse ox PCA ideas"
+    assert loaded_metadata.display_name == "Pulse ox PCA ideas"
+    assert messages == []
+    assert row == ("Pulse ox PCA ideas",)
+
+
 def test_session_store_closes_session_and_preserves_messages(tmp_path: Path) -> None:
     connection = sqlite3.connect(":memory:")
     initialize_database(connection)

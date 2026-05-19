@@ -12,6 +12,7 @@ FILES = ["index.html", "styles.css", "app.js"]
 
 REQUIRED_ROUTES = [
     '"/api/sessions"',
+    'method: "PATCH"',
     '"/messages"',
     '"/extract"',
     '"/api/budget"',
@@ -69,6 +70,9 @@ def main() -> None:
     if 'id="session-summary"' not in index_html:
         print("missing selected-session summary in index.html", file=sys.stderr)
         sys.exit(1)
+    if 'id="session-name-form"' not in index_html:
+        print("missing session rename form in index.html", file=sys.stderr)
+        sys.exit(1)
     if 'id="preview-session-btn"' not in index_html:
         print("missing session publish preview button in index.html", file=sys.stderr)
         sys.exit(1)
@@ -92,6 +96,9 @@ def main() -> None:
         sys.exit(1)
     if "previewAttachmentContext" not in app_js:
         print("missing frontend attachment context handler", file=sys.stderr)
+        sys.exit(1)
+    if "renameSession" not in app_js:
+        print("missing frontend session rename handler", file=sys.stderr)
         sys.exit(1)
 
     print("frontend static files smoke test passed")
