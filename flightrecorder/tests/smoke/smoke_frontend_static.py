@@ -20,6 +20,7 @@ REQUIRED_ROUTES = [
     '"/api/documents"',
     '"/api/spaghetti"',
     '"/api/runtime"',
+    '"/api/search?q="',
     'api/api-calls',
     'api/publish/preview',
     'api/matchmaker/run',
@@ -78,6 +79,9 @@ def main() -> None:
         sys.exit(1)
     if 'id="run-matchmaker-btn"' not in index_html:
         print("missing matchmaker run button in index.html", file=sys.stderr)
+        sys.exit(1)
+    if 'id="search-panel"' not in index_html:
+        print("missing web search panel in index.html", file=sys.stderr)
         sys.exit(1)
     if "voice or type" in index_html:
         print("frontend must not imply voice support exists", file=sys.stderr)

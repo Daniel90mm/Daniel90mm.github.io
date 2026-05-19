@@ -57,6 +57,8 @@ from flightrecorder.storage import (
     safe_session_asset_path,
 )
 
+from flightrecorder.web_search import SearchError, SearchRequest
+
 
 router = APIRouter(prefix="/api")
 
@@ -1046,4 +1048,53 @@ async def attachment_context(
         "included": included,
         "skipped": skipped,
         "combined_text": combined_text,
+    }
+
+
+@router.get("/search")
+async def search_web(
+    request: Request,
+    q: str = Query(min_length=1),
+    max_results: int = Query(default=5, ge=1, le=10),
+    include_raw_content: bool = Query(default=False),
+) -> dict[str, object]:
+    """Return normalized search results. Fail-closed when no client is configured.
+
+    Search results are read-only context. The route does not store results,
+    call any LLM, or create spaghetti notes.
+    """
+
+    runtime = request.app.state.runtime
+    if runtime.search_client is None:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="search not configured",
+        )
+
+    try:
+        results = await runtime.search_client.search(
+            SearchRequest(
+                query=q,
+                max_results=max_results,
+                include_raw_content=include_raw_content,
+            )
+        )
+    except SearchError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY,
+            detail=str(exc),
+        ) from exc
+
+    return {
+        "query": q,
+        "include_raw_content": include_raw_content,
+        "results": [
+            {
+                "title": r.title,
+                "url": r.url,
+                "snippet": r.snippet,
+                "raw_content": r.raw_content,
+            }
+            for r in results
+        ],
     }

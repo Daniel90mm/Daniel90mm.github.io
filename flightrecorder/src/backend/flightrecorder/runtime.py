@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+import os
 from pathlib import Path
 import sqlite3
 
@@ -11,6 +12,7 @@ from flightrecorder.costs import PricingTable, ProviderCallGuard, load_pricing, 
 from flightrecorder.database import connect_metadata_db
 from flightrecorder.providers import ConfiguredProvider, ProviderError, create_role_provider
 from flightrecorder.storage import SessionStore
+from flightrecorder.web_search import SearchClient, TavilySearchClient
 
 
 @dataclass(frozen=True)
@@ -21,6 +23,7 @@ class RuntimeContext:
     pricing: PricingTable
     brainstorm_provider: ConfiguredProvider
     idea_capture_provider: ConfiguredProvider
+    search_client: SearchClient | None = None
 
     def guard(self) -> ProviderCallGuard:
         return ProviderCallGuard(
@@ -49,6 +52,7 @@ def build_runtime_context(
     pricing = _load_pricing_safe(pricing_path)
     brainstorm = _create_role_safe(resolved_config, "brainstorm")
     idea_capture = _create_role_safe(resolved_config, "idea_capture")
+    search_client = _create_search_client_safe()
 
     return RuntimeContext(
         config=resolved_config,
@@ -57,6 +61,7 @@ def build_runtime_context(
         pricing=pricing,
         brainstorm_provider=brainstorm,
         idea_capture_provider=idea_capture,
+        search_client=search_client,
     )
 
 
@@ -88,3 +93,12 @@ def _create_role_safe(config: AppConfig, role_name: str) -> ConfiguredProvider:
             supports_images=False,
             max_context_tokens=0,
         )
+
+
+def _create_search_client_safe() -> SearchClient | None:
+    """Create an optional search client from local environment."""
+
+    api_key = os.environ.get("TAVILY_API_KEY", "").strip()
+    if not api_key or "CHANGEME" in api_key:
+        return None
+    return TavilySearchClient(api_key=api_key)

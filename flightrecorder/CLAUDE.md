@@ -114,9 +114,9 @@ For each step:
 
 Do not skip steps because they feel obvious. Especially do not skip tests for the doxxing path, the append-only path, and the cost-logging path.
 
-### Small-model task queue
+### Junior task queue
 
-When a task is small, narrow, and suitable for a smaller model, move it into `docs/SMALL_MODEL_TASKS.md` instead of doing it inline. Each queued task must include where to work, what to do, why it matters, and a specific smoke test. Keep the current agent focused on the tasks that need architectural judgment, security judgment, prompt judgment, or cross-file integration.
+When a task is narrow and suitable for the junior agent, move it into `docs/JUNIOR_TASKS.md` instead of doing it inline. Each queued task must include where to work, what to do, why it matters, and a specific smoke test. Use the junior for implementation-first work: tests, fixtures, endpoints, UI behavior, and small helpers. Do not queue docs for docs' sake; docs are acceptable only when they directly support code that is being built or verified. Keep the senior agent focused on architectural judgment, security judgment, prompt judgment, and cross-file integration.
 
 ## Testing posture
 

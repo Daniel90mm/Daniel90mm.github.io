@@ -64,6 +64,10 @@
     composerProvider: document.getElementById("composer-provider"),
     composerBudget: document.getElementById("composer-budget"),
     attachmentRow: document.getElementById("attachment-row"),
+    searchForm: document.getElementById("search-form"),
+    searchInput: document.getElementById("search-input"),
+    searchBtn: document.getElementById("search-btn"),
+    searchResults: document.getElementById("search-results"),
   };
 
   function api(path, options) {
@@ -530,6 +534,44 @@
       })
       .catch(function (err) {
         DOM.uploadStatus.textContent = "remove failed: " + err.message;
+      });
+  }
+
+  function searchWeb(query) {
+    if (!query || !query.trim()) {
+      DOM.searchResults.textContent = "enter a query";
+      return;
+    }
+    DOM.searchResults.textContent = "searching...";
+    api("/api/search?q=" + encodeURIComponent(query.trim()))
+      .then(function (res) { return res.json(); })
+      .then(function (data) {
+        var results = data.results || [];
+        DOM.searchResults.innerHTML = "";
+        if (results.length === 0) {
+          DOM.searchResults.textContent = "no results";
+          return;
+        }
+        results.forEach(function (r) {
+          var row = document.createElement("div");
+          row.className = "fr-search-row";
+          var title = document.createElement("div");
+          title.className = "fr-search-title";
+          title.textContent = r.title || "untitled";
+          var url = document.createElement("div");
+          url.className = "fr-search-url";
+          url.textContent = r.url || "";
+          var snippet = document.createElement("div");
+          snippet.className = "fr-search-snippet";
+          snippet.textContent = r.snippet || "";
+          row.appendChild(title);
+          row.appendChild(url);
+          row.appendChild(snippet);
+          DOM.searchResults.appendChild(row);
+        });
+      })
+      .catch(function (err) {
+        DOM.searchResults.textContent = "search failed: " + err.message;
       });
   }
 
@@ -1048,6 +1090,12 @@
     runMatchmakerForIdea(state.currentSpaghettiId);
   });
 
+  DOM.searchForm.addEventListener("submit", function (e) {
+    e.preventDefault();
+    var query = DOM.searchInput.value;
+    searchWeb(query);
+  });
+
   function createSSEParser() {
     var buffer = "";
     var pendingEvent = null;
@@ -1110,6 +1158,7 @@
     fetchPublishPreview: fetchPublishPreview,
     runMatchmakerForIdea: runMatchmakerForIdea,
     deleteAsset: deleteAsset,
+    searchWeb: searchWeb,
   };
 
   refreshSessionList(true);

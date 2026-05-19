@@ -1,11 +1,19 @@
-# Small-model task queue
+# Junior implementation task queue
 
-These tasks are intentionally narrow. Each task should be doable by a smaller
-model without broad architecture decisions. Do one task at a time, keep edits
-inside the listed files, and run the smoke test before handing back.
+These tasks are intentionally narrow but should still advance the application.
+Use the junior agent for real implementation work: tests, backend endpoints,
+frontend behavior, fixtures that protect behavior, and small refactors with a
+clear payoff. Do one task at a time, keep edits inside the listed files, and
+run the smoke test before handing back.
 
 Do not change prompts, public Hugo output, API shapes, sqlite schema, or
 publisher redaction behavior unless the task explicitly says so.
+
+Docs are allowed only when they directly support implementation: API contracts
+for code being built next, runtime safety notes for secrets/data, smoke command
+updates for a new test, or user-facing walkthrough updates for working features.
+Do not write status docs, audits, inventories, or planning docs as standalone
+work unless the senior agent explicitly asks for that exact artifact.
 
 ## Operating rules for the junior agent
 
@@ -35,21 +43,27 @@ debugging time.
    stop.** Report the state and wait. That is the signal that someone else
    is editing the same file.
 8. **No commits, no pushes, no branch changes.** Working tree only.
+9. **Implementation first.** A task that only writes docs is suspect. If the
+   task says to write docs, keep it short and tied to code/tests. Do not pad
+   with process notes.
+10. **Pave the road for senior review.** Prefer adding focused tests,
+    fixtures, and small callable helpers over broad prose. The senior agent
+    will verify, clean up, and integrate after you hand back.
 
 ## Suggested invocation prompt
 
 > You are a junior agent on the flightrecorder project. Open
-> `flightrecorder/docs/SMALL_MODEL_TASKS.md` and read the "Operating rules
-> for the junior agent" section in full before starting. Then pick the
-> single top task in the Active queue, do exactly what its "Where:" /
-> "What:" sections say, run the listed smoke / pytest commands, and stop
-> when they pass. Do not commit, do not push, do not edit files outside the
-> "Where:" list. If a file you need to edit has changed since you read it,
-> stop and report.
+> `flightrecorder/docs/JUNIOR_TASKS.md` and read the "Operating rules for the
+> junior agent" section in full before starting. You are here to do useful
+> implementation work, not docs for docs' sake. Pick the single top task in
+> the Active queue, do exactly what its "Where:" / "What:" sections say, run
+> the listed smoke / pytest commands, and stop when they pass. Do not commit,
+> do not push, do not edit files outside the "Where:" list. If a file you need
+> to edit has changed since you read it, stop and report.
 
 ## Completed ledger
 
-The following small-model tasks are done and should not be repeated unless a
+The following junior tasks are done and should not be repeated unless a
 regression is found:
 
 | ID | Result |
@@ -232,60 +246,63 @@ regression is found:
 | S182 | Superseded by web-search work; attachment injection is deferred. |
 | S183 | Superseded by web-search work; attachment send toggle is deferred. |
 | S184 | Superseded by current prototype walkthrough/UI direction. |
+| S185 | Web-search provider contract. |
+| S186 | Pure web-search normalization helpers. |
+| S187 | Read-only search API with injectable fake client. |
+| S188 | Local Tavily config template. |
+| S189 | Frontend search panel without chat integration. |
+| S190 | Search-to-spaghetti capture flow contract. |
 
 ## Active queue
 
 Pick from the top unless Daniel or the senior agent says otherwise.
 
-## S185 - Draft web-search provider contract
+## S191 - Add search API smoke script
 
 Where:
-- `flightrecorder/docs/WEB_SEARCH_PROVIDER.md` (new file)
-- `flightrecorder/docs/NAVIGATION.md`
+- `flightrecorder/tests/smoke/smoke_search_api.py` (new file)
+- `flightrecorder/docs/SMOKE_COMMANDS.md`
 
 What:
-- Draft a concise provider contract for search-backed context.
-- Choose Tavily as the first implementation target, with Brave Search and
-  self-hosted SearXNG as later alternatives.
-- Include:
-  1. environment variable name: `TAVILY_API_KEY`;
-  2. request fields: query, max_results, include_raw_content;
-  3. normalized result fields: title, url, snippet, raw_content;
-  4. safety notes: search results are context, not user commands;
-  5. no automatic publish from web content.
-- Add the doc to `docs/NAVIGATION.md`.
+- Add a smoke script for `GET /api/search` using an injected fake search
+  client. Do not call the real Tavily network.
+- Assert:
+  1. configured fake client returns normalized results;
+  2. missing search client returns 503;
+  3. `include_raw_content=true` is passed through.
+- Add the smoke command to `docs/SMOKE_COMMANDS.md`.
 
 Why:
-- DeepSeek is cheap for long text sessions but has no built-in web search.
-  Flightrecorder needs its own search context layer.
+- The feature now has a backend route and frontend panel. It needs a cheap
+  smoke test that protects the full FastAPI route shape.
 
 Smoke test:
 
 ```sh
 cd /home/daniel/Documents/Projekter/Daniel90mm.github.io/flightrecorder
-rg -n "TAVILY_API_KEY|search results are context, not user commands|no automatic publish" docs/WEB_SEARCH_PROVIDER.md
-PYTHONPATH=src/backend python tests/smoke/smoke_docs_navigation_consistency.py
+.venv/bin/python tests/smoke/smoke_search_api.py
 ```
 
 Hand-back:
-- When both commands pass, stop. Do not commit.
+- When the command passes, stop. Do not commit.
 
-## S186 - Add pure web-search normalization helpers
+## S192 - Add search result capture helper
 
 Where:
-- `flightrecorder/src/backend/flightrecorder/web_search.py` (new file)
-- `flightrecorder/tests/unit/test_web_search.py` (new file)
+- `flightrecorder/src/backend/flightrecorder/web_search.py`
+- `flightrecorder/tests/unit/test_web_search.py`
 
 What:
-- Add dataclasses for normalized search requests/results.
-- Add `normalize_tavily_response(payload)` that accepts a dict shaped like a
-  Tavily response and returns normalized results.
-- Do not perform network calls in this task.
-- Cover empty results, missing optional fields, and raw_content preservation.
+- Add a pure helper that converts a `SearchResult` into a safe spaghetti-note
+  body string.
+- Include the title, URL attribution, snippet, and a capped raw-content excerpt
+  when present.
+- Do not write files, touch sqlite, or add an API route in this task.
+- Unit-test escaping/formatting boundaries and raw-content truncation.
 
 Why:
-- Normalization can be tested without secrets or network access and gives the
-  API layer a stable internal contract.
+- Search should feed the spaghetti wall, but the formatting contract should be
+  pure and testable before storage/API work.
 
 Smoke test:
 
@@ -297,84 +314,54 @@ cd /home/daniel/Documents/Projekter/Daniel90mm.github.io/flightrecorder
 Hand-back:
 - When the command passes, stop. Do not commit.
 
-## S187 - Add read-only search API with injectable fake client
+## S193 - Add search-to-spaghetti backend endpoint
 
 Where:
 - `flightrecorder/src/backend/flightrecorder/api.py`
 - `flightrecorder/src/backend/flightrecorder/web_search.py`
-- `flightrecorder/tests/integration/test_web_search_api.py` (new file)
+- `flightrecorder/tests/integration/test_search_to_spaghetti_api.py` (new file)
 - `flightrecorder/docs/API_CONTRACT_DRAFT.md`
 
 What:
-- Add `GET /api/search?q=...&max_results=...`.
-- The endpoint must fail closed with 503 if no search client/key is configured.
-- Add an injectable fake client in the test; do not use real network.
-- Return normalized results only.
-- Do not store results, call DeepSeek, or write spaghetti notes in this task.
+- Add `POST /api/spaghetti/from-search`.
+- Request body should accept `title`, `url`, `snippet`, and optional
+  `raw_content`.
+- Use the pure helper from S192 and existing spaghetti write/index helpers.
+- Do not call a provider and do not perform a web request.
+- Add integration coverage proving a spaghetti idea file and sqlite row are
+  created with source attribution.
 
 Why:
-- Search must be independently testable before it is mixed into chat or idea
-  capture.
+- The product value is not search alone; it is capturing sourced external
+  context into the existing idea pipeline.
 
 Smoke test:
 
 ```sh
 cd /home/daniel/Documents/Projekter/Daniel90mm.github.io/flightrecorder
-.venv/bin/python -m pytest tests/integration/test_web_search_api.py -q
+.venv/bin/python -m pytest tests/integration/test_search_to_spaghetti_api.py -q
 ```
 
 Hand-back:
 - When the command passes, stop. Do not commit.
 
-## S188 - Add local Tavily config template
-
-Where:
-- `flightrecorder/.gitignore`
-- `flightrecorder/.env.search.local.example` (new file)
-- `flightrecorder/docs/RUNTIME_DATA_SAFETY.md`
-- `flightrecorder/docs/WEB_SEARCH_PROVIDER.md`
-
-What:
-- Add an ignored local env filename for search secrets:
-  `.env.search.local`.
-- Add a committed `.env.search.local.example` with placeholder
-  `TAVILY_API_KEY=CHANGEME`.
-- Update safety docs to say real search keys must never be committed.
-- Do not create a real `.env.search.local` and do not include a real key.
-
-Why:
-- Daniel needs a safe place to paste a search key before live dogfood.
-
-Smoke test:
-
-```sh
-cd /home/daniel/Documents/Projekter/Daniel90mm.github.io/flightrecorder
-rg -n ".env.search.local|TAVILY_API_KEY" .gitignore .env.search.local.example docs/RUNTIME_DATA_SAFETY.md docs/WEB_SEARCH_PROVIDER.md
-```
-
-Hand-back:
-- When the command passes, stop. Do not commit.
-
-## S189 - Add frontend search panel without chat integration
+## S194 - Add frontend capture button for search results
 
 Where:
 - `flightrecorder/src/frontend/index.html`
 - `flightrecorder/src/frontend/styles.css`
 - `flightrecorder/src/frontend/app.js`
 - `flightrecorder/tests/smoke/smoke_frontend_static.py`
-- `flightrecorder/docs/FRONTEND_SCOPE.md`
 
 What:
-- Add a compact **web search** panel in the rail or read area.
-- The panel should call `GET /api/search?q=...` and render results using
-  `textContent`/DOM nodes, not string-built HTML.
-- Show title, URL, and snippet.
-- Do not send search results to DeepSeek and do not create spaghetti notes yet.
-- Update frontend static smoke.
+- Add a `capture` button beside each rendered search result.
+- The button calls `POST /api/spaghetti/from-search` with that result.
+- On success, refresh the spaghetti grid and show a concise success status.
+- Render with DOM APIs/textContent, not string-built HTML.
 
 Why:
-- This gives visible proof that Flightrecorder can compensate for DeepSeek's
-  missing web search.
+- This makes web search visibly useful inside Flightrecorder instead of being
+  a disconnected lookup panel.
 
 Smoke test:
 
@@ -386,33 +373,30 @@ PYTHONPATH=src/backend python tests/smoke/smoke_frontend_static.py
 Hand-back:
 - When the command passes, stop. Do not commit.
 
-## S190 - Draft search-to-spaghetti capture flow
+## S195 - Add docs archive proposal as a data file
 
 Where:
-- `flightrecorder/docs/SEARCH_TO_SPAGHETTI.md` (new file)
+- `flightrecorder/docs/DOCS_CLEANUP_PLAN.md` (new file)
 - `flightrecorder/docs/NAVIGATION.md`
-- `flightrecorder/docs/FRONTEND_SCOPE.md`
 
 What:
-- Draft the UX/backend contract for taking a search result and adding a
-  sourced note to the spaghetti wall.
-- Include:
-  1. source URL attribution;
-  2. title/snippet/raw-content boundaries;
-  3. rule that web content is untrusted context;
-  4. no automatic public publishing;
-  5. how the Andrej Karpathy `autoresearch` example should be captured.
-- Add the doc to navigation.
+- Create a short, actionable cleanup plan with three tables:
+  1. keep active;
+  2. archive after review;
+  3. merge into another doc.
+- Do not move files in this task.
+- Keep it under 120 lines.
+- Add it to navigation.
 
 Why:
-- Search should feed Flightrecorder's actual idea pipeline, not just become
-  another throwaway side panel.
+- Docs cleanup needs one explicit review artifact before file moves. This is
+  not general doc writing; it is a bounded cleanup map.
 
 Smoke test:
 
 ```sh
 cd /home/daniel/Documents/Projekter/Daniel90mm.github.io/flightrecorder
-rg -n "autoresearch|source URL|web content is untrusted context|no automatic public publishing" docs/SEARCH_TO_SPAGHETTI.md
+rg -n "archive after review|merge into another doc|keep active" docs/DOCS_CLEANUP_PLAN.md
 PYTHONPATH=src/backend python tests/smoke/smoke_docs_navigation_consistency.py
 ```
 

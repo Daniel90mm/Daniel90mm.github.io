@@ -2,6 +2,7 @@ from pathlib import Path
 
 from flightrecorder.config import parse_config
 from flightrecorder.runtime import build_runtime_context, build_runtime_context_for_path
+from flightrecorder.web_search import TavilySearchClient
 
 
 def test_build_runtime_context_for_path(tmp_path: Path) -> None:
@@ -12,6 +13,7 @@ def test_build_runtime_context_for_path(tmp_path: Path) -> None:
     assert (tmp_path / "metadata.db").exists()
     assert runtime.brainstorm_provider.name == "none"
     assert runtime.idea_capture_provider.name == "none"
+    assert runtime.search_client is None
 
 
 def test_build_runtime_context_wires_idea_capture_role(tmp_path: Path) -> None:
@@ -34,3 +36,14 @@ def test_build_runtime_context_wires_idea_capture_role(tmp_path: Path) -> None:
 
     assert runtime.idea_capture_provider.name == "anthropic"
     assert runtime.idea_capture_provider.model == "claude-sonnet-4-6"
+
+
+def test_build_runtime_context_wires_tavily_search_client(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    monkeypatch.setenv("TAVILY_API_KEY", "tvly-test")
+
+    runtime = build_runtime_context_for_path(tmp_path)
+
+    assert isinstance(runtime.search_client, TavilySearchClient)

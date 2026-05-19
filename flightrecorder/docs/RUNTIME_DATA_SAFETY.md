@@ -8,6 +8,8 @@ directories must **never** be committed to the merged site/source repository.
 
 - `config.toml` - contains provider API keys, paths, thresholds. In
   `.gitignore`.
+- `.env.search.local` - contains the Tavily (or other search) API key.
+  Never commit. Use `.env.search.local.example` as a template.
 - `metadata.db` - sqlite database with session metadata, idea indices, cost
   logs.
 - `sessions/` - raw session transcripts (contain real names, half-thoughts).

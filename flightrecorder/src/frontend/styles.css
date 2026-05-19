@@ -872,3 +872,33 @@ body {
   .fr-ascii { font-size: 7px; }
   .fr-read-grid { grid-template-columns: 1fr; }
 }
+
+.fr-search-results {
+  font-size: 0.75rem;
+  line-height: 1.5;
+  color: var(--fg2);
+  margin-top: 0.5rem;
+}
+
+.fr-search-row {
+  padding: 0.35rem 0;
+  border-bottom: 1px solid var(--line);
+}
+
+.fr-search-row:last-child {
+  border-bottom: none;
+}
+
+.fr-search-title {
+  color: var(--accent);
+}
+
+.fr-search-url {
+  font-size: 0.7rem;
+  color: var(--muted);
+  overflow-wrap: anywhere;
+}
+
+.fr-search-snippet {
+  color: var(--fg2);
+}

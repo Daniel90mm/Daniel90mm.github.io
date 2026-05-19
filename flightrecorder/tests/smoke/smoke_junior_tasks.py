@@ -1,4 +1,4 @@
-"""Smoke test: verify task IDs in SMALL_MODEL_TASKS.md are unique and monotonic."""
+"""Smoke test: verify task IDs in JUNIOR_TASKS.md are unique and monotonic."""
 
 from __future__ import annotations
 
@@ -10,7 +10,7 @@ from pathlib import Path
 TASKS_PATH = (
     Path(__file__).resolve().parent.parent.parent
     / "docs"
-    / "SMALL_MODEL_TASKS.md"
+    / "JUNIOR_TASKS.md"
 )
 
 
@@ -51,9 +51,9 @@ def main() -> None:
 
     if gaps:
         print(f"gaps (may be taken by senior agent): {gaps}")
-        print("gaps are expected (senior agent tasks skip small-model IDs)")
+        print("gaps are expected (senior agent tasks skip junior IDs)")
 
-    print("small model task queue integrity check passed")
+    print("junior task queue integrity check passed")
 
 
 if __name__ == "__main__":

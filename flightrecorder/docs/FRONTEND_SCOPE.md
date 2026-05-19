@@ -23,6 +23,7 @@ at `GET /` and `GET /assets/*`.
 - `GET /api/projects` - active project registry entries
 - `GET /api/documents` - document list
 - `GET /api/documents/{ref}` - document body
+- `GET /api/search` - web search with fail-closed provider check
 - `GET /api/spaghetti` - spaghetti idea list
 - `GET /api/spaghetti/{idea_id}` - spaghetti body
 - `POST /api/matchmaker/run` - run matchmaker

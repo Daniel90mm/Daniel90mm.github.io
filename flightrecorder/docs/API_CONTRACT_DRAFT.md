@@ -227,3 +227,55 @@ extension (e.g. `image/png`, `text/plain`).
   metadata list.
 - Does not serve the frontend asset path (`/assets/{asset_path:path}`); this is
   a separate route for session-specific file uploads.
+
+---
+
+## `GET /api/search`
+
+Search for web content. Fail-closed: returns 503 when no search provider is
+configured.
+
+**Query params:**
+
+| Name | Type | Default | Notes |
+|------|------|---------|-------|
+| `q` | string | (required) | Search query, min length 1. |
+| `max_results` | integer | 5 | Clamped 1-10. |
+| `include_raw_content` | boolean | false | Ask provider for full page text when available. |
+
+**Response (200):**
+
+```json
+{
+    "query": "karpathy autoregressive search",
+    "include_raw_content": false,
+    "results": [
+        {
+            "title": "Andrej Karpathy on search",
+            "url": "https://karpathy.blog/2025/search",
+            "snippet": "A description of autoregressive search.",
+            "raw_content": null
+        }
+    ]
+}
+```
+
+**Response (503):**
+
+```json
+{
+    "detail": "search not configured"
+}
+```
+
+**Response (422):**
+
+```json
+{
+    "detail": [{"msg": "ensure this value has at least 1 characters", ...}]
+}
+```
+
+**Notes:**
+- Does not store results, call any LLM, or create spaghetti notes.
+- Search results are read-only context; no automatic publish.

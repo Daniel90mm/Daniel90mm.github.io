@@ -4,6 +4,7 @@ __pycache__/
 *.pyc
 src/backend/*.egg-info/
 .env*
+!.env*.example
 config*.local.toml
 pricing*.local.toml
 scripts/*local*.sh
