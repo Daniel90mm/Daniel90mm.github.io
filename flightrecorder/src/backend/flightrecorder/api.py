@@ -4,16 +4,26 @@ from __future__ import annotations
 
 import json
 from datetime import datetime, timezone
+from pathlib import Path
 from typing import Any
 
 from fastapi import APIRouter, File, HTTPException, Query, Request, UploadFile, status
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
 
-from pathlib import Path
-
-from flightrecorder.costs import BudgetHardStopError, ProviderUsage
-from flightrecorder.documents import create_project_document
+from flightrecorder.costs import (
+    BudgetHardStopError,
+    ProviderUsage,
+    budget_hard_stop_path,
+    evaluate_monthly_budget,
+    is_budget_hard_stop_active,
+)
+from flightrecorder.documents import (
+    ProjectDocumentError,
+    create_project_document,
+    documents_dir,
+    sanitize_project_ref,
+)
 from flightrecorder.idea_capture import (
     IDEA_CAPTURE_PROMPT,
     IdeaCaptureError,
@@ -345,6 +355,193 @@ async def extract_ideas(
     }
 
 
+@router.get("/projects")
+async def list_projects(request: Request) -> dict[str, object]:
+    """List active project registry entries.
+
+    Reads `<runtime_home>/projects.json`. Returns empty list if the file is
+    missing. Read-only.
+    """
+
+    runtime = request.app.state.runtime
+    registry_path = runtime.config.paths.runtime_home / "projects.json"
+    if not registry_path.exists():
+        return {"projects": []}
+
+    try:
+        registry = load_project_registry(registry_path)
+    except ProjectRegistryError:
+        return {"projects": []}
+
+    return {
+        "projects": [
+            {
+                "name": entry.name,
+                "ref": entry.ref,
+                "path": entry.path,
+                "active": entry.active,
+                "description": entry.description,
+            }
+            for entry in registry.active()
+        ]
+    }
+
+
+@router.get("/budget")
+async def get_budget(request: Request) -> dict[str, object]:
+    """Return current monthly budget status. Read-only."""
+
+    runtime = request.app.state.runtime
+    now = datetime.now(timezone.utc)
+    evaluation = evaluate_monthly_budget(
+        connection=runtime.database,
+        now=now,
+        warn_at_dkk=runtime.config.budget.warn_at_dkk,
+        hard_stop_dkk=runtime.config.budget.hard_stop_dkk,
+    )
+    sentinel = budget_hard_stop_path(runtime.config.paths.runtime_home)
+    return {
+        "currency": runtime.config.budget.currency,
+        "monthly_cost_dkk": evaluation.monthly_cost_dkk,
+        "warn_at_dkk": evaluation.warn_at_dkk,
+        "hard_stop_dkk": evaluation.hard_stop_dkk,
+        "status": evaluation.status,
+        "hard_stop_active": is_budget_hard_stop_active(
+            runtime.config.paths.runtime_home
+        ),
+        "hard_stop_path": str(sentinel),
+    }
+
+
+@router.get("/documents")
+async def list_documents(request: Request) -> dict[str, object]:
+    """List project document refs and paths.
+
+    Lists markdown files in `<runtime_home>/documents/`, sorted by filename.
+    Returns empty list if the directory is missing. Read-only.
+    """
+
+    runtime = request.app.state.runtime
+    docs_path = documents_dir(runtime.config.paths.runtime_home)
+    if not docs_path.is_dir():
+        return {"documents": []}
+
+    docs = []
+    for md in sorted(docs_path.glob("*.md")):
+        stat = md.stat()
+        docs.append(
+            {
+                "ref": md.stem,
+                "path": f"documents/{md.name}",
+                "size_bytes": stat.st_size,
+                "modified_at": datetime.fromtimestamp(
+                    stat.st_mtime, tz=timezone.utc
+                ).isoformat(),
+            }
+        )
+
+    return {"documents": docs}
+
+
+@router.get("/documents/{ref}")
+async def get_document(ref: str, request: Request) -> dict[str, object]:
+    """Return one project document body and metadata. Read-only."""
+
+    runtime = request.app.state.runtime
+    try:
+        sanitized = sanitize_project_ref(ref)
+    except ProjectDocumentError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="document not found",
+        ) from exc
+    docs_path = documents_dir(runtime.config.paths.runtime_home)
+    doc_file = docs_path / f"{sanitized}.md"
+
+    if not doc_file.is_file():
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"document not found: {sanitized}",
+        )
+
+    stat = doc_file.stat()
+    return {
+        "ref": sanitized,
+        "path": f"documents/{doc_file.name}",
+        "body": doc_file.read_text(encoding="utf-8"),
+        "size_bytes": stat.st_size,
+        "modified_at": datetime.fromtimestamp(
+            stat.st_mtime, tz=timezone.utc
+        ).isoformat(),
+    }
+
+
+@router.get("/spaghetti")
+async def list_spaghetti(request: Request) -> dict[str, object]:
+    """List spaghetti ideas from the sqlite ideas table newest first. Read-only."""
+
+    runtime = request.app.state.runtime
+    runtime_home = runtime.config.paths.runtime_home
+
+    rows = runtime.database.execute(
+        "SELECT idea_id, captured_at, source_session, tags_json, topics_json, "
+        "status, path FROM ideas ORDER BY captured_at DESC, idea_id DESC"
+    ).fetchall()
+
+    return {
+        "ideas": [
+            {
+                "idea_id": row[0],
+                "captured_at": row[1],
+                "source_session": row[2],
+                "tags": json.loads(row[3]) if row[3] else [],
+                "topics": json.loads(row[4]) if row[4] else [],
+                "status": row[5],
+                "path": _runtime_relative_path(Path(row[6]), runtime_home),
+            }
+            for row in rows
+        ]
+    }
+
+
+@router.get("/spaghetti/{idea_id}")
+async def get_spaghetti(idea_id: str, request: Request) -> dict[str, object]:
+    """Return one spaghetti idea body and metadata. Read-only."""
+
+    runtime = request.app.state.runtime
+
+    row = runtime.database.execute(
+        "SELECT idea_id, captured_at, source_session, tags_json, topics_json, "
+        "status, path FROM ideas WHERE idea_id = ?",
+        (idea_id,),
+    ).fetchone()
+
+    if row is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"unknown idea_id: {idea_id}",
+        )
+
+    path = Path(row[6]).resolve()
+    runtime_home = runtime.config.paths.runtime_home.resolve()
+    if not path.is_file() or runtime_home not in path.parents:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"idea markdown file missing: {idea_id}",
+        )
+
+    return {
+        "idea_id": row[0],
+        "captured_at": row[1],
+        "source_session": row[2],
+        "tags": json.loads(row[3]) if row[3] else [],
+        "topics": json.loads(row[4]) if row[4] else [],
+        "status": row[5],
+        "path": _runtime_relative_path(path, runtime_home),
+        "body": _read_spaghetti_body(path),
+    }
+
+
 class MatchmakerRunRequest(BaseModel):
     idea_ids: list[str] = Field(min_length=1)
 
@@ -402,6 +599,15 @@ def _read_spaghetti_body(path: Path) -> str:
         if end != -1:
             return text[end + 5 :].strip()
     return text.strip()
+
+
+def _runtime_relative_path(path: Path, runtime_home: Path) -> str:
+    """Return a path relative to runtime home when possible."""
+
+    try:
+        return str(path.resolve().relative_to(runtime_home.resolve()))
+    except ValueError:
+        return str(path)
 
 
 def _load_active_project_summaries(runtime_home: Path) -> list[ProjectSummary]:

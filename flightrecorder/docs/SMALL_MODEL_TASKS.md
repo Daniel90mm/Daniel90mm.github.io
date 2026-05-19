@@ -188,147 +188,164 @@ regression is found:
 | S132 | Frontend chat stream parser smoke. |
 | S133 | Frontend dogfood route smoke. |
 | S134 | Frontend dogfood notes. |
+| S135 | Dogfood read API contract for projects, documents, and spaghetti. |
+| S136 | Read-only projects/documents API, verified and tightened by senior agent. |
+| S137 | Read-only spaghetti API, verified and path-guarded by senior agent. |
+| S138 | Frontend read panels for documents and spaghetti, verified by senior agent. |
+| S139 | Dogfood read round-trip integration test. |
+| S140 | Dogfood read workflow docs. |
 
 ## Active queue
 
 Pick from the top unless Daniel or the senior agent says otherwise.
 
-## S135 - Draft read-only dogfood API contract
+## S141 - Add real-provider dogfood config example
 
 Where:
-- `flightrecorder/docs/DOGFOOD_READ_API.md` (new file)
+- `flightrecorder/config.example.toml` (new file)
+- `flightrecorder/pricing.example.toml` (new file)
+- `flightrecorder/README.md`
 - `flightrecorder/docs/NAVIGATION.md`
 
 What:
-- Draft a concise contract for the next read-only routes needed by the
-  dogfood frontend.
-- Cover these routes only:
-  1. `GET /api/projects` - list active project registry entries.
-  2. `GET /api/documents` - list project document refs and paths.
-  3. `GET /api/documents/{ref}` - return one project document as plain
-     markdown text plus metadata.
-  4. `GET /api/spaghetti` - list spaghetti ideas from sqlite.
-  5. `GET /api/spaghetti/{idea_id}` - return one spaghetti markdown body
-     plus indexed metadata.
-- For each route, specify request, success response, and failure status
-  codes. Keep response shapes simple and JSON-only except markdown bodies
-  embedded as strings.
-- State explicitly that these routes are read-only and must not mutate
-  documents, spaghetti files, git state, or sqlite rows.
-- Add the new doc to `docs/NAVIGATION.md`.
-- Do not edit source code in this task.
+- Add copyable example files for an Anthropic-only MVP dogfood run.
+- `config.example.toml` should include:
+  1. `[providers.anthropic]` with an obvious placeholder key.
+  2. `[roles.brainstorm]` and `[roles.idea_capture]` both using `anthropic`.
+  3. Conservative budget thresholds.
+  4. `runtime_home`, `hugo_site`, and `pricing_path` examples.
+- `pricing.example.toml` should include one Anthropic model entry matching
+  the example config model. Use clearly marked placeholder prices if exact
+  rates are not already in repo data.
+- README should point to the examples and state that real provider dogfood
+  needs `FLIGHTRECORDER_CONFIG` plus real API keys.
+- Add both new example files to `docs/NAVIGATION.md`.
+- Do not include secrets.
 
 Why:
-- The frontend can create/chat/extract, but cannot inspect extracted project
-  documents or spaghetti ideas through HTTP. The read-only contract should be
-  settled before implementation.
+- The MVP is now runnable with stubs, but the next bottleneck is making a real
+  Anthropic-only dogfood run easy and repeatable.
 
 Smoke test:
 
 ```sh
 cd /home/daniel/Documents/Projekter/Daniel90mm.github.io/flightrecorder
-test -f docs/DOGFOOD_READ_API.md
-grep -q "GET /api/documents/{ref}" docs/DOGFOOD_READ_API.md
-grep -q "GET /api/spaghetti/{idea_id}" docs/DOGFOOD_READ_API.md
+test -f config.example.toml
+test -f pricing.example.toml
+grep -q "FLIGHTRECORDER_CONFIG" README.md
 PYTHONPATH=src/backend python tests/smoke/smoke_docs_navigation_consistency.py
 ```
 
 Hand-back:
-- When the commands pass, stop. Do not commit.
+- When all commands pass, stop. Do not commit.
 
-## S136 - Implement read-only projects and documents API
+## S142 - Smoke the example config and pricing files
 
 Where:
-- `flightrecorder/src/backend/flightrecorder/api.py`
-- `flightrecorder/tests/integration/test_documents_api.py` (new file)
-- `flightrecorder/tests/smoke/smoke_documents_api.py` (new file)
-- `flightrecorder/docs/API_CURRENT_STATE.md`
+- `flightrecorder/tests/smoke/smoke_example_config.py` (new file)
 - `flightrecorder/docs/SMOKE_COMMANDS.md`
 
 What:
-- Implement the read-only project/document routes from
-  `docs/DOGFOOD_READ_API.md`:
-  1. `GET /api/projects`
-  2. `GET /api/documents`
-  3. `GET /api/documents/{ref}`
-- Use existing helpers from `documents.py` and `project_registry.py` where
-  possible. Do not add dependencies.
-- Behavior:
-  1. `GET /api/projects` reads `<runtime_home>/projects.json` if present.
-     If absent, return `{"projects": []}`.
-  2. `GET /api/documents` lists markdown files in
-     `<runtime_home>/documents/`, sorted by filename. If absent, return
-     `{"documents": []}`.
-  3. `GET /api/documents/{ref}` sanitizes refs with existing document
-     helpers and returns 404 if the markdown file does not exist.
-  4. None of these routes may create files, initialize git, or mutate sqlite.
-- Add integration tests using a temp runtime with a small `projects.json` and
-  two document files.
-- Add a smoke script that exercises the three routes with `TestClient`.
-- Update `API_CURRENT_STATE.md` and `SMOKE_COMMANDS.md`.
+- Add a smoke script that parses `config.example.toml` with
+  `flightrecorder.config.load_config`.
+- Parse `pricing.example.toml` with `flightrecorder.costs.load_pricing`.
+- Verify:
+  1. `brainstorm` and `idea_capture` roles exist.
+  2. Both roles reference providers that exist in the example config.
+  3. Every role model used by those two roles has pricing.
+  4. `paths.pricing_path` in the example points to `pricing.example.toml`.
+- Add the smoke command to `docs/SMOKE_COMMANDS.md` and the all-smokes
+  one-liner if needed.
+- Do not edit provider implementation.
 
 Why:
-- After extraction, dogfooding needs a way to inspect the append-only project
-  documents from the browser.
+- Example files are only useful if they stay loadable as config parsing
+  changes.
 
 Smoke test:
 
 ```sh
 cd /home/daniel/Documents/Projekter/Daniel90mm.github.io/flightrecorder
-.venv/bin/python -m pytest tests/integration/test_documents_api.py -q
-.venv/bin/python tests/smoke/smoke_documents_api.py
+.venv/bin/python tests/smoke/smoke_example_config.py
+PYTHONPATH=src/backend python tests/smoke/smoke_small_model_tasks.py
+```
+
+Hand-back:
+- When all commands pass, stop. Do not commit.
+
+## S143 - Add runtime provider status API contract
+
+Where:
+- `flightrecorder/docs/API_CURRENT_STATE.md`
+- `flightrecorder/docs/FRONTEND_SCOPE.md`
+- `flightrecorder/docs/RUNTIME_PROVIDER_STATUS.md` (new file)
+- `flightrecorder/docs/NAVIGATION.md`
+
+What:
+- Draft a concise read-only contract for `GET /api/runtime`.
+- Response should include only safe runtime status:
+  1. configured roles for `brainstorm` and `idea_capture`;
+  2. provider name and model;
+  3. whether each role is configured;
+  4. `runtime_home`;
+  5. no API keys or secrets.
+- Mark the route draft-only in `API_CURRENT_STATE.md`.
+- Mention in `FRONTEND_SCOPE.md` that the frontend should show provider
+  readiness before chat/extract.
+- Add the new doc to `docs/NAVIGATION.md`.
+- Do not implement the route in this task.
+
+Why:
+- Before real-provider dogfood, the browser should make misconfigured roles
+  obvious without exposing secrets.
+
+Smoke test:
+
+```sh
+cd /home/daniel/Documents/Projekter/Daniel90mm.github.io/flightrecorder
+grep -q "GET /api/runtime" docs/RUNTIME_PROVIDER_STATUS.md
+PYTHONPATH=src/backend python tests/smoke/smoke_docs_navigation_consistency.py
+```
+
+Hand-back:
+- When all commands pass, stop. Do not commit.
+
+## S144 - Implement read-only runtime provider status API
+
+Where:
+- `flightrecorder/src/backend/flightrecorder/api.py`
+- `flightrecorder/tests/integration/test_runtime_status_api.py` (new file)
+- `flightrecorder/tests/smoke/smoke_runtime_status_api.py` (new file)
+- `flightrecorder/docs/API_CURRENT_STATE.md`
+- `flightrecorder/docs/SMOKE_COMMANDS.md`
+
+What:
+- Implement `GET /api/runtime` from `docs/RUNTIME_PROVIDER_STATUS.md`.
+- Return safe JSON only. Do not include API keys, environment variables, or
+  raw config objects.
+- Include role entries for `brainstorm` and `idea_capture`; each entry should
+  include provider, model, and configured boolean.
+- Add integration tests for configured and missing-role cases.
+- Add a smoke script using `TestClient`.
+- Update `API_CURRENT_STATE.md` and `SMOKE_COMMANDS.md`.
+
+Why:
+- This is the simplest way to catch "the backend is running but no real model
+  is wired" before the user hits chat/extract.
+
+Smoke test:
+
+```sh
+cd /home/daniel/Documents/Projekter/Daniel90mm.github.io/flightrecorder
+.venv/bin/python -m pytest tests/integration/test_runtime_status_api.py -q
+.venv/bin/python tests/smoke/smoke_runtime_status_api.py
 PYTHONPATH=src/backend python tests/smoke/smoke_api_current_state.py
 ```
 
 Hand-back:
 - When all commands pass, stop. Do not commit.
 
-## S137 - Implement read-only spaghetti API
-
-Where:
-- `flightrecorder/src/backend/flightrecorder/api.py`
-- `flightrecorder/tests/integration/test_spaghetti_api.py` (new file)
-- `flightrecorder/tests/smoke/smoke_spaghetti_api.py` (new file)
-- `flightrecorder/docs/API_CURRENT_STATE.md`
-- `flightrecorder/docs/SMOKE_COMMANDS.md`
-
-What:
-- Implement the read-only spaghetti routes from `docs/DOGFOOD_READ_API.md`:
-  1. `GET /api/spaghetti`
-  2. `GET /api/spaghetti/{idea_id}`
-- Use sqlite `ideas` as the index and read markdown bodies from the indexed
-  path. Do not mutate files or sqlite.
-- Behavior:
-  1. List route returns newest first if `captured_at` exists, otherwise by
-     `idea_id`.
-  2. Detail route returns 404 for unknown ids.
-  3. Detail route should include indexed metadata plus markdown body with
-     frontmatter stripped, matching the helper behavior already used by
-     matchmaker.
-  4. If the indexed markdown file is missing, return 404 rather than an empty
-     body.
-- Add integration tests with temp sqlite rows and temp markdown files.
-- Add a smoke script that writes one spaghetti idea through existing helper
-  code if practical, then verifies list/detail routes.
-- Update `API_CURRENT_STATE.md` and `SMOKE_COMMANDS.md`.
-
-Why:
-- Extracted loose ideas currently disappear into files/sqlite from the user's
-  point of view. The dogfood UI needs a read path for the wall.
-
-Smoke test:
-
-```sh
-cd /home/daniel/Documents/Projekter/Daniel90mm.github.io/flightrecorder
-.venv/bin/python -m pytest tests/integration/test_spaghetti_api.py -q
-.venv/bin/python tests/smoke/smoke_spaghetti_api.py
-PYTHONPATH=src/backend python tests/smoke/smoke_api_current_state.py
-```
-
-Hand-back:
-- When all commands pass, stop. Do not commit.
-
-## S138 - Add frontend read panels for documents and spaghetti
+## S145 - Add frontend runtime readiness panel
 
 Where:
 - `flightrecorder/src/frontend/index.html`
@@ -336,30 +353,23 @@ Where:
 - `flightrecorder/src/frontend/app.js`
 - `flightrecorder/tests/smoke/smoke_frontend_static.py`
 - `flightrecorder/tests/smoke/smoke_frontend_dogfood.py`
+- `flightrecorder/docs/FRONTEND_SCOPE.md`
 
 What:
-- Extend the static dogfood frontend to inspect read-only project documents
-  and spaghetti ideas once S136/S137 routes exist.
-- Add UI sections for:
-  1. Project document list.
-  2. Selected project document markdown body.
-  3. Spaghetti idea list.
-  4. Selected spaghetti markdown body.
-- `app.js` should add functions for:
-  1. `GET /api/documents`
-  2. `GET /api/documents/{ref}`
-  3. `GET /api/spaghetti`
-  4. `GET /api/spaghetti/{idea_id}`
-- After extraction completes, refresh document and spaghetti lists.
-- Keep rendering safe: use `textContent` for markdown bodies, not
-  `innerHTML`.
-- Update the frontend static smoke to check for the new route references.
-- Update the dogfood smoke to assert the frontend still loads and that the
-  new route strings exist in served `app.js`.
+- Add a compact runtime readiness panel next to the budget panel.
+- It should call `GET /api/runtime` on page load and render:
+  1. brainstorm provider/model/configured status;
+  2. idea_capture provider/model/configured status;
+  3. runtime home.
+- Use `textContent`; do not render HTML from API values.
+- Do not block the existing stub dogfood flow if the runtime route fails;
+  show a clear failure string in the panel.
+- Update frontend smokes to assert the route string and panel element exist.
+- Update `FRONTEND_SCOPE.md` to mark runtime readiness visible.
 
 Why:
-- The first dogfood loop is not complete until the browser can inspect what
-  extraction wrote.
+- Real dogfood needs the browser to show whether chat and extract are actually
+  backed by configured providers.
 
 Smoke test:
 
@@ -372,73 +382,36 @@ PYTHONPATH=src/backend python tests/smoke/smoke_frontend_static.py
 Hand-back:
 - When both commands pass, stop. Do not commit.
 
-## S139 - Add read API round-trip integration test
+## S146 - Add Termux real-provider dogfood checklist
 
 Where:
-- `flightrecorder/tests/integration/test_dogfood_read_round_trip.py` (new file)
-- `flightrecorder/docs/SMOKE_COMMANDS.md`
-
-What:
-- Add one integration test that proves the whole dogfood read path:
-  1. Create a session.
-  2. Send one stubbed chat message.
-  3. Run extraction with one `project_append` and one `spaghetti`.
-  4. Use `GET /api/documents` to find the project document.
-  5. Use `GET /api/documents/{ref}` to verify the appended bullet.
-  6. Use `GET /api/spaghetti` to find the idea.
-  7. Use `GET /api/spaghetti/{idea_id}` to verify the markdown body.
-  8. Verify `api_calls` still has two rows for the session.
-- Reuse stub patterns from existing integration tests. Do not factor shared
-  helpers in this task.
-- Add any new test command to `SMOKE_COMMANDS.md` only if you add a smoke;
-  otherwise leave `SMOKE_COMMANDS.md` untouched.
-
-Why:
-- Unit-level route tests are useful, but the contract that matters is
-  extraction output becoming visible through read APIs.
-
-Smoke test:
-
-```sh
-cd /home/daniel/Documents/Projekter/Daniel90mm.github.io/flightrecorder
-.venv/bin/python -m pytest tests/integration/test_dogfood_read_round_trip.py -q
-.venv/bin/python -m pytest tests/integration/ -q
-```
-
-Hand-back:
-- When both commands pass, stop. Do not commit.
-
-## S140 - Document dogfood read workflow
-
-Where:
+- `flightrecorder/docs/TERMUX_DEPENDENCIES.md`
+- `flightrecorder/docs/TERMUX_PHONE_PATTERN.md`
 - `flightrecorder/README.md`
-- `flightrecorder/docs/FRONTEND_SCOPE.md`
-- `flightrecorder/docs/API_CURRENT_STATE.md`
 
 What:
-- Update docs after S136-S139 are done.
-- README dogfood workflow should mention:
-  1. Create a session.
-  2. Chat.
-  3. Extract.
-  4. Inspect project documents and spaghetti ideas in the browser.
-- `FRONTEND_SCOPE.md` should mark document/spaghetti read panels as
-  implemented.
-- `API_CURRENT_STATE.md` should accurately list all read-only document and
-  spaghetti routes.
-- Do not edit code in this task.
+- Add a short checklist for running the current FastAPI dogfood UI on Termux
+  with a real Anthropic config.
+- Include:
+  1. creating/copying config from `config.example.toml`;
+  2. setting `FLIGHTRECORDER_CONFIG`;
+  3. installing the package with dev dependencies;
+  4. running `scripts/dev-backend.sh`;
+  5. opening the phone/browser URL;
+  6. checking budget and runtime readiness panels before chat/extract.
+- Keep it as a checklist, not a long tutorial.
+- Do not edit scripts or source code in this task.
 
 Why:
-- Once the read path exists, docs need to tell Daniel how to use it and what
-  remains missing.
+- The next MVP milestone is running the dogfood loop on the intended phone
+  deployment target, not only on a laptop.
 
 Smoke test:
 
 ```sh
 cd /home/daniel/Documents/Projekter/Daniel90mm.github.io/flightrecorder
-grep -q "spaghetti" README.md
-grep -q "GET /api/documents/{ref}" docs/API_CURRENT_STATE.md
-grep -q "GET /api/spaghetti/{idea_id}" docs/API_CURRENT_STATE.md
+grep -q "FLIGHTRECORDER_CONFIG" docs/TERMUX_DEPENDENCIES.md
+grep -q "runtime readiness" docs/TERMUX_PHONE_PATTERN.md
 PYTHONPATH=src/backend python tests/smoke/smoke_small_model_tasks.py
 ```
 

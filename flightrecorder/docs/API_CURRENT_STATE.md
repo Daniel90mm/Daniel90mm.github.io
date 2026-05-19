@@ -14,6 +14,12 @@ Summary of implemented vs draft-only API routes. Source: code inspection of
 - `POST /api/sessions/{session_id}/upload` - upload an image asset.
 - `POST /api/sessions/{session_id}/messages` - chat SSE endpoint.
 - `POST /api/sessions/{session_id}/extract` - run idea capture for a session.
+- `GET /api/budget` - read current monthly spend, thresholds, and hard-stop sentinel status.
+- `GET /api/projects` - list active project registry entries.
+- `GET /api/documents` - list project document refs.
+- `GET /api/documents/{ref}` - return a project document body and metadata.
+- `GET /api/spaghetti` - list spaghetti ideas from sqlite.
+- `GET /api/spaghetti/{idea_id}` - return one spaghetti idea body and metadata.
 - `POST /api/matchmaker/run` - run the structural matchmaker over spaghetti ideas.
 
 All implemented routes follow the shapes in `docs/API_CONTRACT_DRAFT.md`.
@@ -28,20 +34,14 @@ drafts but **no implemented routes**:
 - `POST /api/sessions/{id}/close` - no contract draft.
 - `POST /api/sessions/{id}/voice` - voice transcription.
 - `POST /api/sessions/capture` - quick-capture.
-- `GET /api/documents` - list project documents.
-- `GET /api/documents/{ref}` - fetch a project document.
 - `GET /api/documents/{ref}/history` - git log.
 - `POST /api/documents/{ref}/todo/{id}/done` - mark TODO done.
-- `GET /api/spaghetti` - list spaghetti ideas.
-- `GET /api/spaghetti/{id}` - fetch one spaghetti idea.
 - `GET /api/matches/pending` - pending match proposals.
 - `POST /api/matches/{batch_id}/decide` - submit match decisions.
 - `POST /api/promote` - promote spaghetti to project.
-- `GET /api/projects` - project registry.
 - `POST /api/projects` - update registry.
 - `GET /api/journey/{idea_id}` - idea journey.
 - `POST /api/pause` - publisher kill switch.
-- `GET /api/budget` - monthly spend.
 - `POST /api/budget` - update thresholds.
 - `DELETE /api/budget/hard-stop` - clear budget sentinel.
 - `GET /api/audit` - publisher decisions.

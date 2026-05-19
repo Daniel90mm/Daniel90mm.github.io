@@ -14,6 +14,7 @@
 | `docs/API_CURRENT_STATE.md` | Summary of implemented vs draft-only API routes from code inspection. |
 | `docs/CHAT_API_CONTRACT_DRAFT.md` | Draft chat SSE contract for `POST /api/sessions/{id}/messages`. |
 | `docs/DOCUMENTS_GIT.md` | Documents git repo behavior: auto-init, clean-tree skip, audit trail. |
+| `docs/DOGFOOD_READ_API.md` | Contract for read-only dogfood routes: projects, documents, spaghetti. |
 | `docs/IDEA_CAPTURE_VALIDATION.md` | Parser acceptance and rejection rules for `parse_idea_operations()`. |
 | `docs/BUDGET_GUARD.md` | Budget hard-stop sentinel lifecycle and enforcement rules. |
 | `docs/BUILD_STATUS.md` | Build-order status for spec section 19 steps. |
@@ -42,7 +43,7 @@
 | `docs/TERMUX_PHONE_PATTERN.md` | Notes from the existing dorm-assistant Termux deployment pattern. |
 | `prompts/` | Versioned LLM prompts from spec section 8. |
 | `src/backend/` | Backend implementation. |
-| `src/frontend/` | Svelte frontend implementation. |
+| `src/frontend/` | Static dogfood frontend served by FastAPI. |
 | `src/cli/` | CLI implementation. |
 | `src/data/` | Static data. |
 | `tests/unit/` | Unit tests. |

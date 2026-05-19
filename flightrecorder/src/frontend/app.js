@@ -16,6 +16,12 @@
     sendBtn: document.getElementById("send-btn"),
     extractBtn: document.getElementById("extract-btn"),
     statusArea: document.getElementById("status-area"),
+    budgetSummary: document.getElementById("budget-summary"),
+    readPanels: document.getElementById("read-panels"),
+    documentList: document.getElementById("document-list"),
+    documentBody: document.getElementById("document-body"),
+    spaghettiList: document.getElementById("spaghetti-list"),
+    spaghettiBody: document.getElementById("spaghetti-body"),
   };
 
   function api(path, options) {
@@ -70,6 +76,27 @@
   function loadSession(id) {
     return api("/api/sessions/" + id).then(function (res) {
       return res.json();
+    });
+  }
+
+  function loadBudget() {
+    return api("/api/budget").then(function (res) {
+      return res.json();
+    });
+  }
+
+  function refreshBudget() {
+    loadBudget().then(function (budget) {
+      var cost = Number(budget.monthly_cost_dkk || 0).toFixed(4);
+      var hardStop = Number(budget.hard_stop_dkk || 0).toFixed(2);
+      DOM.budgetSummary.textContent = budget.status + " | " + cost + " DKK / " + hardStop + " DKK";
+      DOM.budgetSummary.className = "budget-" + (budget.status || "ok");
+      if (budget.hard_stop_active) {
+        DOM.budgetSummary.textContent += " | hard-stop active";
+      }
+    }).catch(function (err) {
+      DOM.budgetSummary.textContent = "Failed: " + err.message;
+      DOM.budgetSummary.className = "budget-error";
     });
   }
 
@@ -155,6 +182,7 @@
         } else if (event.event === "done") {
           streamDone = true;
           clearStatus();
+          refreshBudget();
         } else if (event.event === "error") {
           streamDone = true;
           setStatus("Chat error: " + (data.detail || data.error || "unknown"), "status-error");
@@ -203,10 +231,94 @@
       .then(function (result) {
         renderExtractionResult(result);
         setStatus("Extraction complete", "status-success");
+        refreshDocumentList();
+        refreshSpaghettiList();
+        refreshBudget();
+        DOM.readPanels.classList.remove("hidden");
       })
       .catch(function (err) {
         setStatus("Extraction failed: " + err.message, "status-error");
       });
+  }
+
+  function loadDocuments() {
+    return api("/api/documents").then(function (res) {
+      return res.json();
+    });
+  }
+
+  function loadDocument(ref) {
+    return api("/api/documents/" + encodeURIComponent(ref)).then(function (res) {
+      return res.json();
+    });
+  }
+
+  function loadSpaghetti() {
+    return api("/api/spaghetti").then(function (res) {
+      return res.json();
+    });
+  }
+
+  function loadSpaghettiIdea(ideaId) {
+    return api("/api/spaghetti/" + encodeURIComponent(ideaId)).then(function (res) {
+      return res.json();
+    });
+  }
+
+  function refreshDocumentList() {
+    loadDocuments().then(function (data) {
+      DOM.documentList.innerHTML = "";
+      if (!data.documents || data.documents.length === 0) {
+        DOM.documentList.textContent = "No documents";
+        DOM.documentBody.textContent = "";
+        return;
+      }
+      data.documents.forEach(function (doc) {
+        var el = document.createElement("span");
+        el.textContent = doc.ref;
+        el.addEventListener("click", function () {
+          var items = DOM.documentList.querySelectorAll("span");
+          items.forEach(function (item) { item.classList.remove("active"); });
+          el.classList.add("active");
+          loadDocument(doc.ref).then(function (docData) {
+            DOM.documentBody.textContent = docData.body || "";
+          }).catch(function (err) {
+            DOM.documentBody.textContent = "Error: " + err.message;
+          });
+        });
+        DOM.documentList.appendChild(el);
+      });
+    }).catch(function (err) {
+      DOM.documentList.textContent = "Failed: " + err.message;
+    });
+  }
+
+  function refreshSpaghettiList() {
+    loadSpaghetti().then(function (data) {
+      DOM.spaghettiList.innerHTML = "";
+      if (!data.ideas || data.ideas.length === 0) {
+        DOM.spaghettiList.textContent = "No ideas";
+        DOM.spaghettiBody.textContent = "";
+        return;
+      }
+      data.ideas.forEach(function (idea) {
+        var el = document.createElement("span");
+        el.textContent = idea.idea_id.slice(0, 30);
+        el.addEventListener("click", function () {
+          var items = DOM.spaghettiList.querySelectorAll("span");
+          items.forEach(function (item) { item.classList.remove("active"); });
+          el.classList.add("active");
+          loadSpaghettiIdea(idea.idea_id).then(function (ideaData) {
+            DOM.spaghettiBody.textContent = ideaData.body || "";
+          }).catch(function (err) {
+            DOM.spaghettiBody.textContent = "Error: " + err.message;
+          });
+        });
+        DOM.spaghettiList.appendChild(el);
+      });
+    }).catch(function (err) {
+      DOM.spaghettiList.textContent = "Failed: " + err.message;
+    });
   }
 
   function refreshSessionList() {
@@ -280,9 +392,7 @@
 
     function flush() {
       if (buffer.length > 0) {
-        var leftover = buffer;
         buffer = "";
-        /* pass through the parse logic one more time */
         return parseChunk("\n");
       }
       return [];
@@ -296,10 +406,20 @@
     createSession: createSession,
     listSessions: listSessions,
     loadSession: loadSession,
+    loadBudget: loadBudget,
+    refreshBudget: refreshBudget,
     sendMessage: sendMessage,
     runExtraction: runExtraction,
     createSSEParser: createSSEParser,
+    loadDocuments: loadDocuments,
+    loadDocument: loadDocument,
+    loadSpaghetti: loadSpaghetti,
+    loadSpaghettiIdea: loadSpaghettiIdea,
   };
 
   refreshSessionList();
+  refreshBudget();
+  DOM.readPanels.classList.remove("hidden");
+  refreshDocumentList();
+  refreshSpaghettiList();
 })();

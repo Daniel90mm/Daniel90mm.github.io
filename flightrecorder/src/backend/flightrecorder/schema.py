@@ -75,7 +75,6 @@ CREATE INDEX IF NOT EXISTS idx_sessions_curated ON sessions(curated);
 CREATE INDEX IF NOT EXISTS idx_ideas_status ON ideas(status);
 CREATE INDEX IF NOT EXISTS idx_ideas_source_session ON ideas(source_session);
 CREATE INDEX IF NOT EXISTS idx_api_calls_timestamp ON api_calls(timestamp);
-CREATE INDEX IF NOT EXISTS idx_api_calls_session_id ON api_calls(session_id);
 """
 
 
@@ -83,11 +82,32 @@ def initialize_database(connection: sqlite3.Connection) -> None:
     """Apply the schema to an sqlite connection."""
 
     connection.executescript(SCHEMA_SQL)
+    _migrate_api_calls_columns(connection)
+    connection.execute(
+        "CREATE INDEX IF NOT EXISTS idx_api_calls_session_id ON api_calls(session_id)"
+    )
     connection.execute(
         "INSERT OR IGNORE INTO schema_version (version) VALUES (?)",
         (SCHEMA_VERSION,),
     )
     connection.commit()
+
+
+def _migrate_api_calls_columns(connection: sqlite3.Connection) -> None:
+    """Add columns introduced after early local dogfood databases."""
+
+    rows = connection.execute("PRAGMA table_info(api_calls)").fetchall()
+    columns = {str(row[1]) for row in rows}
+    if "cached_tokens" not in columns:
+        connection.execute(
+            "ALTER TABLE api_calls ADD COLUMN cached_tokens INTEGER DEFAULT 0"
+        )
+    if "cost_dkk" not in columns:
+        connection.execute(
+            "ALTER TABLE api_calls ADD COLUMN cost_dkk REAL NOT NULL DEFAULT 0.0"
+        )
+    if "session_id" not in columns:
+        connection.execute("ALTER TABLE api_calls ADD COLUMN session_id TEXT")
 
 
 def table_names(connection: sqlite3.Connection) -> list[str]:

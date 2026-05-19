@@ -15,21 +15,27 @@ at `GET /` and `GET /assets/*`.
 - `POST /api/sessions/{id}/upload` - image upload
 - `POST /api/sessions/{id}/messages` - chat SSE endpoint
 - `POST /api/sessions/{id}/extract` - run idea capture
+- `GET /api/budget` - monthly spend and hard-stop status
+- `GET /api/projects` - active project registry entries
+- `GET /api/documents` - document list
+- `GET /api/documents/{ref}` - document body
+- `GET /api/spaghetti` - spaghetti idea list
+- `GET /api/spaghetti/{idea_id}` - spaghetti body
 - `POST /api/matchmaker/run` - run matchmaker
 
 ## First dogfood frontend target
 
-Create/list sessions, chat over SSE, run extraction, and inspect returned
-session transcript.
+Create/list sessions, chat over SSE, run extraction, watch budget status, and
+inspect returned session transcript plus extracted documents/spaghetti.
 
 **Status: implemented.** Static shell (`src/frontend/index.html`) served
-by the backend at `GET /` with session CRUD, chat SSE streaming, and
-extraction trigger buttons.
+by the backend at `GET /` with session CRUD, chat SSE streaming, extraction
+trigger, budget status, and read panels for project documents and spaghetti
+ideas.
 
 ## Still missing from backend
 
-Document/spaghetti listing routes, match decision routes, voice, budget API,
-publisher controls.
+Match decision routes, voice, budget mutation endpoints, publisher controls.
 
 ## Full v1 surfaces (post-dogfood)
 

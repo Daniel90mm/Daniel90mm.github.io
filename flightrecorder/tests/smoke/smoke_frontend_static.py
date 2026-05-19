@@ -14,6 +14,9 @@ REQUIRED_ROUTES = [
     '"/api/sessions"',
     '"/messages"',
     '"/extract"',
+    '"/api/budget"',
+    '"/api/documents"',
+    '"/api/spaghetti"',
 ]
 
 
@@ -37,6 +40,9 @@ def main() -> None:
         if asset not in index_html:
             print(f"missing asset reference in index.html: {asset}", file=sys.stderr)
             sys.exit(1)
+    if 'id="budget-summary"' not in index_html:
+        print("missing budget summary in index.html", file=sys.stderr)
+        sys.exit(1)
 
     print("frontend static files smoke test passed")
 

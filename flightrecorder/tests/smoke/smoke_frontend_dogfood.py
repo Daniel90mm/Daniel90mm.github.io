@@ -116,6 +116,17 @@ def main() -> None:
         assert response.status_code == 200, f"GET / returned {response.status_code}"
         assert "flightrecorder" in response.text, "frontend not found in GET /"
 
+        app_js_resp = client.get("/assets/app.js")
+        assert app_js_resp.status_code == 200
+        app_js_text = app_js_resp.text
+        assert '"/api/budget"' in app_js_text or "api/budget" in app_js_text
+        assert '"/api/documents"' in app_js_text or "api/documents" in app_js_text
+        assert '"/api/spaghetti"' in app_js_text or "api/spaghetti" in app_js_text
+
+        budget_resp = client.get("/api/budget")
+        assert budget_resp.status_code == 200
+        assert budget_resp.json()["status"] == "ok"
+
         create_resp = client.post(
             "/api/sessions",
             json={"provider": "stub", "model": "stub-model", "slug": "dogfood-test"},

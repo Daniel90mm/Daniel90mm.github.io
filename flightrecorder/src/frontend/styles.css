@@ -124,7 +124,7 @@ button:disabled {
   align-self: flex-end;
 }
 
-#session-list div {
+#session-list {
   display: flex;
   flex-wrap: wrap;
   gap: 0.4rem;
@@ -224,12 +224,91 @@ button:disabled {
   margin-top: 0.75rem;
 }
 
+#budget-summary {
+  display: inline-block;
+  padding: 0.4rem 0.6rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+  color: var(--text);
+  font-size: 0.8rem;
+}
+
+.budget-warn {
+  border-color: #d29922;
+  color: #d29922;
+}
+
+.budget-hard_stop,
+.budget-error {
+  border-color: var(--error);
+  color: var(--error);
+}
+
+.budget-ok {
+  border-color: var(--success);
+  color: var(--success);
+}
+
+.read-columns {
+  display: flex;
+  gap: 1rem;
+}
+
+.read-column {
+  flex: 1;
+  min-width: 0;
+}
+
+.read-body {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 0.75rem;
+  min-height: 100px;
+  max-height: 400px;
+  overflow-y: auto;
+  background: var(--surface);
+  font-size: 0.8rem;
+  line-height: 1.5;
+  white-space: pre-wrap;
+  word-break: break-word;
+  margin-top: 0.5rem;
+}
+
+#document-list span,
+#spaghetti-list span {
+  display: inline-block;
+  padding: 0.2rem 0.5rem;
+  margin: 0.15rem;
+  font-size: 0.75rem;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  cursor: pointer;
+}
+
+#document-list span:hover,
+#spaghetti-list span:hover {
+  border-color: var(--accent);
+  background: var(--accent-dim);
+}
+
+#document-list span.active,
+#spaghetti-list span.active {
+  border-color: var(--accent);
+  background: var(--accent-dim);
+}
+
 @media (max-width: 600px) {
   body {
     padding: 0.75rem 0.5rem;
   }
 
   #session-form {
+    flex-direction: column;
+  }
+
+  .read-columns {
     flex-direction: column;
   }
 }

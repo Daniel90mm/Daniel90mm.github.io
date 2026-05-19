@@ -36,6 +36,12 @@ the guard before provider calls and record usage after successful calls.
 - `POST /api/sessions/{session_id}/upload`
 - `POST /api/sessions/{session_id}/messages`
 - `POST /api/sessions/{session_id}/extract`
+- `GET /api/budget`
+- `GET /api/projects`
+- `GET /api/documents`
+- `GET /api/documents/{ref}`
+- `GET /api/spaghetti`
+- `GET /api/spaghetti/{idea_id}`
 - `POST /api/matchmaker/run`
 
 ## Dogfood frontend
@@ -53,7 +59,8 @@ Open `http://127.0.0.1:8000/`. The minimal dogfood workflow:
 2. Click a session in the list to select it.
 3. Type a message and send -- the assistant response streams over SSE.
 4. Click "Extract Ideas" to run idea capture on the transcript.
-5. Inspect the transcript and extraction result.
+5. Watch budget status, then inspect the transcript, extraction result, project documents, and
+   spaghetti ideas in the browser.
 
 Tests use stubs. Real providers require `config.toml` with API keys
 configured in the `[providers]` and `[roles]` sections.
