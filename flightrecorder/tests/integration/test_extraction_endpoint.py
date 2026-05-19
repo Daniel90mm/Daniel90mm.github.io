@@ -42,6 +42,7 @@ class ExtractorStub:
         self,
         messages: list,
         system: str | None = None,
+        tools: list[dict] | None = None,
     ) -> AsyncIterator[ChatEvent]:
         if self._should_raise:
             raise RuntimeError("stub extractor failure")

@@ -402,3 +402,158 @@ PYTHONPATH=src/backend python tests/smoke/smoke_docs_navigation_consistency.py
 
 Hand-back:
 - When both commands pass, stop. Do not commit.
+
+## S196 - Wire web_search as a model-invoked tool in the chat loop
+
+Where:
+- `flightrecorder/src/backend/flightrecorder/providers.py`
+- `flightrecorder/src/backend/flightrecorder/api.py`
+- `flightrecorder/src/backend/flightrecorder/storage.py` (only if "sys" role messages don't round-trip; check first)
+- `flightrecorder/prompts/brainstorm-system.md` (with a versioned backup in `prompts/_archive/`)
+- `flightrecorder/src/frontend/app.js`
+- `flightrecorder/tests/integration/test_chat_endpoint.py`
+- Any other `tests/integration/*.py` that calls a provider's `chat()` directly (signature change).
+
+What:
+- Replace the chat endpoint's single-turn call with an agentic loop that lets
+  DeepSeek (and any OpenAI-compatible provider) invoke a `web_search` tool
+  while answering. The manual `/api/search` route stays; the frontend search
+  panel was already removed; the model is now the only caller.
+
+Confirmed scope (do not re-litigate):
+1. Pass the full session history to the provider every turn (no truncation
+   in v1). Filter out any persisted `role=="sys"` messages when building the
+   provider message list - they are audit traces, not LLM context.
+2. Show each tool round in the transcript as a muted `· sys` turn with text
+   like `-> web_search("query") -> 3 results` (or `-> error: ...` on failure).
+   Persist those sys turns to the session .md file so they survive reload.
+3. Tool history is not replayed back to the model on later turns. Within a
+   single user turn the model sees its own tool_call + tool_result during
+   the agentic loop, but on the next turn only the final `user` and
+   `assistant` text is replayed.
+4. Prompt guidance: the model should consider searching for (a) explicit
+   user asks ("search for X", "look up Y"), (b) uncertainty / hedging, and
+   (c) time-sensitive queries (news, releases, prices, dates). Otherwise
+   skip. Match the existing terse second-person tone of
+   `prompts/brainstorm-system.md`.
+5. Budget guard runs before every provider call inside the loop; cost
+   logging records every provider call. The search call itself is a
+   non-LLM API and does not go through `ProviderUsage`. Cap rounds at
+   `MAX_TOOL_ROUNDS = 4` per user turn, then force one final tool-less call.
+
+Detailed implementation notes:
+
+Providers (`providers.py`):
+- Add `ToolCallEvent` dataclass: `id: str`, `name: str`, `arguments: str`
+  (the JSON string the provider returned, unparsed). Add it to the
+  `ChatEvent` union.
+- Extend `Message` (still frozen): `tool_calls: tuple[dict, ...] = ()`,
+  `tool_call_id: str | None = None`, `name: str | None = None`. Tuple, not
+  list, because frozen.
+- Add `tools: list[dict] | None = None` kwarg to every `chat()` override
+  (`Provider` protocol, `ConfiguredProvider`, `OpenAICompatibleChatProvider`,
+  `DeepSeekChatProvider` inherits, `AnthropicChatProvider`,
+  `PrototypeProvider`).
+- `OpenAICompatibleChatProvider.chat`: pass `tools=tools` to
+  `chat.completions.create` when not None. When building `request_messages`,
+  accept role `"tool"` (with `tool_call_id` and `name`) and pass through
+  `assistant.tool_calls`. Accumulate streamed `delta.tool_calls` chunks by
+  their `index` field (only the first chunk per index carries `id` and
+  `function.name`; arguments arrive incrementally). When the choice
+  finishes with `finish_reason == "tool_calls"`, emit one `ToolCallEvent`
+  per accumulated call before the final `UsageEvent`.
+- `AnthropicChatProvider.chat`: accept the kwarg. If `tools is not None`,
+  raise `NotImplementedError` with a TODO comment. DeepSeek is the default
+  provider; anthropic tools can wait.
+- `PrototypeProvider.chat`: accept the kwarg and ignore it.
+
+Chat endpoint (`api.py`):
+- Add module-scope `MAX_TOOL_ROUNDS = 4` and the `WEB_SEARCH_TOOL` schema:
+  `{ "type": "function", "function": { "name": "web_search", "description":
+  "Search the public web for current or factual information. Use when the
+  user explicitly asks, when you are uncertain or hedging, or when the
+  answer depends on time-sensitive state (news, releases, prices, dates).",
+  "parameters": { "type": "object", "properties": { "query": { "type":
+  "string", "description": "The search query." }, "max_results": { "type":
+  "integer", "minimum": 1, "maximum": 10, "default": 5 } }, "required":
+  ["query"] } } }`. ASCII-only.
+- Rewrite `send_message` as an agentic loop:
+  1. Load full session history. Persist the new user message
+     (`add_message`). Build provider `messages` list from persisted history,
+     skipping `role=="sys"` entries. Convert each remaining ChatMessage to
+     a provider `Message`.
+  2. Loop up to `MAX_TOOL_ROUNDS` iterations. Each iteration:
+     - Run `runtime.guard().check_before_call(...)`.
+     - If `runtime.search_client is None`, call `chat(messages, system=...,
+       tools=None)`. If present, pass `tools=[WEB_SEARCH_TOOL]`. On the
+       last allowed iteration force `tools=None` to require a final answer.
+     - Stream TokenEvents to the SSE client. Collect ToolCallEvents in a
+       list. Capture the final UsageEvent.
+     - Call `record_usage(...)` for this round.
+     - If the round produced no tool calls: break out of the loop.
+     - Otherwise: for each tool call, parse `arguments` JSON, run
+       `runtime.search_client.search(SearchRequest(query=..., max_results=
+       ...))`. On exception, capture the error string as the tool result
+       content. Emit a `tool_round` SSE event per call. Append a `sys`
+       ChatMessage to the session with ASCII text like `-> web_search(
+       "query") -> 3 results` (or `-> error: ...`). Then append to the
+       provider message list: one `assistant` Message carrying every
+       `tool_call` from this round (empty content), then one `tool`
+       Message per call with content = json.dumps(result_list).
+  3. After the loop, persist the assistant final text as a single
+     `assistant` ChatMessage. Emit `done`.
+- New SSE event: `tool_round` with payload
+  `{"name": "web_search", "query": "...", "result_count": 3, "ok": true}`
+  or `{"name": "web_search", "query": "...", "ok": false, "error": "..."}`.
+
+Storage (`storage.py`):
+- Check that the parser accepts `role="sys"`. If not, widen the allowed
+  roles set. Do not change the on-disk format otherwise. Do not change
+  the sqlite schema.
+
+Prompt (`prompts/brainstorm-system.md`):
+- Copy the current file to `prompts/_archive/brainstorm-system-YYYY-MM-DD.md`
+  before editing (today's ISO date).
+- Insert a short paragraph in the same terse second-person voice as the
+  existing prompt:
+  > You have access to a `web_search` tool that queries the public web.
+  > Call it when the user explicitly asks you to look something up, when
+  > you are uncertain or hedging, or when the question depends on
+  > time-sensitive state (news, recent releases, dates, prices, current
+  > versions). Skip it for stable concepts or things you already know
+  > with confidence. After receiving results, integrate them naturally
+  > and cite urls when relevant.
+
+Frontend (`app.js`):
+- In the SSE handler inside `sendMessage`, handle the new `tool_round`
+  event. On receipt, INSERT a new `sys` turn into the transcript
+  immediately before the in-progress assistant turn, with text rendered as
+  `↳ web_search("query") → N results` (or `↳ web_search("query") → error:
+  ...`). Use the existing `createTurnElement("sys", text, time)` helper
+  and the existing `isPinnedToBottom` autoscroll logic. Do not add any
+  search UI.
+
+Tests:
+- Any test that previously called `provider.chat(messages, system=...)`
+  or asserted its signature must accept the new `tools` kwarg. Update
+  signatures only - don't widen test scope.
+
+Do not:
+- Touch the curator / reviewer / publisher / redaction pipeline.
+- Add new dependencies.
+- Change `/api/search` shape or path.
+- Change `idea_capture` to use tools.
+- Use unicode in Python source (ASCII-only rule). Frontend may keep
+  unicode glyphs (↳, ●, →) - that is existing UI convention.
+- Change `metadata.db` schema or any sqlite table.
+
+Smoke test:
+
+```sh
+cd /home/daniel/Documents/Projekter/Daniel90mm.github.io/flightrecorder
+.venv/bin/python -c "from flightrecorder import api, providers, storage; print('imports ok')"
+.venv/bin/python -m pytest tests -x -q 2>&1 | tail -20
+```
+
+Hand-back:
+- Both commands clean (imports ok, pytest all green). Stop. Do not commit.

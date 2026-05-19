@@ -36,6 +36,7 @@ class BrainstormStub:
         self,
         messages: list,
         system: str | None = None,
+        tools: list[dict] | None = None,
     ) -> AsyncIterator[ChatEvent]:
         for char in self._reply:
             yield TokenEvent(text=char)
@@ -77,6 +78,7 @@ class ExtractStub:
         self,
         messages: list,
         system: str | None = None,
+        tools: list[dict] | None = None,
     ) -> AsyncIterator[ChatEvent]:
         for i in range(0, len(self._response), 8):
             yield TokenEvent(text=self._response[i:i + 8])

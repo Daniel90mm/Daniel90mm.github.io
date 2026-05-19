@@ -34,6 +34,7 @@ class StubProvider:
         self,
         messages: list,
         system: str | None = None,
+        tools: list[dict] | None = None,
     ) -> AsyncIterator[ChatEvent]:
         for i in range(0, len(self._output_text), 5):
             yield TokenEvent(text=self._output_text[i:i + 5])

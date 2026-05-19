@@ -43,7 +43,7 @@ from flightrecorder.matchmaker import (
     propose_matches,
 )
 from flightrecorder.project_registry import ProjectRegistryError, load_project_registry
-from flightrecorder.providers import Message, TokenEvent, UsageEvent
+from flightrecorder.providers import Message, TokenEvent, ToolCallEvent, UsageEvent
 from flightrecorder.publisher import run_publish_pipeline
 from flightrecorder.serializers import (
     asset_to_dict,
@@ -69,6 +69,39 @@ def _load_prompt_text(filename: str) -> str:
 
 
 BRAINSTORM_SYSTEM_PROMPT = _load_prompt_text("brainstorm-system.md")
+
+
+MAX_TOOL_ROUNDS = 4
+
+
+WEB_SEARCH_TOOL: dict[str, Any] = {
+    "type": "function",
+    "function": {
+        "name": "web_search",
+        "description": (
+            "Search the public web for current or factual information. "
+            "Use when the user explicitly asks, when you're uncertain or "
+            "hedging, or when the answer depends on time-sensitive state "
+            "(news, releases, prices, dates)."
+        ),
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "query": {
+                    "type": "string",
+                    "description": "The search query.",
+                },
+                "max_results": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 10,
+                    "default": 5,
+                },
+            },
+            "required": ["query"],
+        },
+    },
+}
 
 
 def _session_assets(runtime_home: Path, session_id: str) -> list[dict[str, object]]:
@@ -322,7 +355,14 @@ async def send_message(
     payload: ChatRequest,
     request: Request,
 ) -> StreamingResponse:
-    """Send a user message and stream the assistant response via SSE."""
+    """Send a user message and stream the assistant response via SSE.
+
+    Runs an agentic loop: the provider can call the `web_search` tool up
+    to MAX_TOOL_ROUNDS times before being forced to produce a final
+    answer. Each tool round is recorded as a `sys` ChatMessage so the
+    user has an audit trail, but those sys turns are not replayed back
+    to the model on later turns (only user and assistant messages are).
+    """
 
     runtime = request.app.state.runtime
 
@@ -333,7 +373,7 @@ async def send_message(
         )
 
     try:
-        metadata = runtime.sessions.get_session(session_id)[0]
+        _metadata, session_messages = runtime.sessions.get_session(session_id)
     except FileNotFoundError as exc:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -355,60 +395,234 @@ async def send_message(
     )
     runtime.sessions.add_message(session_id, user_message)
 
-    assistant_text_parts: list[str] = []
-    usage: UsageEvent | None = None
+    # Build the provider message list from persisted history. Skip "sys"
+    # ChatMessage entries (tool-round audit lines): they are not replayed
+    # to the model on later turns.
+    provider_messages: list[Message] = []
+    for prior in session_messages:
+        if prior.role in {"user", "assistant"}:
+            provider_messages.append(
+                Message(role=prior.role, content=prior.content)
+            )
+    provider_messages.append(Message(role="user", content=payload.content))
+
+    search_client = runtime.search_client
 
     async def event_stream():
-        nonlocal usage
         try:
-            async for event in runtime.brainstorm_provider.chat(
-                messages=[Message(role="user", content=payload.content)],
-                system=BRAINSTORM_SYSTEM_PROMPT,
-            ):
-                if isinstance(event, TokenEvent):
-                    assistant_text_parts.append(event.text)
-                    yield _sse_event("token", {"token": event.text})
-                elif isinstance(event, UsageEvent):
-                    usage = event
+            rounds = 0
 
-            if usage is None:
-                yield _sse_event(
-                    "error",
-                    {"detail": "Provider stream finished without usage info"},
+            while True:
+                # Budget guard before every provider call.
+                runtime.guard().check_before_call(datetime.now(timezone.utc))
+
+                tool_calls_this_round: list[ToolCallEvent] = []
+                round_text_parts: list[str] = []
+                usage: UsageEvent | None = None
+
+                # If no search client is configured, we never offer tools.
+                # Likewise on the forced final round after MAX_TOOL_ROUNDS.
+                if search_client is None or rounds >= MAX_TOOL_ROUNDS:
+                    tools_arg: list[dict] | None = None
+                else:
+                    tools_arg = [WEB_SEARCH_TOOL]
+
+                async for event in runtime.brainstorm_provider.chat(
+                    messages=provider_messages,
+                    system=BRAINSTORM_SYSTEM_PROMPT,
+                    tools=tools_arg,
+                ):
+                    if isinstance(event, TokenEvent):
+                        round_text_parts.append(event.text)
+                        yield _sse_event("token", {"token": event.text})
+                    elif isinstance(event, ToolCallEvent):
+                        tool_calls_this_round.append(event)
+                    elif isinstance(event, UsageEvent):
+                        usage = event
+
+                if usage is None:
+                    yield _sse_event(
+                        "error",
+                        {"detail": "Provider stream finished without usage info"},
+                    )
+                    return
+
+                # Cost record for this round's provider call.
+                runtime.guard().record_usage(
+                    ProviderUsage(
+                        timestamp=datetime.now(timezone.utc),
+                        provider=runtime.brainstorm_provider.name,
+                        model=runtime.brainstorm_provider.model,
+                        role="brainstorm",
+                        input_tokens=usage.input_tokens,
+                        output_tokens=usage.output_tokens,
+                        cached_tokens=usage.cached_tokens,
+                        session_id=session_id,
+                    ),
                 )
-                return
 
-            assistant_content = "".join(assistant_text_parts)
-            updated = runtime.sessions.add_message(
-                session_id,
-                ChatMessage(
-                    role="assistant",
-                    timestamp=_timestamp_now(),
-                    content=assistant_content,
-                ),
-            )
+                round_text = "".join(round_text_parts)
 
-            runtime.guard().record_usage(
-                ProviderUsage(
-                    timestamp=datetime.now(timezone.utc),
-                    provider=runtime.brainstorm_provider.name,
-                    model=runtime.brainstorm_provider.model,
-                    role="brainstorm",
-                    input_tokens=usage.input_tokens,
-                    output_tokens=usage.output_tokens,
-                    cached_tokens=usage.cached_tokens,
-                    session_id=session_id,
-                ),
-            )
+                if not tool_calls_this_round:
+                    # Final answer. Persist this round's prose as the
+                    # closing assistant message.
+                    updated = runtime.sessions.add_message(
+                        session_id,
+                        ChatMessage(
+                            role="assistant",
+                            timestamp=_timestamp_now(),
+                            content=round_text,
+                        ),
+                    )
+                    yield _sse_event(
+                        "done",
+                        {
+                            "input_tokens": usage.input_tokens,
+                            "output_tokens": usage.output_tokens,
+                            "message_count": updated.message_count,
+                        },
+                    )
+                    return
 
-            yield _sse_event(
-                "done",
-                {
-                    "input_tokens": usage.input_tokens,
-                    "output_tokens": usage.output_tokens,
-                    "message_count": updated.message_count,
-                },
-            )
+                # Tool calls were requested. Persist this round's prose
+                # (if any) as its own assistant message so the transcript
+                # shows the model's reasoning BEFORE the sys audit lines.
+                if round_text.strip():
+                    runtime.sessions.add_message(
+                        session_id,
+                        ChatMessage(
+                            role="assistant",
+                            timestamp=_timestamp_now(),
+                            content=round_text,
+                        ),
+                    )
+
+                # Tool calls were requested. Execute them, persist audit
+                # sys lines, and append assistant+tool messages for the
+                # next round.
+                assistant_tool_calls_payload: list[dict] = []
+                tool_result_messages: list[Message] = []
+
+                for call in tool_calls_this_round:
+                    query = ""
+                    max_results = 5
+                    parse_error: str | None = None
+                    try:
+                        parsed = json.loads(call.arguments or "{}")
+                        if not isinstance(parsed, dict):
+                            raise ValueError("arguments is not a JSON object")
+                        query = str(parsed.get("query", "")).strip()
+                        if "max_results" in parsed:
+                            max_results = int(parsed["max_results"])
+                        if not query:
+                            raise ValueError("query is required")
+                    except (ValueError, TypeError, json.JSONDecodeError) as exc:
+                        parse_error = f"invalid tool arguments: {exc}"
+
+                    result_payload: object
+                    result_count = 0
+                    ok = False
+                    error_message: str | None = parse_error
+
+                    if parse_error is None and call.name != "web_search":
+                        error_message = f"unknown tool: {call.name}"
+
+                    if error_message is None:
+                        try:
+                            results = await search_client.search(
+                                SearchRequest(
+                                    query=query,
+                                    max_results=max_results,
+                                )
+                            )
+                            result_count = len(results)
+                            ok = True
+                            result_payload = [
+                                {
+                                    "title": r.title,
+                                    "url": r.url,
+                                    "snippet": r.snippet,
+                                }
+                                for r in results
+                            ]
+                        except SearchError as exc:
+                            error_message = str(exc)
+                            result_payload = {"error": error_message}
+                        except Exception as exc:  # defensive: never let tool failures crash the loop
+                            error_message = f"tool execution failed: {exc}"
+                            result_payload = {"error": error_message}
+                    else:
+                        result_payload = {"error": error_message}
+
+                    # Emit SSE tool_round event for the client transcript.
+                    sse_data: dict[str, object] = {
+                        "name": call.name,
+                        "query": query,
+                        "result_count": result_count,
+                        "ok": ok,
+                    }
+                    if error_message is not None:
+                        sse_data["error"] = error_message
+                    yield _sse_event("tool_round", sse_data)
+
+                    # Persist sys audit line to the session file.
+                    if ok:
+                        sys_text = (
+                            f"-> web_search(\"{query}\") -> {result_count} results"
+                        )
+                    else:
+                        sys_text = (
+                            f"-> web_search(\"{query}\") -> error: "
+                            f"{error_message or 'unknown error'}"
+                        )
+                    runtime.sessions.add_message(
+                        session_id,
+                        ChatMessage(
+                            role="sys",
+                            timestamp=_timestamp_now(),
+                            content=sys_text,
+                        ),
+                    )
+
+                    # Build the assistant tool_call entry and matching
+                    # tool result message for the next provider round.
+                    assistant_tool_calls_payload.append(
+                        {
+                            "id": call.id,
+                            "type": "function",
+                            "function": {
+                                "name": call.name,
+                                "arguments": call.arguments or "{}",
+                            },
+                        }
+                    )
+                    tool_result_messages.append(
+                        Message(
+                            role="tool",
+                            content=json.dumps(result_payload),
+                            tool_call_id=call.id,
+                            name=call.name,
+                        )
+                    )
+
+                # Append the model's assistant turn (with tool_calls) and
+                # tool result messages so the next provider call can see
+                # them. We use whatever text the model already emitted
+                # this round, but typically tool-calling rounds have no
+                # text content.
+                provider_messages.append(
+                    Message(
+                        role="assistant",
+                        content="".join(round_text_parts),
+                        tool_calls=tuple(assistant_tool_calls_payload),
+                    )
+                )
+                provider_messages.extend(tool_result_messages)
+
+                rounds += 1
+                # Loop back: if rounds >= MAX_TOOL_ROUNDS, the next
+                # iteration calls the provider without tools to force a
+                # final answer.
 
         except Exception as exc:
             yield _sse_event(

@@ -64,10 +64,6 @@
     composerProvider: document.getElementById("composer-provider"),
     composerBudget: document.getElementById("composer-budget"),
     attachmentRow: document.getElementById("attachment-row"),
-    searchForm: document.getElementById("search-form"),
-    searchInput: document.getElementById("search-input"),
-    searchBtn: document.getElementById("search-btn"),
-    searchResults: document.getElementById("search-results"),
   };
 
   function api(path, options) {
@@ -355,6 +351,15 @@
     return (el.scrollHeight - el.scrollTop - el.clientHeight) < 48;
   }
 
+  // Cosmetic pass: sys turns are persisted as ASCII for backend cleanliness
+  // (`-> web_search("q") -> N results`); render them with proper arrow glyphs.
+  function prettifySysContent(text) {
+    if (!text) return "";
+    return text
+      .replace(/^-> /gm, "↳ ")
+      .replace(/ -> /g, " → ");
+  }
+
   function createTurnElement(role, content, time) {
     var div = document.createElement("div");
     div.className = "fr-turn " + (role || "user");
@@ -372,7 +377,8 @@
     }
     var body = document.createElement("div");
     body.className = "fr-turn-body";
-    body.innerHTML = renderMarkdown(content || "");
+    var displayContent = role === "sys" ? prettifySysContent(content || "") : (content || "");
+    body.innerHTML = renderMarkdown(displayContent);
     renderMathIn(body);
     div.appendChild(head);
     div.appendChild(body);
@@ -537,44 +543,6 @@
       });
   }
 
-  function searchWeb(query) {
-    if (!query || !query.trim()) {
-      DOM.searchResults.textContent = "enter a query";
-      return;
-    }
-    DOM.searchResults.textContent = "searching...";
-    api("/api/search?q=" + encodeURIComponent(query.trim()))
-      .then(function (res) { return res.json(); })
-      .then(function (data) {
-        var results = data.results || [];
-        DOM.searchResults.innerHTML = "";
-        if (results.length === 0) {
-          DOM.searchResults.textContent = "no results";
-          return;
-        }
-        results.forEach(function (r) {
-          var row = document.createElement("div");
-          row.className = "fr-search-row";
-          var title = document.createElement("div");
-          title.className = "fr-search-title";
-          title.textContent = r.title || "untitled";
-          var url = document.createElement("div");
-          url.className = "fr-search-url";
-          url.textContent = r.url || "";
-          var snippet = document.createElement("div");
-          snippet.className = "fr-search-snippet";
-          snippet.textContent = r.snippet || "";
-          row.appendChild(title);
-          row.appendChild(url);
-          row.appendChild(snippet);
-          DOM.searchResults.appendChild(row);
-        });
-      })
-      .catch(function (err) {
-        DOM.searchResults.textContent = "search failed: " + err.message;
-      });
-  }
-
   function renderExtractionResult(result) {
     var el = document.getElementById("extraction-result");
     if (!el) {
@@ -634,6 +602,42 @@
           assistantText += data.token || "";
           assistantBody.innerHTML = renderMarkdown(assistantText);
           if (pinned) DOM.transcript.scrollTop = DOM.transcript.scrollHeight;
+        } else if (event.event === "tool_round") {
+          var pinnedTool = isPinnedToBottom(DOM.transcript);
+          var query = data.query || "";
+          var toolName = data.name || "tool";
+          var sysText;
+          if (data.ok) {
+            sysText = "↳ " + toolName + "(\"" + query + "\") → "
+              + (data.result_count || 0) + " results";
+          } else {
+            sysText = "↳ " + toolName + "(\"" + query + "\") → error: "
+              + (data.error || "unknown");
+          }
+          var nowSys = (function () {
+            var dn = new Date();
+            return ("0" + dn.getHours()).slice(-2) + ":"
+              + ("0" + dn.getMinutes()).slice(-2) + ":"
+              + ("0" + dn.getSeconds()).slice(-2);
+          })();
+          var sysTurn = createTurnElement("sys", sysText, nowSys);
+          // Per-round bubbles: the current assistant bubble holds this
+          // round's prose. If it has no text yet, drop it. Append the
+          // sys turn after it, then open a fresh assistant bubble for
+          // the next round.
+          if (!assistantText.trim()) {
+            assistantTurn.remove();
+            DOM.transcript.appendChild(sysTurn);
+          } else {
+            assistantBody.innerHTML = renderMarkdown(assistantText);
+            renderMathIn(assistantBody);
+            DOM.transcript.appendChild(sysTurn);
+          }
+          assistantText = "";
+          assistantTurn = createTurnElement("assistant", "", nowSys);
+          assistantBody = assistantTurn.querySelector(".fr-turn-body");
+          DOM.transcript.appendChild(assistantTurn);
+          if (pinnedTool) DOM.transcript.scrollTop = DOM.transcript.scrollHeight;
         } else if (event.event === "done") {
           var pinnedDone = isPinnedToBottom(DOM.transcript);
           assistantBody.innerHTML = renderMarkdown(assistantText);
@@ -1090,11 +1094,6 @@
     runMatchmakerForIdea(state.currentSpaghettiId);
   });
 
-  DOM.searchForm.addEventListener("submit", function (e) {
-    e.preventDefault();
-    var query = DOM.searchInput.value;
-    searchWeb(query);
-  });
 
   function createSSEParser() {
     var buffer = "";
@@ -1158,7 +1157,6 @@
     fetchPublishPreview: fetchPublishPreview,
     runMatchmakerForIdea: runMatchmakerForIdea,
     deleteAsset: deleteAsset,
-    searchWeb: searchWeb,
   };
 
   refreshSessionList(true);

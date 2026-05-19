@@ -15,6 +15,9 @@ from flightrecorder.config import AppConfig, RoleConfig
 class Message:
     role: str
     content: str
+    tool_calls: tuple[dict, ...] = ()
+    tool_call_id: str | None = None
+    name: str | None = None
 
 
 @dataclass(frozen=True)
@@ -22,6 +25,15 @@ class TokenEvent:
     """One streamed text chunk from the provider."""
 
     text: str
+
+
+@dataclass(frozen=True)
+class ToolCallEvent:
+    """One complete tool call requested by the model in this turn."""
+
+    id: str
+    name: str
+    arguments: str
 
 
 @dataclass(frozen=True)
@@ -33,7 +45,7 @@ class UsageEvent:
     cached_tokens: int = 0
 
 
-ChatEvent = TokenEvent | UsageEvent
+ChatEvent = TokenEvent | UsageEvent | ToolCallEvent
 
 
 class Provider(Protocol):
@@ -46,8 +58,13 @@ class Provider(Protocol):
         self,
         messages: list[Message],
         system: str | None = None,
+        tools: list[dict] | None = None,
     ) -> AsyncIterator[ChatEvent]:
-        """Stream a provider response as TokenEvent... then one final UsageEvent."""
+        """Stream a provider response as TokenEvent... then one final UsageEvent.
+
+        When tools is provided, ToolCallEvents may also be yielded for any
+        function calls the model requests before the UsageEvent.
+        """
 
 
 class ProviderError(RuntimeError):
@@ -92,6 +109,7 @@ class ConfiguredProvider:
         self,
         messages: list[Message],
         system: str | None = None,
+        tools: list[dict] | None = None,
     ) -> AsyncIterator[ChatEvent]:
         if False:
             yield TokenEvent(text="")
@@ -139,9 +157,16 @@ class AnthropicChatProvider(ConfiguredProvider):
         self,
         messages: list[Message],
         system: str | None = None,
+        tools: list[dict] | None = None,
     ) -> AsyncIterator[ChatEvent]:
         if not self.is_configured:
             raise ProviderError("anthropic provider has no api key configured")
+        if tools:
+            # TODO: implement anthropic tool_use/tool_result content blocks.
+            # DeepSeek is the default brainstorm provider, so this is deferred.
+            raise NotImplementedError(
+                "anthropic provider does not yet support web_search tool calling"
+            )
         for message in messages:
             if message.role not in {"user", "assistant"}:
                 raise ProviderError(
@@ -216,27 +241,61 @@ class OpenAICompatibleChatProvider(ConfiguredProvider):
         self,
         messages: list[Message],
         system: str | None = None,
+        tools: list[dict] | None = None,
     ) -> AsyncIterator[ChatEvent]:
         if not self.is_configured:
             raise ProviderError(f"{self.name} provider has no api key configured")
 
-        request_messages: list[dict[str, str]] = []
+        request_messages: list[dict[str, Any]] = []
         if system is not None:
             request_messages.append({"role": "system", "content": system})
         for message in messages:
-            if message.role not in {"user", "assistant", "system"}:
+            if message.role not in {"user", "assistant", "system", "tool"}:
                 raise ProviderError(
-                    f"{self.name} role must be user, assistant, or system, got {message.role!r}"
+                    f"{self.name} role must be user, assistant, system, or tool, "
+                    f"got {message.role!r}"
                 )
-            request_messages.append({"role": message.role, "content": message.content})
+            if message.role == "tool":
+                if message.tool_call_id is None:
+                    raise ProviderError(
+                        f"{self.name} tool message requires tool_call_id"
+                    )
+                tool_entry: dict[str, Any] = {
+                    "role": "tool",
+                    "content": message.content,
+                    "tool_call_id": message.tool_call_id,
+                }
+                if message.name is not None:
+                    tool_entry["name"] = message.name
+                request_messages.append(tool_entry)
+            elif message.role == "assistant" and message.tool_calls:
+                assistant_entry: dict[str, Any] = {
+                    "role": "assistant",
+                    "content": message.content or None,
+                    "tool_calls": [dict(call) for call in message.tool_calls],
+                }
+                request_messages.append(assistant_entry)
+            else:
+                request_messages.append(
+                    {"role": message.role, "content": message.content}
+                )
+
+        create_kwargs: dict[str, Any] = {
+            "model": self.model,
+            "messages": request_messages,
+            "stream": True,
+            "stream_options": {"include_usage": True},
+        }
+        if tools is not None:
+            create_kwargs["tools"] = tools
+
+        # Accumulate streamed tool_call deltas keyed by index. Each delta may
+        # carry partial fields (id and function.name typically arrive on the
+        # first chunk for that index; function.arguments is incremental).
+        tool_call_accumulator: dict[int, dict[str, str]] = {}
 
         try:
-            stream = await self._client.chat.completions.create(
-                model=self.model,
-                messages=request_messages,
-                stream=True,
-                stream_options={"include_usage": True},
-            )
+            stream = await self._client.chat.completions.create(**create_kwargs)
             usage: Any | None = None
             async for chunk in stream:
                 usage = getattr(chunk, "usage", None) or usage
@@ -247,6 +306,24 @@ class OpenAICompatibleChatProvider(ConfiguredProvider):
                 content = getattr(delta, "content", None)
                 if content:
                     yield TokenEvent(text=str(content))
+                delta_tool_calls = getattr(delta, "tool_calls", None) or []
+                for delta_call in delta_tool_calls:
+                    index = getattr(delta_call, "index", 0) or 0
+                    slot = tool_call_accumulator.setdefault(
+                        int(index),
+                        {"id": "", "name": "", "arguments": ""},
+                    )
+                    call_id = getattr(delta_call, "id", None)
+                    if call_id:
+                        slot["id"] = str(call_id)
+                    function = getattr(delta_call, "function", None)
+                    if function is not None:
+                        fn_name = getattr(function, "name", None)
+                        if fn_name:
+                            slot["name"] = str(fn_name)
+                        fn_args = getattr(function, "arguments", None)
+                        if fn_args:
+                            slot["arguments"] += str(fn_args)
         except ProviderError:
             raise
         except Exception as exc:
@@ -254,6 +331,16 @@ class OpenAICompatibleChatProvider(ConfiguredProvider):
 
         if usage is None:
             raise ProviderError(f"{self.name} stream finished without usage info")
+
+        for index in sorted(tool_call_accumulator.keys()):
+            slot = tool_call_accumulator[index]
+            if not slot["id"] or not slot["name"]:
+                continue
+            yield ToolCallEvent(
+                id=slot["id"],
+                name=slot["name"],
+                arguments=slot["arguments"],
+            )
 
         cached = (
             getattr(usage, "prompt_cache_hit_tokens", None)
@@ -308,7 +395,9 @@ class PrototypeProvider(ConfiguredProvider):
         self,
         messages: list[Message],
         system: str | None = None,
+        tools: list[dict] | None = None,
     ) -> AsyncIterator[ChatEvent]:
+        del tools  # prototype ignores tool calling
         prompt = messages[-1].content.strip() if messages else ""
         if "idea-capture" in self.model or "idea_capture" in self.model:
             text = self._idea_capture_response(prompt)

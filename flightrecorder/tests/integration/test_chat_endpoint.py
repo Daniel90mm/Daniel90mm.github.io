@@ -39,6 +39,7 @@ class StubProvider:
         self,
         messages: list,
         system: str | None = None,
+        tools: list[dict] | None = None,
     ) -> AsyncIterator[ChatEvent]:
         self.last_system = system
         if self._should_raise:
