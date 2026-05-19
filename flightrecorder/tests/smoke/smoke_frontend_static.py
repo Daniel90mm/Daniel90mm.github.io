@@ -78,8 +78,20 @@ def main() -> None:
     if 'id="run-matchmaker-btn"' not in index_html:
         print("missing matchmaker run button in index.html", file=sys.stderr)
         sys.exit(1)
+    if 'id="attachment-context-panel"' not in index_html:
+        print("missing attachment context panel in index.html", file=sys.stderr)
+        sys.exit(1)
+    if 'id="preview-attachments-btn"' not in index_html:
+        print("missing attachment context preview button in index.html", file=sys.stderr)
+        sys.exit(1)
+    if "voice or type" in index_html:
+        print("frontend must not imply voice support exists", file=sys.stderr)
+        sys.exit(1)
     if "deleteAsset" not in app_js:
         print("missing frontend asset delete handler", file=sys.stderr)
+        sys.exit(1)
+    if "previewAttachmentContext" not in app_js:
+        print("missing frontend attachment context handler", file=sys.stderr)
         sys.exit(1)
 
     print("frontend static files smoke test passed")
