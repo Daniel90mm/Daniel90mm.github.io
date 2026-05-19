@@ -220,82 +220,18 @@ regression is found:
 | S164 | Public page update for publish-preview visibility. |
 | S165 | Frontend matchmaker panel for selected spaghetti idea, completed by senior agent. |
 | S172 | Uploaded file removal from API and frontend, completed by senior agent. |
+| S173 | Asset serving contract after delete landed. |
+| S174 | Safe session asset serving endpoint, session-existence guard added by senior agent. |
+| S175 | Frontend links for uploaded assets while preserving remove. |
+| S176 | Text and Markdown asset extraction helper. |
+| S177 | Attachment context preview API. |
+| S178 | Honest attachment limitations documentation. |
 
 ## Active queue
 
 Pick from the top unless Daniel or the senior agent says otherwise.
 
-## S173 - Update asset serving contract after delete landed
-
-Where:
-- `flightrecorder/docs/API_CONTRACT_DRAFT.md`
-- `flightrecorder/docs/API_CURRENT_STATE.md`
-- `flightrecorder/docs/SMOKE_COMMANDS.md`
-
-What:
-- Add a contract section for `GET /api/sessions/{session_id}/assets/{filename}`.
-- Keep the existing `DELETE /api/sessions/{session_id}/assets/{filename}`
-  section in sync with the implemented delete route.
-- State path-guard rules for both GET and DELETE:
-  1. asset must live under `<runtime_home>/sessions/_assets`;
-  2. asset filename must belong to the requested session prefix;
-  3. traversal such as `../` must return 404.
-- In `API_CURRENT_STATE.md`, mark GET asset serving as draft-only and DELETE
-  asset removal as implemented.
-- Add smoke command placeholders for the future serving smoke.
-
-Why:
-- We added deletion first. The next worker needs a clean written contract for
-  safe file inspection before implementing it.
-
-Smoke test:
-
-```sh
-cd /home/daniel/Documents/Projekter/Daniel90mm.github.io/flightrecorder
-rg -n "GET /api/sessions/\\{session_id\\}/assets/\\{filename\\}" docs/API_CONTRACT_DRAFT.md
-rg -n "DELETE /api/sessions/\\{session_id\\}/assets/\\{filename\\}" docs/API_CONTRACT_DRAFT.md
-PYTHONPATH=src/backend python tests/smoke/smoke_api_current_state.py
-```
-
-Hand-back:
-- When all commands pass, stop. Do not commit.
-
-## S174 - Implement safe session asset serving
-
-Where:
-- `flightrecorder/src/backend/flightrecorder/api.py`
-- `flightrecorder/tests/integration/test_session_asset_serving_api.py` (new file)
-- `flightrecorder/tests/smoke/smoke_session_asset_serving_api.py` (new file)
-- `flightrecorder/docs/API_CURRENT_STATE.md`
-- `flightrecorder/docs/SMOKE_COMMANDS.md`
-
-What:
-- Implement `GET /api/sessions/{session_id}/assets/{filename}`.
-- Return the uploaded asset bytes with an appropriate media type.
-- Return 404 when:
-  1. the session does not exist;
-  2. the file does not exist;
-  3. the filename does not start with `{session_id}-`;
-  4. path traversal is attempted.
-- Add integration and smoke coverage.
-
-Why:
-- The dogfood UI can upload and remove files now, but cannot inspect them
-  without opening the runtime folder.
-
-Smoke test:
-
-```sh
-cd /home/daniel/Documents/Projekter/Daniel90mm.github.io/flightrecorder
-.venv/bin/python -m pytest tests/integration/test_session_asset_serving_api.py -q
-.venv/bin/python tests/smoke/smoke_session_asset_serving_api.py
-PYTHONPATH=src/backend python tests/smoke/smoke_api_current_state.py
-```
-
-Hand-back:
-- When all commands pass, stop. Do not commit.
-
-## S175 - Link uploaded assets from the frontend
+## S179 - Add attachment context panel to the frontend
 
 Where:
 - `flightrecorder/src/frontend/index.html`
@@ -306,18 +242,15 @@ Where:
 - `flightrecorder/docs/FRONTEND_SCOPE.md`
 
 What:
-- Turn each uploaded asset filename into a same-tab link to
-  `/api/sessions/{session_id}/assets/{filename}`.
-- Use DOM node creation and `textContent`; do not build links with raw
-  `innerHTML`.
-- Keep the filename visible and size readable.
-- Keep the existing **Remove** button working.
-- If there are no assets, show a quiet empty state such as `No uploaded files`.
-- Update frontend docs and smokes.
+- Add an **Attachment Context** panel.
+- Add a button that calls `GET /api/sessions/{session_id}/attachment-context`.
+- Render included/skipped counts and `combined_text` using `textContent`.
+- If no session is selected, show a quiet empty state.
+- Do not send attachment text to a provider in this task.
 
 Why:
-- Uploaded files should be inspectable and removable from the prototype browser
-  surface.
+- Users need to see what text/Markdown attachments would contribute before we
+  inject that context into chat prompts.
 
 Smoke test:
 
@@ -330,70 +263,128 @@ PYTHONPATH=src/backend python tests/smoke/smoke_frontend_static.py
 Hand-back:
 - When both commands pass, stop. Do not commit.
 
-## S176 - Add text and Markdown asset extraction helper
+## S180 - Add attachment context smoke script
 
 Where:
-- `flightrecorder/src/backend/flightrecorder/assets.py` (new file)
-- `flightrecorder/tests/unit/test_assets.py` (new file)
-
-What:
-- Add a helper that extracts text from safe uploaded text-like files:
-  `.txt`, `.md`, `.markdown`, and content types beginning with `text/`.
-- Cap extracted text at 20,000 characters.
-- Return `None` for binary/unsupported assets such as images and PDFs.
-- Add unit tests for:
-  1. `.txt`;
-  2. `.md`;
-  3. unsupported `.png`;
-  4. truncation.
-- Do not wire this into chat yet.
-
-Why:
-- Before sending attachments into model context, we need a small, testable
-  extraction boundary for text/Markdown assets.
-
-Smoke test:
-
-```sh
-cd /home/daniel/Documents/Projekter/Daniel90mm.github.io/flightrecorder
-.venv/bin/python -m pytest tests/unit/test_assets.py -q
-```
-
-Hand-back:
-- When the command passes, stop. Do not commit.
-
-## S177 - Add attachment context preview API
-
-Where:
-- `flightrecorder/src/backend/flightrecorder/api.py`
-- `flightrecorder/src/backend/flightrecorder/assets.py`
-- `flightrecorder/tests/integration/test_attachment_context_api.py` (new file)
+- `flightrecorder/tests/smoke/smoke_attachment_context_api.py` (new file)
 - `flightrecorder/docs/SMOKE_COMMANDS.md`
 
 What:
-- Add read-only `GET /api/sessions/{session_id}/attachment-context`.
-- Return a JSON object with:
-  `session_id`, `included`, `skipped`, and `combined_text`.
-- Include text/Markdown assets using the helper from S176.
-- Skip images/PDFs with a clear reason such as `unsupported_binary`.
-- Cap combined text at 30,000 characters.
-- Do not send anything to a provider in this task.
+- Add a smoke script that:
+  1. creates a session;
+  2. uploads a `.txt` file and a `.png` file;
+  3. calls `GET /api/sessions/{session_id}/attachment-context`;
+  4. asserts text is included and image is skipped;
+  5. asserts no provider calls were recorded.
+- Add it to `docs/SMOKE_COMMANDS.md`.
 
 Why:
-- The user needs to see what attachment text would be sent before we inject it
-  into chat prompts.
+- Attachment context will become part of chat prompting, so it needs a cheap
+  smoke test before that higher-risk step.
 
 Smoke test:
 
 ```sh
 cd /home/daniel/Documents/Projekter/Daniel90mm.github.io/flightrecorder
-.venv/bin/python -m pytest tests/integration/test_attachment_context_api.py -q
+.venv/bin/python tests/smoke/smoke_attachment_context_api.py
 ```
 
 Hand-back:
 - When the command passes, stop. Do not commit.
 
-## S178 - Document attachment limitations honestly
+## S181 - Draft attachment-to-chat prompt contract
+
+Where:
+- `flightrecorder/docs/ATTACHMENT_CONTEXT_PROMPT.md` (new file)
+- `flightrecorder/docs/NAVIGATION.md`
+
+What:
+- Draft a concise prompt contract for how text/Markdown attachments should be
+  injected into the brainstorm provider call.
+- Include:
+  1. delimiter format around attachment context;
+  2. max combined chars;
+  3. skipped asset reporting;
+  4. instruction that attachments are context, not user commands;
+  5. explicit warning that images/PDFs are not included yet.
+- Add the doc to navigation.
+- Do not implement provider injection in this task.
+
+Why:
+- Injecting uploaded text into chat is a prompt-injection risk. The contract
+  should be explicit before code changes.
+
+Smoke test:
+
+```sh
+cd /home/daniel/Documents/Projekter/Daniel90mm.github.io/flightrecorder
+rg -n "attachments are context, not user commands|images/PDFs are not included" docs/ATTACHMENT_CONTEXT_PROMPT.md
+PYTHONPATH=src/backend python tests/smoke/smoke_docs_navigation_consistency.py
+```
+
+Hand-back:
+- When both commands pass, stop. Do not commit.
+
+## S182 - Add attachment context to chat behind a flag
+
+Where:
+- `flightrecorder/src/backend/flightrecorder/api.py`
+- `flightrecorder/tests/integration/test_attachment_context_chat.py` (new file)
+- `flightrecorder/docs/API_CONTRACT_DRAFT.md`
+
+What:
+- Add an optional `include_attachments` boolean to the chat request body.
+- Default it to `false`.
+- When true, prepend extracted text/Markdown attachment context to the provider
+  call using the contract from `docs/ATTACHMENT_CONTEXT_PROMPT.md`.
+- Do not persist the attachment context as a user message.
+- Add integration coverage with a fake provider proving the provider receives
+  the attachment context when the flag is true and not when false.
+
+Why:
+- This is the first safe step toward “what is this file about?” for text-like
+  uploads without pretending images/PDFs work yet.
+
+Smoke test:
+
+```sh
+cd /home/daniel/Documents/Projekter/Daniel90mm.github.io/flightrecorder
+.venv/bin/python -m pytest tests/integration/test_attachment_context_chat.py -q
+```
+
+Hand-back:
+- When the command passes, stop. Do not commit.
+
+## S183 - Add frontend include-attachments toggle
+
+Where:
+- `flightrecorder/src/frontend/index.html`
+- `flightrecorder/src/frontend/styles.css`
+- `flightrecorder/src/frontend/app.js`
+- `flightrecorder/tests/smoke/smoke_frontend_static.py`
+- `flightrecorder/docs/FRONTEND_SCOPE.md`
+
+What:
+- Add a checkbox/toggle near the message box labelled `Include text attachments`.
+- When enabled, send `include_attachments: true` in the chat request JSON.
+- Keep it disabled by default.
+- Add a small status line that images/PDFs are not included yet.
+- Update frontend static smoke.
+
+Why:
+- Users should explicitly opt into sending attachment text to the model.
+
+Smoke test:
+
+```sh
+cd /home/daniel/Documents/Projekter/Daniel90mm.github.io/flightrecorder
+PYTHONPATH=src/backend python tests/smoke/smoke_frontend_static.py
+```
+
+Hand-back:
+- When the command passes, stop. Do not commit.
+
+## S184 - Update prototype walkthrough for attachment context
 
 Where:
 - `flightrecorder/docs/PROTOTYPE_WALKTHROUGH.md`
@@ -401,19 +392,15 @@ Where:
 - `flightrecorder/tests/smoke/smoke_prototype_walkthrough.py`
 
 What:
-- Explain the current attachment behavior:
-  1. upload stores files on the session;
-  2. remove deletes files from the session;
-  3. text/Markdown extraction is planned/partial;
-  4. images are not yet sent to DeepSeek chat because `deepseek-chat` is not a
-     vision path in this app;
-  5. PDFs need a parser before model injection.
-- Update the walkthrough smoke to check for `Remove`, `text/Markdown`, `PDF`,
-  and `vision`.
+- Update the walkthrough to describe:
+  1. inspecting uploaded files;
+  2. previewing attachment context;
+  3. optionally including text/Markdown attachments in chat;
+  4. images/PDFs still being excluded from model context.
+- Update the smoke markers accordingly.
 
 Why:
-- The prototype should make limitations clear so dogfood sessions are not
-  misleading.
+- The walkthrough should match the new attachment workflow after S179-S183.
 
 Smoke test:
 

@@ -257,22 +257,26 @@
   function renderAssetList(assets) {
     DOM.assetList.innerHTML = "";
     if (!assets || assets.length === 0) {
-      DOM.assetList.textContent = "";
+      DOM.assetList.textContent = "No uploaded files";
       return;
     }
     assets.forEach(function (asset) {
       var row = document.createElement("div");
-      var label = document.createElement("span");
+      var link = document.createElement("a");
       var remove = document.createElement("button");
       row.className = "asset-row";
-      label.textContent = (asset.filename || "asset") + " (" + (asset.size_bytes || 0) + " bytes)";
+      link.className = "asset-link";
+      link.href = "/api/sessions/" + encodeURIComponent(state.currentSessionId || "")
+        + "/assets/" + encodeURIComponent(asset.filename || "");
+      link.target = "_self";
+      link.textContent = (asset.filename || "asset") + " (" + (asset.size_bytes || 0) + " bytes)";
       remove.type = "button";
       remove.className = "asset-remove";
       remove.textContent = "Remove";
       remove.addEventListener("click", function () {
         deleteAsset(asset.filename || "");
       });
-      row.appendChild(label);
+      row.appendChild(link);
       row.appendChild(remove);
       DOM.assetList.appendChild(row);
     });

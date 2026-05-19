@@ -3,14 +3,16 @@
 from __future__ import annotations
 
 import json
+import mimetypes
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
 from fastapi import APIRouter, File, HTTPException, Query, Request, UploadFile, status
-from fastapi.responses import StreamingResponse
+from fastapi.responses import FileResponse, StreamingResponse
 from pydantic import BaseModel, Field
 
+from flightrecorder.assets import extract_text_from_asset
 from flightrecorder.costs import (
     BudgetHardStopError,
     ProviderUsage,
@@ -47,7 +49,7 @@ from flightrecorder.serializers import (
     session_detail_to_dict,
     session_metadata_to_dict,
 )
-from flightrecorder.storage import AssetTooLargeError, ChatMessage
+from flightrecorder.storage import AssetTooLargeError, ChatMessage, safe_session_asset_path
 
 
 router = APIRouter(prefix="/api")
@@ -198,6 +200,41 @@ async def delete_session_asset(
         "image_count": metadata.image_count,
         "assets": _session_assets(runtime.config.paths.runtime_home, session_id),
     }
+
+
+@router.get("/sessions/{session_id}/assets/{filename}")
+async def get_session_asset(
+    session_id: str,
+    filename: str,
+    request: Request,
+) -> FileResponse:
+    """Return the raw bytes of one uploaded session asset.
+
+    Uses the same path-guard rules as delete: file must live under
+    `<runtime_home>/sessions/_assets`, filename must start with
+    `{session_id}-`, and traversal is rejected.
+    """
+
+    runtime = request.app.state.runtime
+    try:
+        runtime.sessions.get_session(session_id)
+        asset_path = safe_session_asset_path(
+            runtime.config.paths.runtime_home, session_id, filename
+        )
+    except FileNotFoundError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Asset not found",
+        ) from exc
+    if not asset_path.is_file():
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Asset not found",
+        )
+
+    content_type, _encoding = mimetypes.guess_type(str(asset_path))
+    media_type = content_type or "application/octet-stream"
+    return FileResponse(asset_path, media_type=media_type)
 
 
 @router.post("/sessions/{session_id}/messages")
@@ -869,4 +906,66 @@ async def publish_preview(
             }
             for s in result.approved
         ],
+    }
+
+
+ATTACHMENT_CONTEXT_MAX_CHARS = 30_000
+
+
+@router.get("/sessions/{session_id}/attachment-context")
+async def attachment_context(
+    session_id: str,
+    request: Request,
+) -> dict[str, object]:
+    """Return a read-only preview of attachment text for one session.
+
+    Lists all uploaded assets and extracts text from text-like files
+    (`.txt`, `.md`, `.markdown`, `text/*` mime types). Binary assets such
+    as images and PDFs are skipped with a reason. No provider calls are
+    made. The combined text is capped at 30,000 characters.
+    """
+
+    runtime = request.app.state.runtime
+    runtime_home = runtime.config.paths.runtime_home
+
+    asset_dir = runtime_home / "sessions" / "_assets"
+    asset_paths: list[Path] = []
+    if asset_dir.is_dir():
+        asset_paths = sorted(
+            p for p in asset_dir.glob(f"{session_id}-*") if p.is_file()
+        )
+
+    included: list[dict[str, object]] = []
+    skipped: list[dict[str, object]] = []
+    combined_parts: list[str] = []
+
+    for path in asset_paths:
+        content_type, _encoding = mimetypes.guess_type(str(path))
+        extracted = extract_text_from_asset(path, mime_type=content_type)
+        if extracted is not None:
+            included.append({
+                "filename": path.name,
+                "size_bytes": path.stat().st_size,
+                "content_type": content_type or "unknown",
+                "extracted_chars": len(extracted),
+                "text": extracted,
+            })
+            combined_parts.append(extracted)
+        else:
+            skipped.append({
+                "filename": path.name,
+                "size_bytes": path.stat().st_size,
+                "content_type": content_type or "unknown",
+                "reason": "unsupported_binary",
+            })
+
+    combined_text = "\n\n".join(combined_parts)
+    if len(combined_text) > ATTACHMENT_CONTEXT_MAX_CHARS:
+        combined_text = combined_text[:ATTACHMENT_CONTEXT_MAX_CHARS]
+
+    return {
+        "session_id": session_id,
+        "included": included,
+        "skipped": skipped,
+        "combined_text": combined_text,
     }

@@ -68,3 +68,14 @@ be auto-published until real curator and reviewer stages are wired.
 
 The publish preview is read-only; it does not write files, create git commits,
 or modify Hugo output.
+
+## 11. Attachment limitations
+
+- Uploaded files are stored per-session and can be removed via the **Remove**
+  button.
+- Text and Markdown files (`.txt`, `.md`) can be extracted for preview;
+  the text/Markdown extraction is partial: it reads the full file but
+  image and PDF content is not yet sent to the model.
+- DeepSeek chat (`deepseek-chat`) does not accept vision input in this app;
+  uploaded images remain session metadata.
+- PDFs need a parser before their text can be injected into chat prompts.

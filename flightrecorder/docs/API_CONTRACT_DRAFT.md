@@ -197,3 +197,33 @@ Path-guard rules:
 - the file must live under `<runtime_home>/sessions/_assets`;
 - the filename must start with `{session_id}-`;
 - traversal such as `../` returns 404.
+
+---
+
+## `GET /api/sessions/{session_id}/assets/{filename}`
+
+Return the bytes of one uploaded session asset. The asset must belong to the
+given session and live under `<runtime_home>/sessions/_assets`.
+
+Path-guard rules (same as DELETE):
+
+- the file must live under `<runtime_home>/sessions/_assets`;
+- the filename must start with `{session_id}-`;
+- traversal such as `../` returns 404.
+
+**Response (200):** raw file bytes with `Content-Type` derived from the file
+extension (e.g. `image/png`, `text/plain`).
+
+**Response (404):**
+
+```json
+{
+    "detail": "Asset not found"
+}
+```
+
+**Notes:**
+- Does not return asset metadata; use `GET /api/sessions/{session_id}` for the
+  metadata list.
+- Does not serve the frontend asset path (`/assets/{asset_path:path}`); this is
+  a separate route for session-specific file uploads.

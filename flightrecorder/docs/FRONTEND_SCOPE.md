@@ -14,6 +14,7 @@ at `GET /` and `GET /assets/*`.
 - `GET /api/sessions/{id}` - session detail with transcript and asset metadata
 - `POST /api/sessions/{id}/upload` - file upload with returned asset metadata
 - `DELETE /api/sessions/{id}/assets/{filename}` - remove an uploaded asset
+- `GET /api/sessions/{id}/assets/{filename}` - serve uploaded asset bytes
 - `POST /api/sessions/{id}/messages` - chat SSE endpoint
 - `POST /api/sessions/{id}/extract` - run idea capture
 - `GET /api/budget` - monthly spend and hard-stop status
@@ -37,8 +38,8 @@ provider readiness before enabling chat/extract.
 **Status: implemented.** Static shell (`src/frontend/index.html`) served
 by the backend at `GET /` with session CRUD, chat SSE streaming, extraction
 trigger, budget status, read panels for project documents and spaghetti
-ideas, uploaded asset counts and a per-session uploaded asset list with removal,
-provider call ledger, and a publish preview panel with fail-closed feedback for
+ideas, uploaded asset counts and a per-session uploaded asset list with clickable
+links to inspect each file and a removal button, provider call ledger, and a publish preview panel with fail-closed feedback for
 sessions, documents, and spaghetti ideas.
 The browser also exposes the existing fail-closed matchmaker route for the
 selected spaghetti idea, so candidate routing can be inspected from the same
@@ -72,3 +73,13 @@ frontmatter update.
 ### Wall view
 The public `/wall/` and `/wall/<idea-id>/` pages rendered by Hugo. Frontend
 only needs to display these, not manage them.
+
+## Attachment limitations
+
+- Uploaded files are stored per-session and can be removed via the **Remove**
+  button in the asset list.
+- Text and Markdown (`.txt`, `.md`) files can be extracted for preview via the
+  attachment context API.
+- Image content (`.png`, `.jpg`) is not sent to model context; DeepSeek chat
+  (`deepseek-chat`) does not accept vision input in this app.
+- PDFs need a parser before text injection into chat prompts.

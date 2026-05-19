@@ -30,6 +30,10 @@ def main() -> None:
         "fail-closed",
         "asset list",
         "Session Summary",
+        "Remove",
+        "text/Markdown",
+        "PDF",
+        "vision",
     ]:
         if marker not in text:
             print(f"missing reference in walkthrough: {marker}", file=sys.stderr)

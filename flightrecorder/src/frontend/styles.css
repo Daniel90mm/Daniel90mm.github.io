@@ -183,6 +183,17 @@ button:disabled {
   overflow-wrap: anywhere;
 }
 
+#asset-list .asset-link {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  color: var(--accent);
+  text-decoration: none;
+}
+
+#asset-list .asset-link:hover {
+  text-decoration: underline;
+}
+
 #asset-list .asset-remove {
   flex: 0 0 auto;
   padding: 0.2rem 0.45rem;
