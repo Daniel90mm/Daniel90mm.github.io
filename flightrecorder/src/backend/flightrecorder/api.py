@@ -55,6 +55,14 @@ from flightrecorder.storage import AssetTooLargeError, ChatMessage, safe_session
 router = APIRouter(prefix="/api")
 
 
+def _load_prompt_text(filename: str) -> str:
+    prompt_path = Path(__file__).resolve().parent.parent.parent.parent / "prompts" / filename
+    return prompt_path.read_text(encoding="utf-8")
+
+
+BRAINSTORM_SYSTEM_PROMPT = _load_prompt_text("brainstorm-system.md")
+
+
 def _session_assets(runtime_home: Path, session_id: str) -> list[dict[str, object]]:
     asset_dir = runtime_home / "sessions" / "_assets"
     if not asset_dir.is_dir():
@@ -284,6 +292,7 @@ async def send_message(
         try:
             async for event in runtime.brainstorm_provider.chat(
                 messages=[Message(role="user", content=payload.content)],
+                system=BRAINSTORM_SYSTEM_PROMPT,
             ):
                 if isinstance(event, TokenEvent):
                     assistant_text_parts.append(event.text)

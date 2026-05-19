@@ -280,6 +280,44 @@
     return "· system";
   }
 
+  function escapeHtml(s) {
+    return String(s == null ? "" : s)
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;");
+  }
+
+  // Tiny markdown renderer: fenced code, inline code, bold, italic.
+  // Input is already-escaped HTML; output stays safe because we only emit tags we control.
+  function renderMarkdown(text) {
+    if (!text) return "";
+    var html = escapeHtml(text);
+    var fences = [];
+    html = html.replace(/```([\s\S]*?)```/g, function (_, code) {
+      fences.push(code);
+      return "%%FR_FENCE_" + (fences.length - 1) + "%%";
+    });
+    var inlines = [];
+    html = html.replace(/`([^`\n]+)`/g, function (_, code) {
+      inlines.push(code);
+      return "%%FR_ICODE_" + (inlines.length - 1) + "%%";
+    });
+    html = html.replace(/\*\*([^*\n][\s\S]*?)\*\*/g, "<strong>$1</strong>");
+    html = html.replace(/(^|[^*\w])\*([^*\s][^*\n]*?)\*(?!\*)/g, "$1<em>$2</em>");
+    html = html.replace(/%%FR_ICODE_(\d+)%%/g, function (_, i) {
+      return "<code>" + inlines[+i] + "</code>";
+    });
+    html = html.replace(/%%FR_FENCE_(\d+)%%/g, function (_, i) {
+      return "<pre><code>" + fences[+i] + "</code></pre>";
+    });
+    return html;
+  }
+
+  function isPinnedToBottom(el) {
+    if (!el) return true;
+    return (el.scrollHeight - el.scrollTop - el.clientHeight) < 48;
+  }
+
   function createTurnElement(role, content, time) {
     var div = document.createElement("div");
     div.className = "fr-turn " + (role || "user");
@@ -297,7 +335,7 @@
     }
     var body = document.createElement("div");
     body.className = "fr-turn-body";
-    body.textContent = content || "";
+    body.innerHTML = renderMarkdown(content || "");
     div.appendChild(head);
     div.appendChild(body);
     return div;
@@ -516,16 +554,19 @@
     var assistantTurn = createTurnElement("assistant", "", nowTime);
     var assistantBody = assistantTurn.querySelector(".fr-turn-body");
     DOM.transcript.appendChild(assistantTurn);
+    // User just submitted -- pin them to bottom for the start of the stream.
     DOM.transcript.scrollTop = DOM.transcript.scrollHeight;
 
     function handleSSEEvents(events) {
       events.forEach(function (event) {
         var data = event.data || {};
         if (event.event === "token") {
+          var pinned = isPinnedToBottom(DOM.transcript);
           assistantText += data.token || "";
-          assistantBody.textContent = assistantText;
-          DOM.transcript.scrollTop = DOM.transcript.scrollHeight;
+          assistantBody.innerHTML = renderMarkdown(assistantText);
+          if (pinned) DOM.transcript.scrollTop = DOM.transcript.scrollHeight;
         } else if (event.event === "done") {
+          assistantBody.innerHTML = renderMarkdown(assistantText);
           streamDone = true;
           clearStatus();
           refreshBudget();
@@ -788,7 +829,12 @@
 
       var tagEl = document.createElement("div");
       tagEl.className = "fr-sticky-tag";
-      tagEl.innerHTML = '<span>↬</span><span>' + tagForIdea(idea) + '</span>';
+      var arrowEl = document.createElement("span");
+      arrowEl.textContent = "↬";
+      var tagTextEl = document.createElement("span");
+      tagTextEl.textContent = tagForIdea(idea);
+      tagEl.appendChild(arrowEl);
+      tagEl.appendChild(tagTextEl);
 
       note.appendChild(head);
       note.appendChild(bodyEl);

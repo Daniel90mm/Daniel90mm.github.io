@@ -99,17 +99,40 @@ class AppliedIdeaOperations:
 def parse_idea_operations(raw_output: str) -> list[IdeaOperation]:
     """Parse JSON output from the idea-capture prompt."""
 
-    try:
-        data = json.loads(raw_output)
-    except json.JSONDecodeError as exc:
-        raise IdeaCaptureError("idea-capture output is not valid JSON") from exc
+    data = _load_json_array(raw_output)
 
-    if not isinstance(data, list):
-        raise IdeaCaptureError("idea-capture output must be a JSON array")
     if len(data) > MAX_IDEA_OPERATIONS:
         raise IdeaCaptureError("idea-capture output has too many operations")
 
     return [_parse_operation(item, index) for index, item in enumerate(data)]
+
+
+def _load_json_array(raw_output: str) -> list[object]:
+    """Load the first JSON array from provider output.
+
+    Some models wrap otherwise valid JSON in a short sentence or a fenced code
+    block despite the prompt. Accept that common shape, but still fail closed
+    unless the extracted value is a JSON array.
+    """
+
+    try:
+        data = json.loads(raw_output)
+    except json.JSONDecodeError as exc:
+        decoder = json.JSONDecoder()
+        for index, char in enumerate(raw_output):
+            if char != "[":
+                continue
+            try:
+                candidate, _end = decoder.raw_decode(raw_output[index:])
+            except json.JSONDecodeError:
+                continue
+            if isinstance(candidate, list):
+                return candidate
+        raise IdeaCaptureError("idea-capture output is not valid JSON") from exc
+
+    if not isinstance(data, list):
+        raise IdeaCaptureError("idea-capture output must be a JSON array")
+    return data
 
 
 def apply_idea_operations(

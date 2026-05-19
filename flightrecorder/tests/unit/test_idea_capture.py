@@ -56,6 +56,20 @@ def test_parse_idea_operations_accepts_expected_shapes() -> None:
 @pytest.mark.parametrize(
     "raw_output",
     [
+        '```json\n[{"type":"spaghetti","tags":["pca"],"topics":["statistics"],"content":"Apply PCA to disordered multi-dimensional sensor data."}]\n```',
+        'Here is the extraction:\n[{"type":"spaghetti","tags":["ecg","pulse-ox"],"topics":["biophotonics"],"content":"Use ECG as a timing reference to synchronize pulse oximeter heartbeat measurements."}]',
+    ],
+)
+def test_parse_idea_operations_accepts_wrapped_json_array(raw_output: str) -> None:
+    operations = parse_idea_operations(raw_output)
+
+    assert len(operations) == 1
+    assert isinstance(operations[0], SpaghettiOperation)
+
+
+@pytest.mark.parametrize(
+    "raw_output",
+    [
         "not json",
         "{}",
         json.dumps([{"type": "unknown"}]),

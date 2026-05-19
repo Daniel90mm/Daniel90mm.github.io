@@ -25,6 +25,7 @@ class StubProvider:
     max_context_tokens: int = 16000
     _events: list[ChatEvent]
     _should_raise: bool = False
+    last_system: str | None = None
 
     def __init__(
         self,
@@ -39,6 +40,7 @@ class StubProvider:
         messages: list,
         system: str | None = None,
     ) -> AsyncIterator[ChatEvent]:
+        self.last_system = system
         if self._should_raise:
             raise RuntimeError("stub provider failure")
         for event in self._events:
@@ -131,6 +133,8 @@ def test_happy_path_sse_stream(tmp_path: Path) -> None:
     assert body["messages"][0]["role"] == "user"
     assert body["messages"][1]["role"] == "assistant"
     assert body["messages"][1]["content"] == "Hello world"
+    assert stub.last_system is not None
+    assert "Daniel's thinking partner" in stub.last_system
 
     db_path = tmp_path / "metadata.db"
     db = sqlite3.connect(str(db_path))

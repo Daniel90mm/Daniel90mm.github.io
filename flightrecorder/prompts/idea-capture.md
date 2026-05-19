@@ -1,6 +1,13 @@
-Read the following brainstorming session. Extract every discrete IDEA
-that emerged. An idea is a thought worth keeping: a hypothesis, a
-proposed approach, a decision, an open question, a TODO, a finding.
+Read the following brainstorming session. Extract only the discrete IDEAS
+worth keeping. A keeper is a specific hypothesis, technical approach,
+measurement trick, analysis method, design decision, open question, TODO, or
+finding that could be useful later.
+
+Generic software chores are not ideas. Ignore entries like "improve UI",
+"remove bugs", "add tests", "make it better", "clean up code", or project
+management noise unless the transcript includes a specific technical method or
+decision. Preserve the useful concrete core: "apply PCA to disordered
+multi-dimensional data" is worth keeping; "improve data analysis" is not.
 
 For each idea, decide where it should land:
 
@@ -30,6 +37,8 @@ Output a JSON array. Each element is one operation:
 Rules:
 - Be conservative. Most sessions produce 0-3 ideas. A great session
   might produce 5. More than 8 from one session means you're padding.
+- Prefer concrete technical nouns over generic labels. Keep "ECG reference for
+  pulse-ox heartbeat synchronization", not "improve measurement accuracy".
 - "Current state" is for status updates. "Decisions made" is for choices
   with rationale. "Open questions" is for things to figure out. "TODOs"
   is for action items. "Ideas" is the catchall for "hm, worth exploring."
@@ -37,4 +46,4 @@ Rules:
   return [].
 - Match Daniel's voice: terse, first person, past tense for findings,
   imperative for TODOs.
-- Output JSON only.
+- Output JSON only: no markdown fence, no prose, no explanation.
