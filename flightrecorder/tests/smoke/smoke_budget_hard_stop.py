@@ -5,7 +5,7 @@ from __future__ import annotations
 import sqlite3
 import sys
 import tempfile
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent / "src" / "backend"))
@@ -25,7 +25,7 @@ def main() -> None:
         initialize_database(connection)
 
         now = datetime.now(timezone.utc)
-        record_time = now.replace(hour=12, minute=0, second=0, microsecond=0)
+        record_time = now - timedelta(minutes=1)
 
         for i in range(10):
             log_api_call(
