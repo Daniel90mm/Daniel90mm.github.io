@@ -11,7 +11,8 @@ Summary of implemented vs draft-only API routes. Source: code inspection of
 - `POST /api/sessions` - create a new session.
 - `GET /api/sessions` - list sessions (newest first, with pagination).
 - `GET /api/sessions/{session_id}` - fetch one session with transcript and uploaded asset metadata.
-- `POST /api/sessions/{session_id}/upload` - upload an image asset and return its metadata.
+- `POST /api/sessions/{session_id}/upload` - upload a file asset and return its metadata.
+- `DELETE /api/sessions/{session_id}/assets/{filename}` - remove one uploaded session asset.
 - `POST /api/sessions/{session_id}/messages` - chat SSE endpoint.
 - `POST /api/sessions/{session_id}/extract` - run idea capture for a session.
 - `GET /api/budget` - read current monthly spend, thresholds, and hard-stop sentinel status.

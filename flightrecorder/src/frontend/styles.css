@@ -170,8 +170,23 @@ button:disabled {
 }
 
 #asset-list .asset-row {
-  padding: 0.15rem 0;
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.25rem 0;
   border-bottom: 1px solid var(--border);
+}
+
+#asset-list .asset-row span {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+#asset-list .asset-remove {
+  flex: 0 0 auto;
+  padding: 0.2rem 0.45rem;
+  font-size: 0.72rem;
 }
 
 #asset-list .asset-row:last-child {

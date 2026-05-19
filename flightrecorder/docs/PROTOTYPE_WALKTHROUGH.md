@@ -51,10 +51,11 @@ during chat and extraction.
 ## 9. Inspect session summary and uploaded assets
 
 The **Session Summary** under the session list shows provider, model, message
-count, image count, and extraction status. After uploading an image (click
-**Upload Image** in the chat area), the uploaded asset appears in the session
+count, asset count, and extraction status. After uploading a file (click
+**Upload File** in the chat area), the uploaded asset appears in the session
 summary's asset list with filename and byte size. The asset list updates
-immediately after an upload.
+immediately after an upload. Click **Remove** next to an asset if it should no
+longer be attached to the session.
 
 ## 10. Run publish preview
 

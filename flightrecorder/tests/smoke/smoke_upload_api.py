@@ -61,6 +61,19 @@ def main() -> None:
         assert len(png_files) == 1, f"expected 1 asset in _assets, got {len(png_files)}"
         assert png_files[0].stat().st_size > 0
 
+        delete = client.delete(
+            f"/api/sessions/{session_id}/assets/{upload_body['asset']['filename']}"
+        )
+        assert delete.status_code == 200, f"delete: {delete.status_code} body={delete.text}"
+        assert delete.json()["image_count"] == 0
+        assert delete.json()["assets"] == []
+
+        detail_after_delete = client.get(f"/api/sessions/{session_id}")
+        assert detail_after_delete.status_code == 200
+        assert detail_after_delete.json()["image_count"] == 0
+        assert detail_after_delete.json()["assets"] == []
+        assert not png_files[0].exists()
+
         print("upload API smoke test passed")
 
 

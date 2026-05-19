@@ -18,6 +18,7 @@ from flightrecorder.storage import (
     read_session,
     sanitize_filename,
     sanitize_slug,
+    safe_session_asset_path,
     split_frontmatter,
     store_session_asset,
     write_session,
@@ -229,6 +230,40 @@ def test_session_store_stores_asset_and_updates_image_count(tmp_path: Path) -> N
     assert loaded_metadata.image_count == 1
     assert messages == []
     assert row[0] == 1
+
+
+def test_session_store_deletes_asset_and_updates_image_count(tmp_path: Path) -> None:
+    connection = sqlite3.connect(":memory:")
+    initialize_database(connection)
+    store = SessionStore(tmp_path, connection)
+    metadata = store.create_session(
+        provider="google",
+        model="gemini-2.5-pro",
+        started_at=datetime.fromisoformat("2026-05-18T17:30:00+02:00"),
+        slug="spaghetti",
+    )
+    asset_path = store.store_asset(
+        metadata.session_id,
+        filename="pcb photo.jpg",
+        data=b"image-bytes",
+    )
+
+    updated = store.delete_asset(metadata.session_id, asset_path.name)
+    loaded_metadata, _messages = store.get_session(metadata.session_id)
+
+    assert asset_path.exists() is False
+    assert updated.image_count == 0
+    assert loaded_metadata.image_count == 0
+
+
+def test_safe_session_asset_path_rejects_traversal_and_wrong_session(tmp_path: Path) -> None:
+    safe = safe_session_asset_path(tmp_path, "session-1", "session-1-photo.jpg")
+    assert safe == (tmp_path / "sessions" / "_assets" / "session-1-photo.jpg").resolve()
+
+    with pytest.raises(FileNotFoundError):
+        safe_session_asset_path(tmp_path, "session-1", "../session-1-photo.jpg")
+    with pytest.raises(FileNotFoundError):
+        safe_session_asset_path(tmp_path, "session-1", "session-2-photo.jpg")
 
 
 def test_split_frontmatter_raises_on_missing_frontmatter() -> None:

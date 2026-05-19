@@ -122,6 +122,58 @@ def test_upload_session_asset(tmp_path: Path) -> None:
     assert len(detail_response.json()["assets"]) == 1
 
 
+def test_delete_session_asset(tmp_path: Path) -> None:
+    client = make_client(tmp_path)
+    created = client.post(
+        "/api/sessions",
+        json={"provider": "google", "model": "gemini-2.5-pro", "slug": "upload"},
+    ).json()
+    upload = client.post(
+        f"/api/sessions/{created['session_id']}/upload",
+        files={"file": ("notes.txt", b"notes", "text/plain")},
+    ).json()
+
+    response = client.delete(
+        f"/api/sessions/{created['session_id']}/assets/{upload['asset']['filename']}"
+    )
+
+    assert response.status_code == 200
+    assert response.json()["deleted"] == upload["asset"]["filename"]
+    assert response.json()["image_count"] == 0
+    assert response.json()["assets"] == []
+
+    detail_response = client.get(f"/api/sessions/{created['session_id']}")
+    assert detail_response.status_code == 200
+    assert detail_response.json()["image_count"] == 0
+    assert detail_response.json()["assets"] == []
+
+
+def test_delete_session_asset_rejects_wrong_session_and_traversal(tmp_path: Path) -> None:
+    client = make_client(tmp_path)
+    first = client.post(
+        "/api/sessions",
+        json={"provider": "google", "model": "gemini-2.5-pro", "slug": "one"},
+    ).json()
+    second = client.post(
+        "/api/sessions",
+        json={"provider": "google", "model": "gemini-2.5-pro", "slug": "two"},
+    ).json()
+    upload = client.post(
+        f"/api/sessions/{first['session_id']}/upload",
+        files={"file": ("notes.txt", b"notes", "text/plain")},
+    ).json()
+
+    wrong_session = client.delete(
+        f"/api/sessions/{second['session_id']}/assets/{upload['asset']['filename']}"
+    )
+    traversal = client.delete(
+        f"/api/sessions/{first['session_id']}/assets/..%2F{upload['asset']['filename']}"
+    )
+
+    assert wrong_session.status_code == 404
+    assert traversal.status_code == 404
+
+
 def test_upload_missing_session_returns_404(tmp_path: Path) -> None:
     client = make_client(tmp_path)
 
@@ -147,4 +199,4 @@ def test_upload_oversized_session_asset_returns_413(tmp_path: Path) -> None:
     )
 
     assert response.status_code == 413
-    assert response.json() == {"detail": "image upload exceeds 5 MiB cap"}
+    assert response.json() == {"detail": "asset upload exceeds 5 MiB cap"}

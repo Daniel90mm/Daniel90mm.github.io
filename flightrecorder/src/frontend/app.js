@@ -262,10 +262,39 @@
     }
     assets.forEach(function (asset) {
       var row = document.createElement("div");
+      var label = document.createElement("span");
+      var remove = document.createElement("button");
       row.className = "asset-row";
-      row.textContent = (asset.filename || "asset") + " (" + (asset.size_bytes || 0) + " bytes)";
+      label.textContent = (asset.filename || "asset") + " (" + (asset.size_bytes || 0) + " bytes)";
+      remove.type = "button";
+      remove.className = "asset-remove";
+      remove.textContent = "Remove";
+      remove.addEventListener("click", function () {
+        deleteAsset(asset.filename || "");
+      });
+      row.appendChild(label);
+      row.appendChild(remove);
       DOM.assetList.appendChild(row);
     });
+  }
+
+  function deleteAsset(filename) {
+    if (!state.currentSessionId || !filename) return;
+    DOM.uploadStatus.textContent = "Removing " + filename + "...";
+    api("/api/sessions/" + encodeURIComponent(state.currentSessionId)
+      + "/assets/" + encodeURIComponent(filename), { method: "DELETE" })
+      .then(function (res) { return res.json(); })
+      .then(function () {
+        return loadSession(state.currentSessionId);
+      })
+      .then(function (session) {
+        state.currentSession = session;
+        renderSessionSummary(session);
+        DOM.uploadStatus.textContent = "Removed: " + filename;
+      })
+      .catch(function (err) {
+        DOM.uploadStatus.textContent = "Remove failed: " + err.message;
+      });
   }
 
   function createMessageElement(role, content) {
@@ -720,6 +749,7 @@
     loadSpaghettiIdea: loadSpaghettiIdea,
     fetchPublishPreview: fetchPublishPreview,
     runMatchmakerForIdea: runMatchmakerForIdea,
+    deleteAsset: deleteAsset,
   };
 
   refreshSessionList(true);

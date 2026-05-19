@@ -148,7 +148,7 @@ async def upload_session_asset(
     request: Request,
     file: UploadFile = File(...),
 ) -> dict[str, Any]:
-    """Upload one image asset to a session."""
+    """Upload one file asset to a session."""
 
     runtime = request.app.state.runtime
     data = await file.read()
@@ -166,7 +166,7 @@ async def upload_session_asset(
     except AssetTooLargeError as exc:
         raise HTTPException(
             status_code=status.HTTP_413_CONTENT_TOO_LARGE,
-            detail="image upload exceeds 5 MiB cap",
+            detail="asset upload exceeds 5 MiB cap",
         ) from exc
 
     metadata, _messages = runtime.sessions.get_session(session_id)
@@ -174,6 +174,29 @@ async def upload_session_asset(
         "asset_path": asset_path.name,
         "asset": asset_to_dict(asset_path, runtime.config.paths.runtime_home),
         "image_count": metadata.image_count,
+    }
+
+
+@router.delete("/sessions/{session_id}/assets/{filename}")
+async def delete_session_asset(
+    session_id: str,
+    filename: str,
+    request: Request,
+) -> dict[str, object]:
+    """Delete one uploaded session asset."""
+
+    runtime = request.app.state.runtime
+    try:
+        metadata = runtime.sessions.delete_asset(session_id=session_id, filename=filename)
+    except FileNotFoundError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Asset not found",
+        ) from exc
+    return {
+        "deleted": filename,
+        "image_count": metadata.image_count,
+        "assets": _session_assets(runtime.config.paths.runtime_home, session_id),
     }
 
 

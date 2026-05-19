@@ -135,7 +135,9 @@ Fetch a single session by ID, including the full transcript.
 
 ## `POST /api/sessions/{session_id}/upload`
 
-Upload an image asset to a session. Cap: 5 MiB.
+Upload a file asset to a session. Cap: 5 MiB. Current browser target accepts
+images, PDFs, plain text, and Markdown. Uploaded assets are session metadata
+for now; sending their contents into provider context is a separate route.
 
 **Request:** `multipart/form-data` with field `file`.
 
@@ -157,10 +159,41 @@ Upload an image asset to a session. Cap: 5 MiB.
 
 ```json
 {
-    "detail": "image upload exceeds 5 MiB cap"
+    "detail": "asset upload exceeds 5 MiB cap"
 }
 ```
 
 **Notes:**
 - Filenames are sanitized to ASCII before storage.
 - Increments the session's `image_count`.
+
+---
+
+## `DELETE /api/sessions/{session_id}/assets/{filename}`
+
+Remove one uploaded session asset. The `filename` must be one of the filenames
+returned in the session detail `assets` array.
+
+**Response (200):**
+
+```json
+{
+    "deleted": "2026-05-18-1730-spaghetti-abcd1234-pcb_photo.jpg",
+    "image_count": 0,
+    "assets": []
+}
+```
+
+**Response (404):**
+
+```json
+{
+    "detail": "Asset not found"
+}
+```
+
+Path-guard rules:
+
+- the file must live under `<runtime_home>/sessions/_assets`;
+- the filename must start with `{session_id}-`;
+- traversal such as `../` returns 404.

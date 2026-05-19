@@ -219,6 +219,7 @@ regression is found:
 | S163 | Prototype launcher static smoke hardening. |
 | S164 | Public page update for publish-preview visibility. |
 | S165 | Frontend matchmaker panel for selected spaghetti idea, completed by senior agent. |
+| S172 | Uploaded file removal from API and frontend, completed by senior agent. |
 
 ## Active queue
 

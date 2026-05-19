@@ -63,6 +63,9 @@ def main() -> None:
     if 'id="upload-file"' not in index_html:
         print("missing upload file input in index.html", file=sys.stderr)
         sys.exit(1)
+    if 'accept="image/*,.pdf,.txt,.md,text/plain,text/markdown,application/pdf"' not in index_html:
+        print("upload file input must accept image/pdf/text/markdown", file=sys.stderr)
+        sys.exit(1)
     if 'id="session-summary"' not in index_html:
         print("missing selected-session summary in index.html", file=sys.stderr)
         sys.exit(1)
@@ -74,6 +77,9 @@ def main() -> None:
         sys.exit(1)
     if 'id="run-matchmaker-btn"' not in index_html:
         print("missing matchmaker run button in index.html", file=sys.stderr)
+        sys.exit(1)
+    if "deleteAsset" not in app_js:
+        print("missing frontend asset delete handler", file=sys.stderr)
         sys.exit(1)
 
     print("frontend static files smoke test passed")

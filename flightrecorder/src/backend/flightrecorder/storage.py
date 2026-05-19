@@ -347,6 +347,27 @@ class SessionStore:
         index_session(self.connection, updated_metadata, session_path)
         return asset_path
 
+    def delete_asset(
+        self,
+        session_id: str,
+        filename: str,
+    ) -> SessionMetadata:
+        """Delete one session asset and update asset metadata."""
+
+        session_path = self.session_path(session_id)
+        metadata, messages = read_session(session_path)
+        asset_path = safe_session_asset_path(self.runtime_home, session_id, filename)
+        if not asset_path.is_file():
+            raise FileNotFoundError(f"asset not found: {filename}")
+        asset_path.unlink()
+        updated_metadata = replace(
+            metadata,
+            image_count=max(0, metadata.image_count - 1),
+        )
+        write_session(session_path, updated_metadata, messages)
+        index_session(self.connection, updated_metadata, session_path)
+        return updated_metadata
+
     def list_sessions(self) -> list[SessionMetadata]:
         """List indexed sessions newest first."""
 
@@ -389,6 +410,24 @@ def store_session_asset(
     asset_dir.mkdir(parents=True, exist_ok=True)
     path = asset_dir / f"{session_id}-{safe_name}"
     path.write_bytes(data)
+    return path
+
+
+def safe_session_asset_path(
+    runtime_home: Path,
+    session_id: str,
+    filename: str,
+) -> Path:
+    """Resolve a stored session asset path without allowing traversal."""
+
+    if Path(filename).name != filename:
+        raise FileNotFoundError(f"invalid asset filename: {filename}")
+    if not filename.startswith(f"{session_id}-"):
+        raise FileNotFoundError(f"asset does not belong to session: {filename}")
+    asset_dir = (runtime_home / "sessions" / "_assets").resolve()
+    path = (asset_dir / filename).resolve()
+    if path.parent != asset_dir:
+        raise FileNotFoundError(f"invalid asset path: {filename}")
     return path
 
 
