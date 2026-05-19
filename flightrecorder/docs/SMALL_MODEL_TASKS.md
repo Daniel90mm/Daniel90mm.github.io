@@ -187,4 +187,263 @@ regression is found:
 
 Pick from the top unless Daniel or the senior agent says otherwise.
 
-(None -- all tasks completed.)
+## S129 - Sync frontend scope with implemented API
+
+Where:
+- `flightrecorder/docs/FRONTEND_SCOPE.md`
+- `flightrecorder/docs/NAVIGATION.md`
+
+What:
+- Update `docs/FRONTEND_SCOPE.md` so it no longer says all frontend surfaces
+  are not started and no longer lists chat/extract as missing.
+- Keep this as a planning/status document, not an implementation proposal.
+- It should state:
+  1. Backend routes currently available to a v1 dogfood frontend:
+     `GET /health`, `POST /api/sessions`, `GET /api/sessions`,
+     `GET /api/sessions/{id}`, `POST /api/sessions/{id}/upload`,
+     `POST /api/sessions/{id}/messages`,
+     `POST /api/sessions/{id}/extract`,
+     `POST /api/matchmaker/run`.
+  2. First dogfood frontend target: create/list sessions, chat over SSE,
+     run extraction, and inspect returned session transcript.
+  3. Still missing from backend: document/spaghetti listing routes,
+     match decision routes, voice, budget API, publisher controls.
+  4. Frontend implementation should be plain static HTML/CSS/JS first,
+     no framework, until dogfooding proves the API shape.
+- If `docs/NAVIGATION.md` already contains the `docs/FRONTEND_SCOPE.md`
+  row, leave it alone. If missing, add it.
+- Do not edit source code in this task.
+
+Why:
+- The frontend scope doc is stale and currently pushes the next agent toward
+  outdated assumptions. Dogfooding needs the status document to match the
+  actual backend routes.
+
+Smoke test:
+
+```sh
+cd /home/daniel/Documents/Projekter/Daniel90mm.github.io/flightrecorder
+PYTHONPATH=src/backend python tests/smoke/smoke_docs_navigation_consistency.py
+grep -q "POST /api/sessions/{id}/messages" docs/FRONTEND_SCOPE.md
+grep -q "POST /api/sessions/{id}/extract" docs/FRONTEND_SCOPE.md
+grep -q "plain static HTML/CSS/JS" docs/FRONTEND_SCOPE.md
+```
+
+Hand-back:
+- When the commands pass, stop. Do not commit.
+
+## S130 - Add static frontend dogfood shell
+
+Where:
+- `flightrecorder/src/frontend/index.html` (new file)
+- `flightrecorder/src/frontend/styles.css` (new file)
+- `flightrecorder/src/frontend/app.js` (new file)
+- `flightrecorder/tests/smoke/smoke_frontend_static.py` (new file)
+- `flightrecorder/docs/SMOKE_COMMANDS.md`
+
+What:
+- Build a plain static frontend shell for the dogfood loop. No build tool,
+  no framework, no dependency changes.
+- `index.html` should include:
+  1. App title `flightrecorder`.
+  2. A session creation form with provider, model, and slug inputs.
+  3. A session list container.
+  4. A transcript container.
+  5. A message textarea/button.
+  6. An extract button.
+  7. A status/output area for errors and extraction results.
+  8. Links to `styles.css` and `app.js`.
+- `styles.css` should create a quiet terminal/TUI-inspired layout that works
+  on mobile and desktop. Keep it compact; no decorative marketing page.
+- `app.js` should define functions for:
+  1. `api(path, options)` wrapper.
+  2. Creating a session with `POST /api/sessions`.
+  3. Listing sessions with `GET /api/sessions`.
+  4. Loading one session with `GET /api/sessions/{id}`.
+  5. Sending a message to `POST /api/sessions/{id}/messages` and rendering
+     streamed SSE tokens from the response body.
+  6. Running extraction with `POST /api/sessions/{id}/extract`.
+  7. Rendering transcript messages and status text.
+- Keep the JS defensive: disable chat/extract buttons when no session is
+  selected, show readable error text, and avoid global namespace clutter
+  except one `window.flightrecorderApp` debug object.
+- Add `tests/smoke/smoke_frontend_static.py` that asserts the three frontend
+  files exist and that `app.js` references the route strings above.
+- Add the new smoke to `docs/SMOKE_COMMANDS.md`.
+- Do not edit backend serving in this task.
+
+Why:
+- A static frontend gives us the fastest dogfood surface without committing
+  to Svelte/build tooling before the API loop has been exercised.
+
+Smoke test:
+
+```sh
+cd /home/daniel/Documents/Projekter/Daniel90mm.github.io/flightrecorder
+PYTHONPATH=src/backend python tests/smoke/smoke_frontend_static.py
+PYTHONPATH=src/backend python tests/smoke/smoke_small_model_tasks.py
+```
+
+Hand-back:
+- When both commands pass, stop. Do not commit.
+
+## S131 - Serve static frontend from FastAPI
+
+Where:
+- `flightrecorder/src/backend/flightrecorder/app.py`
+- `flightrecorder/tests/integration/test_frontend_serving.py` (new file)
+- `flightrecorder/docs/API_CURRENT_STATE.md`
+- `flightrecorder/docs/FRONTEND_SCOPE.md`
+
+What:
+- Serve the static frontend files from FastAPI when `src/frontend/index.html`
+  exists.
+- Add:
+  1. `GET /` returns `src/frontend/index.html`.
+  2. Static assets under `/assets/*` serve files from `src/frontend/`
+     except `index.html`.
+- Use FastAPI/Starlette standard responses. Do not add dependencies.
+- Keep `/api/*` behavior unchanged.
+- Add integration tests that:
+  1. `GET /` returns status 200 and contains `flightrecorder`.
+  2. `GET /assets/app.js` returns status 200 and JavaScript content.
+  3. `GET /health` still returns `{"status": "ok"}`.
+  4. `GET /api/sessions` still works against a temp runtime.
+- Update docs to mention the root frontend route and static asset route.
+- Do not change the frontend files in this task except if a path reference
+  must be corrected from S130.
+
+Why:
+- Opening a file from disk is useful, but dogfooding on the phone/server
+  needs the backend to serve the UI from the same origin as the API.
+
+Smoke test:
+
+```sh
+cd /home/daniel/Documents/Projekter/Daniel90mm.github.io/flightrecorder
+.venv/bin/python -m pytest tests/integration/test_frontend_serving.py tests/unit/test_app.py -q
+PYTHONPATH=src/backend python tests/smoke/smoke_frontend_static.py
+```
+
+Hand-back:
+- When the commands pass, stop. Do not commit.
+
+## S132 - Add frontend chat stream parser smoke
+
+Where:
+- `flightrecorder/src/frontend/app.js`
+- `flightrecorder/tests/smoke/smoke_frontend_sse_parser.py` (new file)
+- `flightrecorder/docs/SMOKE_COMMANDS.md`
+
+What:
+- Add a small pure function in `app.js` for parsing SSE text chunks from the
+  chat endpoint response into `{event, data}` objects. Keep it independent
+  from DOM state so it can be checked by a smoke script.
+- The parser should handle:
+  1. Multiple events in one chunk.
+  2. Partial trailing event buffered until the next chunk.
+  3. `event: token` with JSON data.
+  4. `event: done` with JSON data.
+  5. `event: error` with JSON data.
+- Expose the parser through `window.flightrecorderApp` only when running in
+  a browser.
+- Add `tests/smoke/smoke_frontend_sse_parser.py` that reads `app.js` and,
+  using a minimal JS execution approach available locally if possible
+  (`node` if installed), verifies sample chunks parse correctly. If `node`
+  is not installed, the smoke may fall back to strict text checks for the
+  parser function name and sample event literals, but it should print that
+  it skipped runtime JS execution.
+- Add the smoke to `docs/SMOKE_COMMANDS.md`.
+- Do not edit backend code.
+
+Why:
+- The chat endpoint streams SSE. The most fragile frontend logic is usually
+  incremental parsing; isolate it before styling or layout work grows.
+
+Smoke test:
+
+```sh
+cd /home/daniel/Documents/Projekter/Daniel90mm.github.io/flightrecorder
+PYTHONPATH=src/backend python tests/smoke/smoke_frontend_sse_parser.py
+PYTHONPATH=src/backend python tests/smoke/smoke_frontend_static.py
+```
+
+Hand-back:
+- When both commands pass, stop. Do not commit.
+
+## S133 - Add frontend dogfood route smoke
+
+Where:
+- `flightrecorder/tests/smoke/smoke_frontend_dogfood.py` (new file)
+- `flightrecorder/docs/SMOKE_COMMANDS.md`
+
+What:
+- Add an executable smoke script that starts the FastAPI app in-process with
+  `TestClient` and verifies the frontend/API dogfood loop at the HTTP level.
+- The smoke should:
+  1. Build a runtime in a temporary directory.
+  2. Stub `runtime.brainstorm_provider` and `runtime.idea_capture_provider`
+     like the integration tests do.
+  3. `GET /` and assert the frontend HTML loads.
+  4. `POST /api/sessions` to create a session.
+  5. `POST /api/sessions/{id}/messages` and assert the SSE response includes
+     token and done events.
+  6. `POST /api/sessions/{id}/extract` and assert one project append and one
+     spaghetti idea.
+  7. `GET /api/sessions/{id}` and assert two messages are present.
+  8. Print `frontend dogfood smoke test passed` on success.
+- Add the smoke to `docs/SMOKE_COMMANDS.md`.
+- Do not edit source modules unless the smoke exposes a real serving bug from
+  S131; if that happens, keep the fix minimal and explain it in comments.
+
+Why:
+- This proves the usable path we care about: load UI, create a session, chat,
+  extract ideas, and inspect the session.
+
+Smoke test:
+
+```sh
+cd /home/daniel/Documents/Projekter/Daniel90mm.github.io/flightrecorder
+.venv/bin/python tests/smoke/smoke_frontend_dogfood.py
+PYTHONPATH=src/backend python tests/smoke/smoke_small_model_tasks.py
+```
+
+Hand-back:
+- When both commands pass, stop. Do not commit.
+
+## S134 - Add frontend dogfood notes
+
+Where:
+- `flightrecorder/README.md`
+- `flightrecorder/docs/FRONTEND_SCOPE.md`
+- `flightrecorder/docs/SMOKE_COMMANDS.md`
+
+What:
+- Document how to run the dogfood frontend locally.
+- README should include:
+  1. Start command: `scripts/dev-backend.sh`.
+  2. Browser URL: `http://127.0.0.1:8000/`.
+  3. Minimal dogfood workflow: create session, send message, run extract,
+     inspect transcript/result.
+  4. Note that real providers require config/API keys; tests use stubs.
+- `FRONTEND_SCOPE.md` should mark the static dogfood shell as implemented
+  once S130-S133 are done.
+- `SMOKE_COMMANDS.md` should include any frontend smoke that exists but is
+  missing from the table.
+- Do not edit backend or frontend source in this task.
+
+Why:
+- Once the dogfood loop exists, the next person should not have to reverse
+  engineer how to start it.
+
+Smoke test:
+
+```sh
+cd /home/daniel/Documents/Projekter/Daniel90mm.github.io/flightrecorder
+grep -q "http://127.0.0.1:8000/" README.md
+grep -q "scripts/dev-backend.sh" README.md
+PYTHONPATH=src/backend python tests/smoke/smoke_small_model_tasks.py
+```
+
+Hand-back:
+- When the commands pass, stop. Do not commit.
