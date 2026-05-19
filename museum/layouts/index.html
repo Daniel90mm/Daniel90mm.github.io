@@ -1,6 +1,7 @@
 {{ define "main" }}
 {{ $root := site.GetPage "/projects" }}
 {{ $children := $root.Sections }}
+{{ $spotlight := site.GetPage "/projects/flightrecorder" }}
 
 <section class="hero" id="hero" aria-label="Daniel Yttesen">
   <pre aria-hidden="true"> ____              _      _  __   ___   _
@@ -17,6 +18,24 @@
 </section>
 {{ $hero := resources.Get "js/hero.js" | resources.Minify | resources.Fingerprint }}
 <script defer src="{{ $hero.RelPermalink }}" integrity="{{ $hero.Data.Integrity }}"></script>
+
+{{ with $spotlight }}
+<section class="spotlight" aria-label="now building">
+  <div class="spotlight-copy">
+    <div class="spotlight-kicker">now building</div>
+    <h2><a href="{{ .RelPermalink }}">{{ .Title | lower }}</a></h2>
+    <p>{{ .Params.summary }}</p>
+    <dl class="spotlight-metrics">
+      <div><dt>surface</dt><dd>local dogfood UI</dd></div>
+      <div><dt>loop</dt><dd>session → chat → extract → inspect</dd></div>
+      <div><dt>next</dt><dd>real-provider readiness</dd></div>
+    </dl>
+  </div>
+  <a class="spotlight-preview" href="{{ .RelPermalink }}" aria-label="open flightrecorder project">
+    <img src="/images/flightrecorder-dogfood-ui.png" alt="flightrecorder dogfood UI with session form, budget status, document panel, and spaghetti panel">
+  </a>
+</section>
+{{ end }}
 
 <div class="sep">
   <span class="dash"></span><span class="label">active</span><span class="count">{{ printf "%02d" (len $children) }}</span><span class="dash long"></span>

@@ -156,6 +156,18 @@ body::before {
 .theme-toggle:hover { color: var(--accent); }
 .theme-toggle .theme-glyph { color: var(--accent); }
 
+@media (max-width: 560px) {
+  .bar {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .bar .rhs {
+    flex-wrap: wrap;
+    gap: 0.7rem;
+  }
+}
+
 /* ---------- hero ascii (cycling) ---------- */
 
 .hero {
@@ -219,6 +231,102 @@ body::before {
 .hero-ctl a:hover { color: var(--accent); border-color: var(--rule); text-decoration: none; }
 .hero-ctl .hero-hide:hover { color: var(--crit); }
 .hero-ctl .hero-reset:hover { color: var(--ok); }
+
+/* ---------- homepage spotlight ---------- */
+
+.spotlight {
+  display: grid;
+  grid-template-columns: minmax(18rem, 0.8fr) minmax(24rem, 1.2fr);
+  gap: clamp(1rem, 3vw, 2rem);
+  align-items: center;
+  margin: 1rem 0 2.1rem;
+  padding: 1.1rem 0 1.35rem;
+  border-top: 1px solid var(--rule);
+  border-bottom: 1px solid var(--rule);
+}
+
+.spotlight-kicker {
+  color: var(--muted);
+  font-size: 0.72rem;
+  letter-spacing: 0.14em;
+  text-transform: lowercase;
+  margin-bottom: 0.45rem;
+}
+
+.spotlight h2 {
+  font-size: clamp(1.35rem, 3vw, 2.2rem);
+  line-height: 1.05;
+  margin: 0 0 0.75rem;
+  letter-spacing: 0;
+}
+
+.spotlight h2::before {
+  content: "./";
+  color: var(--muted);
+  font-weight: 400;
+}
+
+.spotlight h2 a {
+  color: var(--fg);
+}
+
+.spotlight h2 a:hover {
+  color: var(--accent);
+  text-decoration: none;
+}
+
+.spotlight p {
+  max-width: 68ch;
+  color: var(--fg-dim);
+  font-size: 0.95rem;
+}
+
+.spotlight-metrics {
+  display: grid;
+  gap: 0.35rem;
+  margin-top: 1rem;
+  font-size: 0.8rem;
+}
+
+.spotlight-metrics div {
+  display: grid;
+  grid-template-columns: 5.5rem 1fr;
+  gap: 0.7rem;
+}
+
+.spotlight-metrics dt {
+  color: var(--muted);
+}
+
+.spotlight-metrics dd {
+  color: var(--fg);
+}
+
+.spotlight-preview {
+  display: block;
+  border: 1px solid var(--rule-2);
+  background: var(--surface);
+  overflow: hidden;
+}
+
+.spotlight-preview:hover {
+  border-color: var(--accent);
+  text-decoration: none;
+}
+
+.spotlight-preview img {
+  display: block;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  object-fit: cover;
+  object-position: top left;
+}
+
+@media (max-width: 900px) {
+  .spotlight {
+    grid-template-columns: 1fr;
+  }
+}
 
 /* ---------- separator with label (TUI rule) ---------- */
 
