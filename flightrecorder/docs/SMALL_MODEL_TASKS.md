@@ -225,41 +225,42 @@ regression is found:
 
 Pick from the top unless Daniel or the senior agent says otherwise.
 
-## S166 - Draft session asset serving API contract
+## S173 - Update asset serving contract after delete landed
 
 Where:
 - `flightrecorder/docs/API_CONTRACT_DRAFT.md`
 - `flightrecorder/docs/API_CURRENT_STATE.md`
-- `flightrecorder/docs/NAVIGATION.md`
+- `flightrecorder/docs/SMOKE_COMMANDS.md`
 
 What:
-- Draft the contract for a read-only session asset serving endpoint:
-  `GET /api/sessions/{session_id}/assets/{filename}`.
-- State that it serves only files already listed in the selected session's
-  `assets` array.
-- State path-guard rules clearly:
+- Add a contract section for `GET /api/sessions/{session_id}/assets/{filename}`.
+- Keep the existing `DELETE /api/sessions/{session_id}/assets/{filename}`
+  section in sync with the implemented delete route.
+- State path-guard rules for both GET and DELETE:
   1. asset must live under `<runtime_home>/sessions/_assets`;
   2. asset filename must belong to the requested session prefix;
   3. traversal such as `../` must return 404.
-- Mark the route as draft-only in `API_CURRENT_STATE.md`.
-- Add the API contract doc location to navigation if needed.
+- In `API_CURRENT_STATE.md`, mark GET asset serving as draft-only and DELETE
+  asset removal as implemented.
+- Add smoke command placeholders for the future serving smoke.
 
 Why:
-- Uploaded images are listed in the browser, but the user still cannot inspect
-  them. The next MVP step is serving those assets safely.
+- We added deletion first. The next worker needs a clean written contract for
+  safe file inspection before implementing it.
 
 Smoke test:
 
 ```sh
 cd /home/daniel/Documents/Projekter/Daniel90mm.github.io/flightrecorder
 rg -n "GET /api/sessions/\\{session_id\\}/assets/\\{filename\\}" docs/API_CONTRACT_DRAFT.md
+rg -n "DELETE /api/sessions/\\{session_id\\}/assets/\\{filename\\}" docs/API_CONTRACT_DRAFT.md
 PYTHONPATH=src/backend python tests/smoke/smoke_api_current_state.py
 ```
 
 Hand-back:
-- When both commands pass, stop. Do not commit.
+- When all commands pass, stop. Do not commit.
 
-## S167 - Implement safe session asset serving
+## S174 - Implement safe session asset serving
 
 Where:
 - `flightrecorder/src/backend/flightrecorder/api.py`
@@ -279,8 +280,8 @@ What:
 - Add integration and smoke coverage.
 
 Why:
-- The dogfood UI needs to inspect uploaded images without exposing arbitrary
-  runtime files.
+- The dogfood UI can upload and remove files now, but cannot inspect them
+  without opening the runtime folder.
 
 Smoke test:
 
@@ -294,7 +295,7 @@ PYTHONPATH=src/backend python tests/smoke/smoke_api_current_state.py
 Hand-back:
 - When all commands pass, stop. Do not commit.
 
-## S168 - Link uploaded assets from the frontend
+## S175 - Link uploaded assets from the frontend
 
 Where:
 - `flightrecorder/src/frontend/index.html`
@@ -305,16 +306,18 @@ Where:
 - `flightrecorder/docs/FRONTEND_SCOPE.md`
 
 What:
-- Turn each uploaded asset row into a same-tab link to
+- Turn each uploaded asset filename into a same-tab link to
   `/api/sessions/{session_id}/assets/{filename}`.
 - Use DOM node creation and `textContent`; do not build links with raw
   `innerHTML`.
 - Keep the filename visible and size readable.
-- If there are no assets, show a quiet empty state.
+- Keep the existing **Remove** button working.
+- If there are no assets, show a quiet empty state such as `No uploaded files`.
 - Update frontend docs and smokes.
 
 Why:
-- Uploaded images should be inspectable from the prototype browser surface.
+- Uploaded files should be inspectable and removable from the prototype browser
+  surface.
 
 Smoke test:
 
@@ -327,24 +330,90 @@ PYTHONPATH=src/backend python tests/smoke/smoke_frontend_static.py
 Hand-back:
 - When both commands pass, stop. Do not commit.
 
-## S169 - Add matchmaker panel walkthrough notes
+## S176 - Add text and Markdown asset extraction helper
+
+Where:
+- `flightrecorder/src/backend/flightrecorder/assets.py` (new file)
+- `flightrecorder/tests/unit/test_assets.py` (new file)
+
+What:
+- Add a helper that extracts text from safe uploaded text-like files:
+  `.txt`, `.md`, `.markdown`, and content types beginning with `text/`.
+- Cap extracted text at 20,000 characters.
+- Return `None` for binary/unsupported assets such as images and PDFs.
+- Add unit tests for:
+  1. `.txt`;
+  2. `.md`;
+  3. unsupported `.png`;
+  4. truncation.
+- Do not wire this into chat yet.
+
+Why:
+- Before sending attachments into model context, we need a small, testable
+  extraction boundary for text/Markdown assets.
+
+Smoke test:
+
+```sh
+cd /home/daniel/Documents/Projekter/Daniel90mm.github.io/flightrecorder
+.venv/bin/python -m pytest tests/unit/test_assets.py -q
+```
+
+Hand-back:
+- When the command passes, stop. Do not commit.
+
+## S177 - Add attachment context preview API
+
+Where:
+- `flightrecorder/src/backend/flightrecorder/api.py`
+- `flightrecorder/src/backend/flightrecorder/assets.py`
+- `flightrecorder/tests/integration/test_attachment_context_api.py` (new file)
+- `flightrecorder/docs/SMOKE_COMMANDS.md`
+
+What:
+- Add read-only `GET /api/sessions/{session_id}/attachment-context`.
+- Return a JSON object with:
+  `session_id`, `included`, `skipped`, and `combined_text`.
+- Include text/Markdown assets using the helper from S176.
+- Skip images/PDFs with a clear reason such as `unsupported_binary`.
+- Cap combined text at 30,000 characters.
+- Do not send anything to a provider in this task.
+
+Why:
+- The user needs to see what attachment text would be sent before we inject it
+  into chat prompts.
+
+Smoke test:
+
+```sh
+cd /home/daniel/Documents/Projekter/Daniel90mm.github.io/flightrecorder
+.venv/bin/python -m pytest tests/integration/test_attachment_context_api.py -q
+```
+
+Hand-back:
+- When the command passes, stop. Do not commit.
+
+## S178 - Document attachment limitations honestly
 
 Where:
 - `flightrecorder/docs/PROTOTYPE_WALKTHROUGH.md`
-- `flightrecorder/tests/smoke/smoke_prototype_walkthrough.py`
 - `flightrecorder/docs/FRONTEND_SCOPE.md`
+- `flightrecorder/tests/smoke/smoke_prototype_walkthrough.py`
 
 What:
-- Document the new **Matchmaker** panel in the prototype walkthrough.
-- Make clear that it runs only for the selected spaghetti idea.
-- Make clear that the current scorer is fail-closed, so zero candidates is
-  expected until a real scorer is wired.
-- Update the walkthrough smoke to check for `Matchmaker`, `selected spaghetti
-  idea`, and `fail-closed scorer`.
+- Explain the current attachment behavior:
+  1. upload stores files on the session;
+  2. remove deletes files from the session;
+  3. text/Markdown extraction is planned/partial;
+  4. images are not yet sent to DeepSeek chat because `deepseek-chat` is not a
+     vision path in this app;
+  5. PDFs need a parser before model injection.
+- Update the walkthrough smoke to check for `Remove`, `text/Markdown`, `PDF`,
+  and `vision`.
 
 Why:
-- The prototype now exposes another workflow surface; the walkthrough should
-  match what the browser actually shows.
+- The prototype should make limitations clear so dogfood sessions are not
+  misleading.
 
 Smoke test:
 
@@ -355,63 +424,3 @@ cd /home/daniel/Documents/Projekter/Daniel90mm.github.io/flightrecorder
 
 Hand-back:
 - When the command passes, stop. Do not commit.
-
-## S170 - Add browser screenshot assertions for new panels
-
-Where:
-- `flightrecorder/tests/smoke/smoke_prototype_ui_screenshot.py`
-- `flightrecorder/docs/SMOKE_COMMANDS.md`
-
-What:
-- Extend the screenshot smoke to fetch the served HTML/JS and assert the new
-  panel ids are present before taking the screenshot:
-  1. `asset-list`;
-  2. `publish-preview-panel`;
-  3. `matchmaker-panel`.
-- Keep Chrome optional; still skip cleanly when `google-chrome` is absent.
-- Do not add Playwright.
-
-Why:
-- The screenshot smoke should catch missing visible panels before a human has
-  to open the prototype.
-
-Smoke test:
-
-```sh
-cd /home/daniel/Documents/Projekter/Daniel90mm.github.io/flightrecorder
-.venv/bin/python tests/smoke/smoke_prototype_ui_screenshot.py
-```
-
-Hand-back:
-- When the command passes, stop. Do not commit.
-
-## S171 - Update public page for asset inspection and matchmaker
-
-Where:
-- `museum/content/projects/flightrecorder/_index.md`
-- `museum/content/projects/flightrecorder/2026-05-19-dogfood-loop.md`
-- `flightrecorder/tests/smoke/smoke_hugo_build.py`
-- `flightrecorder/tests/smoke/smoke_hugo_internal_links.py`
-
-What:
-- Update public copy to mention:
-  1. uploaded asset inspection from the browser;
-  2. the matchmaker panel for selected spaghetti ideas;
-  3. both matchmaker and publisher remain fail-closed until their real LLM
-     stages are wired.
-- Keep it factual; do not turn it into marketing copy.
-- Do not change layouts, archetypes, or unrelated museum pages.
-
-Why:
-- The public page should reflect visible MVP surfaces, not just backend work.
-
-Smoke test:
-
-```sh
-cd /home/daniel/Documents/Projekter/Daniel90mm.github.io/flightrecorder
-python tests/smoke/smoke_hugo_build.py
-python tests/smoke/smoke_hugo_internal_links.py
-```
-
-Hand-back:
-- When both commands pass, stop. Do not commit.
