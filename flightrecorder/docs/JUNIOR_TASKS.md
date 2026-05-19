@@ -573,10 +573,12 @@ cd /home/daniel/Documents/Projekter/Daniel90mm.github.io/flightrecorder
 Hand-back:
 - When both commands pass, stop. Do not commit.
 
-## S201 - Convert spaghetti delete into a provenance-preserving dismissal
+## S201 - Make bad generated ideas retractable, not just hidden
 
 Where:
 - `flightrecorder/src/backend/flightrecorder/api.py`
+- `flightrecorder/src/backend/flightrecorder/documents.py`
+- `flightrecorder/tests/unit/test_documents.py`
 - `flightrecorder/tests/integration/test_spaghetti_api.py`
 - `flightrecorder/tests/smoke/smoke_spaghetti_api.py`
 - `flightrecorder/src/frontend/app.js`
@@ -584,31 +586,39 @@ Where:
 - `flightrecorder/tests/smoke/smoke_frontend_static.py`
 
 What:
-- Change `DELETE /api/spaghetti/{idea_id}` so it removes the idea from the
-  visible Spaghetti wall/list without destroying provenance needed for later
-  audit.
-- Use the existing `ideas.status` column. Suggested behavior:
-  - set `status = "dismissed"` and `updated_at = CURRENT_TIMESTAMP`;
-  - keep the sqlite row;
-  - keep the markdown file;
-  - exclude dismissed ideas from `GET /api/spaghetti`;
-  - `GET /api/spaghetti/{idea_id}` may still return the body with
-    `status: dismissed`, or may 404 only if the file/row is truly missing.
-- Update frontend copy from "delete selected" to "dismiss selected" or another
-  short label that fits the actual behavior. Keep the action one-click and no
-  confirmation prompt.
+- Change the current one-click Spaghetti action from destructive deletion into
+  "discard / retract bad generated idea" semantics.
+- For a loose Spaghetti item that has not affected a project document:
+  - remove it from the visible wall/list;
+  - set `ideas.status = "discarded"` (or `"dismissed"` if that is already
+    easier in code) and `updated_at = CURRENT_TIMESTAMP`;
+  - keep enough metadata to know it existed, but do not show it in
+    `GET /api/spaghetti`.
+- For a generated idea that already affected a project document, add a safe
+  active-document retraction helper in `documents.py`:
+  - remove the exact generated bullet/block from the active project document;
+  - do not remove unrelated human-written text;
+  - leave the git history / sqlite status as the audit trail;
+  - add unit tests for exact-match removal and "do nothing if no exact match".
+- If current project-document bullets are not uniquely identifiable enough,
+  first add a small source marker format for future generated appends. Keep it
+  readable, for example `[source: session-id] [op: N]`.
+- Update frontend copy away from "delete selected" toward "discard selected"
+  or "retract selected" so the user understands this is a bad-extraction
+  cleanup path. Keep it one-click and no confirmation prompt.
 - Update tests that currently expect row/file removal.
 
 Why:
-- If an extracted idea already influenced a project document, deleting the
-  loose Spaghetti item must not erase the audit trail. Project documents are
-  append-only; the wall is an inbox.
+- Bad/hallucinated extraction output must not leave bad text stuck in active
+  project documents. Preserve auditability through status/git history, but
+  make the visible working document correct.
 
 Smoke test:
 
 ```sh
 cd /home/daniel/Documents/Projekter/Daniel90mm.github.io/flightrecorder
 .venv/bin/python -m pytest tests/integration/test_spaghetti_api.py -q
+.venv/bin/python -m pytest tests/unit/test_documents.py -q
 .venv/bin/python tests/smoke/smoke_spaghetti_api.py
 .venv/bin/python tests/smoke/smoke_frontend_static.py
 ```
@@ -616,7 +626,7 @@ cd /home/daniel/Documents/Projekter/Daniel90mm.github.io/flightrecorder
 Hand-back:
 - When all commands pass, stop. Do not commit.
 
-## S202 - Import museum project pages into Flightrecorder documents
+## S202 - Sync museum project pages into Flightrecorder documents
 
 Where:
 - `flightrecorder/src/backend/flightrecorder/documents.py`
@@ -626,25 +636,34 @@ Where:
 - `flightrecorder/tests/smoke/smoke_documents_api.py`
 
 What:
-- Add a read/import path that lets Flightrecorder seed its runtime
+- Add an idempotent sync path that lets Flightrecorder seed/update its runtime
   `documents/` and `projects.json` from the Hugo museum project pages under
   the configured `hugo_site` path.
-- The import should read `content/projects/*/_index.md` style project pages,
-  extract at least `title`, `summary`, `status`, and the body, and create:
+- This is sync, not a one-time import. It must be safe to run repeatedly.
+- The sync should read `content/projects/*/_index.md` style project pages,
+  extract at least `title`, `summary`, `status`, and the body, and maintain:
   - one runtime project document per project;
   - a matching `projects.json` entry with `name`, `ref`, `path`, `active`,
     and `description`.
 - Keep it local and deterministic. Do not call Hugo, git, providers, or the
   network.
-- Do not overwrite an existing runtime document unless the imported content is
-  being used only as an initial seed. Preserve any existing extracted bullets.
+- Do not overwrite extracted brainstorming sections. Treat museum content as
+  the public-project baseline and Flightrecorder appends as the private working
+  layer.
+- Add a lightweight sync metadata marker (for example in frontmatter or a
+  sidecar json) so the API can report when a document was last synced and from
+  which museum path.
 - Add an API endpoint only if needed for dogfood, for example
-  `POST /api/documents/import-museum`, and protect it with tests.
+  `POST /api/documents/sync-museum`, and protect it with tests.
 
 Why:
 - The local `## documents` panel should become the editable/private working
   mirror of the public `/projects/` museum pages, so brainstormed ideas can be
   routed into real project documents.
+- Longer term, the museum should be a time-windowed public view into this
+  process: generated Spaghetti, absorbed items, discarded items, and polished
+  project updates. This task is the local sync foundation, not the public
+  publishing policy.
 
 Smoke test:
 
@@ -728,6 +747,85 @@ Smoke test:
 cd /home/daniel/Documents/Projekter/Daniel90mm.github.io/flightrecorder
 .venv/bin/python tests/smoke/smoke_frontend_static.py
 .venv/bin/python tests/smoke/smoke_frontend_dogfood.py
+```
+
+Hand-back:
+- When both commands pass, stop. Do not commit.
+
+## S205 - Discover local project folders as Flightrecorder projects
+
+Where:
+- `flightrecorder/src/backend/flightrecorder/config.py`
+- `flightrecorder/src/backend/flightrecorder/project_registry.py`
+- `flightrecorder/src/backend/flightrecorder/api.py`
+- `flightrecorder/tests/unit/test_config.py`
+- `flightrecorder/tests/unit/test_project_registry.py`
+- `flightrecorder/tests/integration/test_documents_api.py`
+
+What:
+- Add a local project discovery path for Daniel's normal workspace folder,
+  `/home/daniel/Documents/Projekter`, without hard-coding it as the only
+  possible root.
+- Prefer a config value such as `paths.project_roots = [...]`, with a sensible
+  fallback that can be tested using temporary directories.
+- Discovery should scan immediate child directories and derive safe project
+  refs from folder names.
+- Do not recurse deeply, do not inspect git remotes, and do not modify those
+  project folders.
+- Add a read-only API endpoint, suggested path `GET /api/project-roots`, that
+  returns discovered folders and whether each folder is already represented in
+  runtime `projects.json`.
+- Add focused tests with temporary folders. Do not depend on the real
+  `/home/daniel/Documents/Projekter` during tests.
+
+Why:
+- New projects often begin as folders in `~/Documents/Projekter`. Flightrecorder
+  should be able to notice them and let Daniel promote them into project
+  documents/museum entries naturally.
+
+Smoke test:
+
+```sh
+cd /home/daniel/Documents/Projekter/Daniel90mm.github.io/flightrecorder
+.venv/bin/python -m pytest tests/unit/test_config.py tests/unit/test_project_registry.py tests/integration/test_documents_api.py -q
+```
+
+Hand-back:
+- When the command passes, stop. Do not commit.
+
+## S206 - Add sync/activity status for museum-facing project updates
+
+Where:
+- `flightrecorder/src/backend/flightrecorder/api.py`
+- `flightrecorder/tests/integration/test_documents_api.py`
+- `flightrecorder/src/frontend/app.js`
+- `flightrecorder/src/frontend/index.html`
+- `flightrecorder/tests/smoke/smoke_frontend_static.py`
+
+What:
+- Add a read-only status surface that answers: since the last museum sync,
+  what has changed in Flightrecorder?
+- Include at least:
+  - number of generated Spaghetti items;
+  - number of discarded/retracted Spaghetti items;
+  - number of project documents changed;
+  - last museum sync timestamp if S202 has created one;
+  - a concise per-project changed/not-changed flag.
+- Add a small visible frontend panel or line near `## documents` showing this
+  status. Keep it compact and factual.
+- Do not publish anything to Hugo in this task. This is only status plumbing.
+
+Why:
+- The museum should eventually show a daily or "since last sync" window into
+  the brainstorming process: what was generated, what was absorbed, and what
+  was discarded. The MVP needs status before write-back publishing.
+
+Smoke test:
+
+```sh
+cd /home/daniel/Documents/Projekter/Daniel90mm.github.io/flightrecorder
+.venv/bin/python -m pytest tests/integration/test_documents_api.py -q
+.venv/bin/python tests/smoke/smoke_frontend_static.py
 ```
 
 Hand-back:
