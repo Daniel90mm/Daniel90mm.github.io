@@ -54,6 +54,18 @@ def expand_path(value: str) -> Path:
     return Path(os.path.expandvars(os.path.expanduser(value)))
 
 
+def resolve_secret(value: str, environment: Mapping[str, str] | None = None) -> str:
+    """Resolve local secret references without storing secrets in config files."""
+
+    if not value.startswith("env:"):
+        return value
+    variable = value.removeprefix("env:").strip()
+    if not variable:
+        return ""
+    resolved_environment = environment if environment is not None else os.environ
+    return resolved_environment.get(variable, "")
+
+
 def load_config(path: Path) -> AppConfig:
     """Load a TOML config file."""
 
@@ -88,7 +100,10 @@ def parse_config(data: dict[str, Any]) -> AppConfig:
     """Parse already-loaded TOML data into typed config objects."""
 
     providers = {
-        name: ProviderConfig(name=name, api_key=str(values.get("api_key", "")))
+        name: ProviderConfig(
+            name=name,
+            api_key=resolve_secret(str(values.get("api_key", ""))),
+        )
         for name, values in data.get("providers", {}).items()
     }
     roles = {

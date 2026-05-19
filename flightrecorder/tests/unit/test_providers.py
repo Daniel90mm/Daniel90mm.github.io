@@ -9,7 +9,9 @@ from flightrecorder.config import parse_config
 from flightrecorder.providers import (
     AnthropicChatProvider,
     ConfiguredProvider,
+    DeepSeekChatProvider,
     Message,
+    OpenAICompatibleChatProvider,
     ProviderError,
     PrototypeProvider,
     TokenEvent,
@@ -38,6 +40,7 @@ async def _drain(provider: ConfiguredProvider) -> list[Any]:
 
 def test_create_provider_descriptors() -> None:
     anthropic = create_provider("anthropic", "claude-haiku-4-5", "test-key")
+    deepseek = create_provider("deepseek", "deepseek-chat", "test-key")
     google = create_provider("google", "gemini-2.5-pro", "test-key")
     openai = create_provider("openai", "gpt-5-mini", "test-key")
     prototype = create_provider("prototype", "prototype-brainstorm", "")
@@ -46,6 +49,11 @@ def test_create_provider_descriptors() -> None:
     assert anthropic.supports_images is True
     assert anthropic.model == "claude-haiku-4-5"
     assert anthropic.is_configured is True
+    assert isinstance(deepseek, DeepSeekChatProvider)
+    assert deepseek.name == "deepseek"
+    assert deepseek.model == "deepseek-chat"
+    assert deepseek.supports_images is False
+    assert deepseek.is_configured is True
     assert google.supports_images is True
     assert google.max_context_tokens == 0
     assert openai.name == "openai"
@@ -267,6 +275,150 @@ def test_anthropic_provider_without_api_key_fails_closed() -> None:
 
     assert provider.is_configured is False
     with pytest.raises(ProviderError):
+        asyncio.run(_drain_chat(provider, [Message(role="user", content="hi")]))
+
+
+# --- OpenAI-compatible provider streaming, against a fake client ---
+
+
+@dataclass
+class _FakeOpenAIUsage:
+    prompt_tokens: int
+    completion_tokens: int
+    prompt_cache_hit_tokens: int = 0
+
+
+@dataclass
+class _FakeOpenAIDelta:
+    content: str | None = None
+
+
+@dataclass
+class _FakeOpenAIChoice:
+    delta: _FakeOpenAIDelta
+
+
+@dataclass
+class _FakeOpenAIChunk:
+    choices: list[_FakeOpenAIChoice]
+    usage: _FakeOpenAIUsage | None = None
+
+
+class _FakeOpenAIStream:
+    def __init__(self, chunks: list[_FakeOpenAIChunk]) -> None:
+        self._chunks = chunks
+
+    def __aiter__(self) -> "_FakeOpenAIStream":
+        self._index = 0
+        return self
+
+    async def __anext__(self) -> _FakeOpenAIChunk:
+        if self._index >= len(self._chunks):
+            raise StopAsyncIteration
+        chunk = self._chunks[self._index]
+        self._index += 1
+        return chunk
+
+
+class _FakeOpenAICompletions:
+    def __init__(
+        self,
+        chunks: list[_FakeOpenAIChunk],
+        captured: dict[str, Any],
+        raise_error: BaseException | None = None,
+    ) -> None:
+        self._chunks = chunks
+        self._captured = captured
+        self._raise_error = raise_error
+
+    async def create(self, **kwargs: Any) -> _FakeOpenAIStream:
+        self._captured.update(kwargs)
+        if self._raise_error is not None:
+            raise self._raise_error
+        return _FakeOpenAIStream(self._chunks)
+
+
+@dataclass
+class _FakeOpenAIChat:
+    completions: _FakeOpenAICompletions
+
+
+@dataclass
+class _FakeOpenAIClient:
+    chat: _FakeOpenAIChat
+
+
+def _make_openai_provider(
+    chunks: list[_FakeOpenAIChunk],
+    captured: dict[str, Any] | None = None,
+    raise_error: BaseException | None = None,
+) -> tuple[OpenAICompatibleChatProvider, dict[str, Any]]:
+    captured_kwargs = captured if captured is not None else {}
+    client = _FakeOpenAIClient(
+        chat=_FakeOpenAIChat(
+            completions=_FakeOpenAICompletions(chunks, captured_kwargs, raise_error)
+        )
+    )
+    provider = OpenAICompatibleChatProvider(
+        name="deepseek",
+        model="deepseek-chat",
+        api_key="test-key",
+        client=client,
+    )
+    return provider, captured_kwargs
+
+
+def test_openai_compatible_provider_streams_tokens_then_usage() -> None:
+    provider, kwargs = _make_openai_provider(
+        [
+            _FakeOpenAIChunk([_FakeOpenAIChoice(_FakeOpenAIDelta("Hello"))]),
+            _FakeOpenAIChunk([_FakeOpenAIChoice(_FakeOpenAIDelta(" world"))]),
+            _FakeOpenAIChunk([], _FakeOpenAIUsage(prompt_tokens=7, completion_tokens=3)),
+        ]
+    )
+
+    events = asyncio.run(
+        _drain_chat(
+            provider,
+            [Message(role="user", content="hi")],
+            system="be brief",
+        )
+    )
+
+    assert events[:-1] == [TokenEvent(text="Hello"), TokenEvent(text=" world")]
+    assert isinstance(events[-1], UsageEvent)
+    assert events[-1].input_tokens == 7
+    assert events[-1].output_tokens == 3
+    assert kwargs["model"] == "deepseek-chat"
+    assert kwargs["stream"] is True
+    assert kwargs["stream_options"] == {"include_usage": True}
+    assert kwargs["messages"] == [
+        {"role": "system", "content": "be brief"},
+        {"role": "user", "content": "hi"},
+    ]
+
+
+def test_openai_compatible_provider_requires_usage() -> None:
+    provider, _ = _make_openai_provider(
+        [_FakeOpenAIChunk([_FakeOpenAIChoice(_FakeOpenAIDelta("x"))])]
+    )
+
+    with pytest.raises(ProviderError, match="finished without usage"):
+        asyncio.run(_drain_chat(provider, [Message(role="user", content="hi")]))
+
+
+def test_openai_compatible_provider_wraps_sdk_errors() -> None:
+    provider, _ = _make_openai_provider([], raise_error=RuntimeError("simulated 429"))
+
+    with pytest.raises(ProviderError, match="deepseek stream failed"):
+        asyncio.run(_drain_chat(provider, [Message(role="user", content="hi")]))
+
+
+def test_deepseek_provider_without_api_key_fails_closed() -> None:
+    provider = create_provider("deepseek", "deepseek-chat", "")
+
+    assert provider.is_configured is False
+    with pytest.raises(ProviderError, match="deepseek provider has no api key configured"):
         asyncio.run(_drain_chat(provider, [Message(role="user", content="hi")]))
 
 

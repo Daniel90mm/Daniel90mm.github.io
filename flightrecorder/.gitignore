@@ -6,3 +6,4 @@ src/backend/*.egg-info/
 .env*
 config*.local.toml
 pricing*.local.toml
+scripts/*local*.sh

@@ -184,6 +184,109 @@ class AnthropicChatProvider(ConfiguredProvider):
         )
 
 
+class OpenAICompatibleChatProvider(ConfiguredProvider):
+    """Streaming chat provider for OpenAI-compatible chat completions APIs."""
+
+    _client: Any
+
+    def __init__(
+        self,
+        name: str,
+        model: str,
+        api_key: str,
+        base_url: str | None = None,
+        supports_images: bool = True,
+        max_context_tokens: int = 128_000,
+        client: Any | None = None,
+    ) -> None:
+        super().__init__(
+            name=name,
+            model=model,
+            api_key=api_key,
+            supports_images=supports_images,
+            max_context_tokens=max_context_tokens,
+        )
+        self._client = (
+            client
+            if client is not None
+            else _default_openai_compatible_client(api_key=api_key, base_url=base_url)
+        )
+
+    async def chat(
+        self,
+        messages: list[Message],
+        system: str | None = None,
+    ) -> AsyncIterator[ChatEvent]:
+        if not self.is_configured:
+            raise ProviderError(f"{self.name} provider has no api key configured")
+
+        request_messages: list[dict[str, str]] = []
+        if system is not None:
+            request_messages.append({"role": "system", "content": system})
+        for message in messages:
+            if message.role not in {"user", "assistant", "system"}:
+                raise ProviderError(
+                    f"{self.name} role must be user, assistant, or system, got {message.role!r}"
+                )
+            request_messages.append({"role": message.role, "content": message.content})
+
+        try:
+            stream = await self._client.chat.completions.create(
+                model=self.model,
+                messages=request_messages,
+                stream=True,
+                stream_options={"include_usage": True},
+            )
+            usage: Any | None = None
+            async for chunk in stream:
+                usage = getattr(chunk, "usage", None) or usage
+                choices = getattr(chunk, "choices", None) or []
+                if not choices:
+                    continue
+                delta = getattr(choices[0], "delta", None)
+                content = getattr(delta, "content", None)
+                if content:
+                    yield TokenEvent(text=str(content))
+        except ProviderError:
+            raise
+        except Exception as exc:
+            raise ProviderError(f"{self.name} stream failed: {exc}") from exc
+
+        if usage is None:
+            raise ProviderError(f"{self.name} stream finished without usage info")
+
+        cached = (
+            getattr(usage, "prompt_cache_hit_tokens", None)
+            or getattr(usage, "cached_tokens", None)
+            or 0
+        )
+        yield UsageEvent(
+            input_tokens=int(getattr(usage, "prompt_tokens", 0)),
+            output_tokens=int(getattr(usage, "completion_tokens", 0)),
+            cached_tokens=int(cached),
+        )
+
+
+class DeepSeekChatProvider(OpenAICompatibleChatProvider):
+    """DeepSeek provider via its OpenAI-compatible chat completions API."""
+
+    def __init__(
+        self,
+        model: str,
+        api_key: str,
+        client: Any | None = None,
+    ) -> None:
+        super().__init__(
+            name="deepseek",
+            model=model,
+            api_key=api_key,
+            base_url="https://api.deepseek.com",
+            supports_images=False,
+            max_context_tokens=64_000,
+            client=client,
+        )
+
+
 class PrototypeProvider(ConfiguredProvider):
     """Deterministic local provider for offline dogfood demos.
 
@@ -263,8 +366,20 @@ def _default_anthropic_client(api_key: str) -> Any:
     return AsyncAnthropic(api_key=api_key)
 
 
+def _default_openai_compatible_client(api_key: str, base_url: str | None = None) -> Any:
+    """Build an AsyncOpenAI client. Imported lazily so tests can inject fakes."""
+
+    from openai import AsyncOpenAI
+
+    kwargs: dict[str, Any] = {"api_key": api_key}
+    if base_url is not None:
+        kwargs["base_url"] = base_url
+    return AsyncOpenAI(**kwargs)
+
+
 PROVIDER_DESCRIPTORS = {
     "anthropic": ProviderDescriptor(supports_images=True, max_context_tokens=200_000),
+    "deepseek": ProviderDescriptor(supports_images=False, max_context_tokens=64_000),
     "google": ProviderDescriptor(supports_images=True, max_context_tokens=0),
     "openai": ProviderDescriptor(supports_images=True, max_context_tokens=0),
     "prototype": ProviderDescriptor(supports_images=False, max_context_tokens=16_000),
@@ -289,6 +404,13 @@ def create_provider(name: str, model: str, api_key: str) -> ConfiguredProvider:
         )
     if name == "prototype":
         return PrototypeProvider(model=model)
+    if name == "deepseek":
+        provider = DeepSeekChatProvider(
+            model=model,
+            api_key=api_key,
+            client=None if api_key else _UnconfiguredOpenAICompatibleClient(name),
+        )
+        return provider
 
     return ConfiguredProvider(
         name=name,
@@ -313,6 +435,26 @@ class _UnconfiguredClient:
             yield  # pragma: no cover
 
     messages = _Messages()
+
+
+class _UnconfiguredOpenAICompatibleClient:
+    """Stand-in OpenAI-compatible client used when no api key is configured."""
+
+    def __init__(self, provider_name: str) -> None:
+        self.chat = self._Chat(provider_name)
+
+    class _Chat:
+        def __init__(self, provider_name: str) -> None:
+            self.completions = _UnconfiguredOpenAICompatibleClient._Completions(
+                provider_name
+            )
+
+    class _Completions:
+        def __init__(self, provider_name: str) -> None:
+            self._provider_name = provider_name
+
+        async def create(self, **_: Any) -> Any:
+            raise ProviderError(f"{self._provider_name} provider has no api key configured")
 
 
 def create_role_provider(config: AppConfig, role_name: str) -> ConfiguredProvider:

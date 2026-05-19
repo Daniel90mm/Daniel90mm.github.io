@@ -8,6 +8,7 @@ from flightrecorder.config import (
     load_config,
     load_config_from_environment,
     parse_config,
+    resolve_secret,
 )
 
 FIXTURES_DIR = Path(__file__).resolve().parent.parent / "fixtures" / "config"
@@ -45,6 +46,12 @@ def test_parse_config_roles_and_providers() -> None:
     assert config.roles["tagger"].model == "claude-haiku-4-5"
     assert config.budget.hard_stop_dkk == 34
     assert config.paths.runtime_home == Path.home() / "flightrecorder"
+
+
+def test_resolve_secret_reads_env_reference() -> None:
+    assert resolve_secret("env:DEEPSEEK_API_KEY", {"DEEPSEEK_API_KEY": "test-key"}) == "test-key"
+    assert resolve_secret("env:MISSING", {}) == ""
+    assert resolve_secret("literal-key", {}) == "literal-key"
 
 
 def test_config_path_from_environment_uses_explicit_path(tmp_path: Path) -> None:

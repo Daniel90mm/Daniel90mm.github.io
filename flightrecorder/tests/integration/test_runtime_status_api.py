@@ -163,7 +163,7 @@ def test_runtime_status_rejects_placeholder_api_key(tmp_path: Path) -> None:
     assert brainstorm["issues"] == ["api_key_missing"]
 
 
-def test_runtime_status_rejects_non_anthropic_provider_for_now(tmp_path: Path) -> None:
+def test_runtime_status_rejects_unimplemented_provider_for_now(tmp_path: Path) -> None:
     config = parse_config(
         {
             "paths": {"runtime_home": str(tmp_path)},
@@ -196,6 +196,44 @@ def test_runtime_status_rejects_non_anthropic_provider_for_now(tmp_path: Path) -
     brainstorm = response.json()["roles"]["brainstorm"]
     assert brainstorm["configured"] is False
     assert brainstorm["issues"] == ["provider_not_implemented"]
+
+
+def test_runtime_status_accepts_deepseek_provider(tmp_path: Path) -> None:
+    config = parse_config(
+        {
+            "paths": {"runtime_home": str(tmp_path)},
+            "providers": {"deepseek": {"api_key": "sk-test"}},
+            "roles": {
+                "brainstorm": {"provider": "deepseek", "model": "deepseek-chat"},
+                "idea_capture": {"provider": "deepseek", "model": "deepseek-chat"},
+            },
+        }
+    )
+    runtime = build_runtime_context(config)
+    pricing = PricingTable(
+        models={
+            "deepseek-chat": ModelPricing(
+                provider="deepseek",
+                model="deepseek-chat",
+                input_per_1k=0.01,
+                output_per_1k=0.03,
+                cached_per_1k=0.0,
+                currency="DKK",
+            )
+        },
+        exchange_rates_to_dkk={"DKK": 1.0},
+    )
+    object.__setattr__(runtime, "pricing", pricing)
+    app = create_app(config=config, runtime=runtime)
+    client = TestClient(app)
+
+    response = client.get("/api/runtime")
+    assert response.status_code == 200
+    body = response.json()
+    assert body["roles"]["brainstorm"]["configured"] is True
+    assert body["roles"]["brainstorm"]["issues"] == []
+    assert body["roles"]["idea_capture"]["configured"] is True
+    assert body["roles"]["idea_capture"]["issues"] == []
 
 
 def test_runtime_status_accepts_prototype_provider_without_api_key(tmp_path: Path) -> None:

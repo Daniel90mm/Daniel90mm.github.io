@@ -433,7 +433,7 @@ async def get_runtime_status(request: Request) -> dict[str, object]:
             ):
                 issues.append("api_key_missing")
 
-        if role.provider not in {"anthropic", "prototype"}:
+        if role.provider not in {"anthropic", "deepseek", "prototype"}:
             issues.append("provider_not_implemented")
 
         has_model = role.model in runtime.pricing.models

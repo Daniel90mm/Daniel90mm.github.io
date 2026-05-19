@@ -34,3 +34,4 @@ artifacts/
 flightrecorder/.env*
 flightrecorder/config*.local.toml
 flightrecorder/pricing*.local.toml
+flightrecorder/scripts/*local*.sh
