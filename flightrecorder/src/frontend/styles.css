@@ -515,6 +515,9 @@ body {
   flex: 1 1 160px;
   min-width: 140px;
 }
+.fr-field-primary {
+  flex: 999 1 220px;
+}
 .fr-field input {
   padding: 6px 8px;
   background: var(--bg2);
@@ -527,6 +530,31 @@ body {
 .fr-field input:focus {
   outline: none;
   border-color: color-mix(in srgb, var(--accent) 55%, var(--line));
+}
+.fr-field-primary input {
+  min-height: 34px;
+  font-size: 13px;
+}
+
+.fr-advanced-session {
+  flex: 1 0 100%;
+  color: var(--muted);
+  font-size: 11px;
+}
+.fr-advanced-session summary {
+  cursor: pointer;
+  display: inline-flex;
+  color: var(--muted);
+  border-bottom: 1px dotted var(--dim);
+  list-style-position: inside;
+}
+.fr-advanced-session[open] summary {
+  margin-bottom: 8px;
+}
+.fr-advanced-session-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 8px;
 }
 
 .fr-primary-btn {
@@ -542,6 +570,12 @@ body {
   align-self: flex-end;
 }
 .fr-primary-btn:hover { filter: brightness(1.08); }
+
+@media (max-width: 720px) {
+  .fr-advanced-session-grid {
+    grid-template-columns: 1fr;
+  }
+}
 
 .fr-ghost-btn {
   background: transparent;

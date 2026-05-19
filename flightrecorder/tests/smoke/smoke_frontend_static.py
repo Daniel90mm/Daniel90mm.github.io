@@ -73,6 +73,15 @@ def main() -> None:
     if 'id="session-delete-btn"' not in index_html:
         print("missing session delete button in index.html", file=sys.stderr)
         sys.exit(1)
+    if 'id="slug"' not in index_html or '<span>name</span>' not in index_html:
+        print("new session form must make session name the primary field", file=sys.stderr)
+        sys.exit(1)
+    if index_html.find('id="slug"') > index_html.find('id="provider"'):
+        print("new session name must appear before advanced provider/model fields", file=sys.stderr)
+        sys.exit(1)
+    if 'class="fr-advanced-session"' not in index_html:
+        print("provider/model fields must live in advanced session controls", file=sys.stderr)
+        sys.exit(1)
     if 'id="preview-session-btn"' not in index_html:
         print("missing session publish preview button in index.html", file=sys.stderr)
         sys.exit(1)

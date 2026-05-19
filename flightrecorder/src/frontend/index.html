@@ -175,19 +175,24 @@
             <span class="fr-section-rule"></span>
           </div>
           <form id="session-form" class="fr-new-session">
-            <label class="fr-field">
-              <span>provider</span>
-              <input type="text" id="provider" placeholder="anthropic" value="anthropic">
-            </label>
-            <label class="fr-field">
-              <span>model</span>
-              <input type="text" id="model" placeholder="claude-sonnet-4-5" value="claude-sonnet-4-5">
-            </label>
-            <label class="fr-field">
-              <span>slug</span>
+            <label class="fr-field fr-field-primary">
+              <span>name</span>
               <input type="text" id="slug" placeholder="my-session">
             </label>
             <button type="submit" id="create-btn" class="fr-primary-btn">create</button>
+            <details class="fr-advanced-session">
+              <summary>advanced model route</summary>
+              <div class="fr-advanced-session-grid">
+                <label class="fr-field">
+                  <span>provider</span>
+                  <input type="text" id="provider" placeholder="anthropic" value="anthropic">
+                </label>
+                <label class="fr-field">
+                  <span>model</span>
+                  <input type="text" id="model" placeholder="claude-sonnet-4-5" value="claude-sonnet-4-5">
+                </label>
+              </div>
+            </details>
           </form>
         </section>
 
