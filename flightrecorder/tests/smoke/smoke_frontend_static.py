@@ -48,6 +48,12 @@ def main() -> None:
     if "renderExtractionResult" in app_js or "extraction-result" in app_js:
         print("frontend must not show raw extraction JSON in chat", file=sys.stderr)
         sys.exit(1)
+    if "no turns yet" in app_js:
+        print("frontend must not render empty transcript placeholder text", file=sys.stderr)
+        sys.exit(1)
+    if "ideaDisplayLabel" not in app_js:
+        print("frontend must use compact spaghetti display labels", file=sys.stderr)
+        sys.exit(1)
     print(f"route references in app.js: {len(REQUIRED_ROUTES)} found")
 
     index_html = (FE_DIR / "index.html").read_text(encoding="utf-8")

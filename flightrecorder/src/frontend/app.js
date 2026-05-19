@@ -396,11 +396,6 @@
   function renderTranscript(messages) {
     DOM.transcript.innerHTML = "";
     if (!messages || messages.length === 0) {
-      var note = document.createElement("div");
-      note.className = "fr-muted";
-      note.style.padding = "8px 0";
-      note.textContent = "no turns yet — start typing below.";
-      DOM.transcript.appendChild(note);
       return;
     }
     messages.forEach(function (m) {
@@ -827,6 +822,29 @@
     return "— (orphan)";
   }
 
+  function ideaShortId(idea) {
+    var id = String(idea.idea_id || "");
+    var parts = id.split("-");
+    return parts.length > 0 ? parts[parts.length - 1].slice(0, 6) : "";
+  }
+
+  function ideaDisplayLabel(idea, maxLen) {
+    var base = "";
+    if (idea.title) {
+      base = String(idea.title);
+    } else if (idea.topics && idea.topics.length) {
+      base = idea.topics.slice(0, 2).join(" + ");
+    } else if (idea.tags && idea.tags.length) {
+      base = "#" + idea.tags.slice(0, 2).join(" #");
+    } else {
+      base = "loose idea";
+    }
+    var suffix = ideaShortId(idea);
+    var label = suffix ? base + " · " + suffix : base;
+    var limit = maxLen || 32;
+    return label.length > limit ? label.slice(0, Math.max(0, limit - 1)) + "…" : label;
+  }
+
   function renderSpaghettiGrid(ideas) {
     DOM.spaghettiGrid.innerHTML = "";
     var count = (ideas || []).length;
@@ -851,7 +869,7 @@
       head.className = "fr-sticky-head";
       var titleEl = document.createElement("span");
       titleEl.className = "fr-sticky-title";
-      titleEl.textContent = idea.title || (idea.idea_id || "").slice(0, 24) || "idea";
+      titleEl.textContent = ideaDisplayLabel(idea, 28);
       var ageEl = document.createElement("span");
       ageEl.className = "fr-sticky-age";
       ageEl.textContent = ageString(idea);
@@ -910,7 +928,8 @@
       ideas.forEach(function (idea) {
         var el = document.createElement("span");
         el.dataset.id = idea.idea_id;
-        el.textContent = (idea.title || idea.idea_id).slice(0, 30);
+        el.textContent = ideaDisplayLabel(idea, 34);
+        el.title = idea.idea_id || "";
         if (!state.spaghettiSelected && idea.idea_id === firstId) el.classList.add("active");
         if (state.spaghettiSelected && idea.idea_id === state.currentSpaghettiId) el.classList.add("active");
         el.addEventListener("click", function () {
