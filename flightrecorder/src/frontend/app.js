@@ -544,18 +544,6 @@
       });
   }
 
-  function renderExtractionResult(result) {
-    var el = document.getElementById("extraction-result");
-    if (!el) {
-      el = document.createElement("div");
-      el.id = "extraction-result";
-      el.className = "fr-read-body";
-      el.style.marginTop = "8px";
-      DOM.chatArea.appendChild(el);
-    }
-    el.textContent = JSON.stringify(result, null, 2);
-  }
-
   function selectSession(id) {
     state.currentSessionId = id;
     setStatus("Loading session…", "status-info");
@@ -691,8 +679,7 @@
     setStatus("Extracting…", "status-info");
     api("/api/sessions/" + state.currentSessionId + "/extract", { method: "POST" })
       .then(function (res) { return res.json(); })
-      .then(function (result) {
-        renderExtractionResult(result);
+      .then(function () {
         setStatus("Extraction complete", "status-success");
         loadSession(state.currentSessionId).then(function (session) {
           state.currentSession = session;

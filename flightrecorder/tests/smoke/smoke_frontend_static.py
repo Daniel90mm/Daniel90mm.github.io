@@ -45,6 +45,9 @@ def main() -> None:
     if "DOM.callsList.innerHTML = html" in app_js:
         print("calls panel must not render API rows with innerHTML", file=sys.stderr)
         sys.exit(1)
+    if "renderExtractionResult" in app_js or "extraction-result" in app_js:
+        print("frontend must not show raw extraction JSON in chat", file=sys.stderr)
+        sys.exit(1)
     print(f"route references in app.js: {len(REQUIRED_ROUTES)} found")
 
     index_html = (FE_DIR / "index.html").read_text(encoding="utf-8")
