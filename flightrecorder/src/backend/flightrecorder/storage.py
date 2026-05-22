@@ -346,6 +346,24 @@ class SessionStore:
         index_session(self.connection, updated_metadata, path)
         return updated_metadata
 
+    def mark_extracted(
+        self,
+        session_id: str,
+        extracted_at: datetime,
+    ) -> SessionMetadata:
+        """Mark one session extracted and persist the extraction timestamp."""
+
+        path = self.session_path(session_id)
+        metadata, messages = read_session(path)
+        updated_metadata = replace(
+            metadata,
+            extracted=True,
+            extracted_at=extracted_at.isoformat(),
+        )
+        write_session(path, updated_metadata, messages)
+        index_session(self.connection, updated_metadata, path)
+        return updated_metadata
+
     def store_asset(
         self,
         session_id: str,

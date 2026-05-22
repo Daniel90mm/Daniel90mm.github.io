@@ -13,6 +13,7 @@
     spaghetti: [],
     budget: null,
     modelOptions: [],
+    streaming: false,
   };
 
   var STICKY_COLORS = ["#e8a04a", "#6aa3ff", "#8fb84a", "#5fb7c7", "#e36363"];
@@ -100,12 +101,17 @@
 
   function setChatEnabled(enabled) {
     var sessionSelected = Boolean(enabled);
-    var chatActive = sessionSelected && state.runtimeReady;
+    var chatActive = sessionSelected && state.runtimeReady && !state.streaming;
     DOM.messageInput.disabled = !chatActive;
     DOM.sendBtn.disabled = !chatActive;
     DOM.extractBtn.disabled = !chatActive;
     DOM.uploadFile.disabled = !sessionSelected;
     DOM.uploadBtn.disabled = !sessionSelected;
+  }
+
+  function finishStreaming() {
+    state.streaming = false;
+    setChatEnabled(Boolean(state.currentSessionId));
   }
 
   function createSession(provider, model, slug) {
@@ -693,6 +699,12 @@
 
   function sendMessage(content) {
     if (!state.currentSessionId) return;
+    if (state.streaming) {
+      setStatus("Stream already active", "status-error");
+      return;
+    }
+    state.streaming = true;
+    setChatEnabled(true);
     setStatus("Sending…", "status-info");
     var assistantText = "";
     var streamDone = false;
@@ -759,11 +771,13 @@
           renderMathIn(assistantBody);
           if (pinnedDone) DOM.transcript.scrollTop = DOM.transcript.scrollHeight;
           streamDone = true;
+          finishStreaming();
           clearStatus();
           refreshBudget();
           refreshCalls();
         } else if (event.event === "error") {
           streamDone = true;
+          finishStreaming();
           setStatus("Chat error: " + (data.detail || data.error || "unknown"), "status-error");
         }
       });
@@ -781,12 +795,15 @@
       }
       var reader = res.body.getReader();
       var decoder = new TextDecoder();
-      var parser = createSSEParser();
+      var parser = window.flightrecorderUtils.createSSEParser();
 
       function pump() {
         return reader.read().then(function (result) {
           if (result.done) {
-            if (!streamDone) setStatus("Stream ended without done event", "status-error");
+            if (!streamDone) {
+              finishStreaming();
+              setStatus("Stream ended without done event", "status-error");
+            }
             return;
           }
           handleSSEEvents(parser.parseChunk(decoder.decode(result.value, { stream: true })));
@@ -796,12 +813,19 @@
 
       return pump();
     }).catch(function (err) {
+      finishStreaming();
       setStatus("Chat failed: " + err.message, "status-error");
     });
   }
 
   function runExtraction() {
     if (!state.currentSessionId) return;
+    if (state.streaming) {
+      setStatus("Cannot extract while streaming", "status-error");
+      return;
+    }
+    state.streaming = true;
+    setChatEnabled(true);
     setStatus("Extracting…", "status-info");
     api("/api/sessions/" + state.currentSessionId + "/extract", { method: "POST" })
       .then(function (res) { return res.json(); })
@@ -820,6 +844,9 @@
       })
       .catch(function (err) {
         setStatus("Extraction failed: " + err.message, "status-error");
+      })
+      .finally(function () {
+        finishStreaming();
       });
   }
 
@@ -1185,6 +1212,10 @@
 
   DOM.messageForm.addEventListener("submit", function (e) {
     e.preventDefault();
+    if (state.streaming) {
+      setStatus("Stream already active", "status-error");
+      return;
+    }
     var content = DOM.messageInput.value.trim();
     if (!content) return;
     DOM.messageInput.value = "";
@@ -1269,46 +1300,6 @@
   });
 
 
-  function createSSEParser() {
-    var buffer = "";
-    var pendingEvent = null;
-
-    function parseChunk(chunk) {
-      buffer += chunk;
-      var lines = buffer.split("\n");
-      buffer = lines.pop() || "";
-
-      var events = [];
-      var eventType = pendingEvent;
-      pendingEvent = null;
-      for (var i = 0; i < lines.length; i++) {
-        var line = lines[i];
-        if (line.startsWith("event: ")) {
-          eventType = line.slice(7);
-        } else if (line.startsWith("data: ")) {
-          var dataStr = line.slice(6);
-          try {
-            var data = JSON.parse(dataStr);
-            events.push({ event: eventType, data: data });
-          } catch (e) { /* skip unparseable data */ }
-          eventType = null;
-        }
-      }
-      pendingEvent = eventType;
-      return events;
-    }
-
-    function flush() {
-      if (buffer.length > 0) {
-        buffer = "";
-        return parseChunk("\n");
-      }
-      return [];
-    }
-
-    return { parseChunk: parseChunk, flush: flush };
-  }
-
   window.flightrecorderApp = {
     api: api,
     createSession: createSession,
@@ -1323,7 +1314,7 @@
     renderSessionSummary: renderSessionSummary,
     sendMessage: sendMessage,
     runExtraction: runExtraction,
-    createSSEParser: createSSEParser,
+    createSSEParser: window.flightrecorderUtils.createSSEParser,
     loadDocuments: loadDocuments,
     loadDocument: loadDocument,
     loadSpaghetti: loadSpaghetti,

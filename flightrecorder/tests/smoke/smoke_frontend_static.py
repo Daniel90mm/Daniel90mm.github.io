@@ -8,7 +8,7 @@ from pathlib import Path
 REPO = Path(__file__).resolve().parent.parent.parent
 FE_DIR = REPO / "src" / "frontend"
 
-FILES = ["index.html", "styles.css", "app.js"]
+FILES = ["index.html", "styles.css", "app-utils.js", "app.js"]
 
 REQUIRED_ROUTES = [
     '"/api/sessions"',
@@ -42,6 +42,12 @@ def main() -> None:
     if "refreshSessionList(true)" not in app_js:
         print("missing initial session auto-select", file=sys.stderr)
         sys.exit(1)
+    if "state.streaming" not in app_js or "finishStreaming" not in app_js:
+        print("missing streaming guard in app.js", file=sys.stderr)
+        sys.exit(1)
+    if "window.flightrecorderUtils.createSSEParser()" not in app_js:
+        print("app.js must use createSSEParser from app-utils.js", file=sys.stderr)
+        sys.exit(1)
     if "DOM.callsList.innerHTML = html" in app_js:
         print("calls panel must not render API rows with innerHTML", file=sys.stderr)
         sys.exit(1)
@@ -57,10 +63,13 @@ def main() -> None:
     print(f"route references in app.js: {len(REQUIRED_ROUTES)} found")
 
     index_html = (FE_DIR / "index.html").read_text(encoding="utf-8")
-    for asset in ("/assets/styles.css", "/assets/app.js"):
+    for asset in ("/assets/styles.css", "/assets/app-utils.js", "/assets/app.js"):
         if asset not in index_html:
             print(f"missing asset reference in index.html: {asset}", file=sys.stderr)
             sys.exit(1)
+    if index_html.find("/assets/app-utils.js") > index_html.find("/assets/app.js"):
+        print("app-utils.js must load before app.js", file=sys.stderr)
+        sys.exit(1)
     if 'id="budget-summary"' not in index_html:
         print("missing budget summary in index.html", file=sys.stderr)
         sys.exit(1)

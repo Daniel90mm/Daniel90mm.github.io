@@ -27,6 +27,7 @@ class ExtractorStub:
     _response_text: str = ""
     _usage: UsageEvent | None = None
     _should_raise: bool = False
+    call_count: int = 0
 
     def __init__(
         self,
@@ -44,6 +45,7 @@ class ExtractorStub:
         system: str | None = None,
         tools: list[dict] | None = None,
     ) -> AsyncIterator[ChatEvent]:
+        self.call_count += 1
         if self._should_raise:
             raise RuntimeError("stub extractor failure")
         for i in range(0, len(self._response_text), 5):
@@ -158,6 +160,91 @@ def test_happy_path_extracts_and_routes(tmp_path: Path) -> None:
     ideas_row = db.execute("SELECT COUNT(*) FROM ideas").fetchone()
     assert ideas_row[0] == 1
     db.close()
+
+
+def test_repeated_extract_returns_409_without_provider_call(tmp_path: Path) -> None:
+    stub = ExtractorStub(
+        response_text=json.dumps(
+            [
+                {
+                    "type": "project_append",
+                    "project_ref": "fnirs",
+                    "section": "TODOs",
+                    "content": "prototype the amplifier",
+                }
+            ]
+        ),
+        usage=UsageEvent(input_tokens=500, output_tokens=100, cached_tokens=0),
+    )
+    client = make_app(tmp_path, stub)
+    session_id = create_session_with_message(client)
+
+    first = client.post(f"/api/sessions/{session_id}/extract")
+    assert first.status_code == 200
+
+    second = client.post(f"/api/sessions/{session_id}/extract")
+    assert second.status_code == 409
+    assert second.json()["detail"] == "session has already been extracted"
+    assert stub.call_count == 1
+
+
+def test_close_extracts_unextracted_session(tmp_path: Path) -> None:
+    stub = ExtractorStub(
+        response_text=json.dumps(
+            [
+                {
+                    "type": "spaghetti",
+                    "tags": ["pca"],
+                    "topics": ["signal-processing"],
+                    "content": "PCA for multivariate signal denoising.",
+                }
+            ]
+        ),
+        usage=UsageEvent(input_tokens=500, output_tokens=100, cached_tokens=0),
+    )
+    client = make_app(tmp_path, stub)
+    session_id = create_session_with_message(client)
+
+    response = client.post(f"/api/sessions/{session_id}/close")
+    assert response.status_code == 200
+    body = response.json()
+    assert body["session_id"] == session_id
+    assert body["closed_at"]
+    assert body["extracted"] is True
+    assert body["extraction"]["spaghetti"] == 1
+    assert stub.call_count == 1
+
+    session = client.get(f"/api/sessions/{session_id}").json()
+    assert session["ended_at"] == body["closed_at"]
+    assert session["extracted"] is True
+
+
+def test_close_skips_already_extracted_session(tmp_path: Path) -> None:
+    stub = ExtractorStub(
+        response_text=json.dumps([]),
+        usage=UsageEvent(input_tokens=100, output_tokens=20, cached_tokens=0),
+    )
+    client = make_app(tmp_path, stub)
+    session_id = create_session_with_message(client)
+
+    first = client.post(f"/api/sessions/{session_id}/extract")
+    assert first.status_code == 200
+    assert stub.call_count == 1
+
+    close = client.post(f"/api/sessions/{session_id}/close")
+    assert close.status_code == 200
+    assert close.json()["extracted"] is False
+    assert close.json()["extraction"] is None
+    assert stub.call_count == 1
+
+
+def test_close_unknown_session_returns_404(tmp_path: Path) -> None:
+    stub = ExtractorStub()
+    client = make_app(tmp_path, stub)
+
+    response = client.post("/api/sessions/nonexistent/close")
+    assert response.status_code == 404
+    assert response.json()["detail"] == "Session not found"
 
 
 def test_malformed_output_logs_usage_but_no_operations(tmp_path: Path) -> None:

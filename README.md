@@ -41,6 +41,12 @@ After each meaningful change, run the relevant checks, commit the scoped files,
 and push the branch. Do not include unrelated local edits, generated output, or
 runtime secrets in the commit.
 
+This repo uses a whitelist `.gitignore`: files are ignored by default, then
+tracked paths are re-allowed with `!` rules. When adding a new tracked top-level
+file or directory, update `.gitignore` deliberately and verify with
+`git status --short`. Keep generated output, runtime data, local configs, and
+secret-bearing files ignored.
+
 ## Flightrecorder
 
 Flightrecorder has its own entry point at

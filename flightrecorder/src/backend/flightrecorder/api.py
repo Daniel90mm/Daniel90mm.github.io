@@ -693,6 +693,54 @@ async def extract_ideas(
             detail="Session not found",
         ) from exc
 
+    if metadata.extracted:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="session has already been extracted",
+        )
+
+    return await _extract_session_ideas(runtime, session_id, messages)
+
+
+@router.post("/sessions/{session_id}/close")
+async def close_session(
+    session_id: str,
+    request: Request,
+) -> dict[str, object]:
+    """Close a session, extracting ideas first when needed."""
+
+    runtime = request.app.state.runtime
+
+    try:
+        metadata, messages = runtime.sessions.get_session(session_id)
+    except FileNotFoundError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Session not found",
+        ) from exc
+
+    extraction: dict[str, object] | None = None
+    if not metadata.extracted:
+        extraction = await _extract_session_ideas(runtime, session_id, messages)
+
+    closed = runtime.sessions.close_session(session_id, datetime.now(timezone.utc))
+
+    return {
+        "session_id": session_id,
+        "closed_at": closed.ended_at,
+        "message_count": closed.message_count,
+        "extracted": extraction is not None,
+        "extraction": extraction,
+    }
+
+
+async def _extract_session_ideas(
+    runtime: Any,
+    session_id: str,
+    messages: list[ChatMessage],
+) -> dict[str, object]:
+    """Run idea capture and apply parsed operations for one session."""
+
     try:
         runtime.guard().check_before_call(datetime.now(timezone.utc))
     except BudgetHardStopError as exc:
@@ -751,6 +799,7 @@ async def extract_ideas(
         captured_at=captured_at,
         commit_documents=True,
     )
+    runtime.sessions.mark_extracted(session_id, captured_at)
 
     return {
         "session_id": session_id,

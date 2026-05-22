@@ -11,6 +11,7 @@ from pathlib import Path
 
 REPO = Path(__file__).resolve().parent.parent.parent
 APP_JS = REPO / "src" / "frontend" / "app.js"
+APP_UTILS_JS = REPO / "src" / "frontend" / "app-utils.js"
 
 
 def extract_parser_source(app_js_text: str) -> str:
@@ -66,9 +67,10 @@ console.log(JSON.stringify(results));
 
 def main() -> None:
     app_js_text = APP_JS.read_text(encoding="utf-8")
+    app_utils_text = APP_UTILS_JS.read_text(encoding="utf-8")
 
-    if "createSSEParser" not in app_js_text:
-        print("createSSEParser not found in app.js", file=sys.stderr)
+    if "createSSEParser" not in app_utils_text:
+        print("createSSEParser not found in app-utils.js", file=sys.stderr)
         sys.exit(1)
     for literal in ('event === "token"', 'event === "done"', 'event === "error"'):
         if literal not in app_js_text:
@@ -80,7 +82,7 @@ def main() -> None:
         print("SSE parser smoke test passed")
         return
 
-    parser_code = extract_parser_source(app_js_text)
+    parser_code = extract_parser_source(app_utils_text)
     full_script = TEST_SCRIPT.replace("__PARSER_CODE__", parser_code)
 
     with tempfile.NamedTemporaryFile(

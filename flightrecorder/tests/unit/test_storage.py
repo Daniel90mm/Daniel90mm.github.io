@@ -228,6 +228,38 @@ def test_session_store_closes_session_and_preserves_messages(tmp_path: Path) -> 
     assert row == ("2026-05-18T17:45:00+02:00", 1)
 
 
+def test_session_store_marks_extracted_and_preserves_messages(tmp_path: Path) -> None:
+    connection = sqlite3.connect(":memory:")
+    initialize_database(connection)
+    store = SessionStore(tmp_path, connection)
+    metadata = store.create_session(
+        provider="google",
+        model="gemini-2.5-pro",
+        started_at=datetime.fromisoformat("2026-05-18T17:30:00+02:00"),
+        slug="spaghetti",
+    )
+    store.add_message(
+        metadata.session_id,
+        ChatMessage(role="user", timestamp="17:30:01", content="hello"),
+    )
+    extracted_at = datetime.fromisoformat("2026-05-18T17:45:00+02:00")
+
+    extracted_metadata = store.mark_extracted(metadata.session_id, extracted_at)
+
+    loaded_metadata, messages = store.get_session(metadata.session_id)
+    row = connection.execute(
+        "SELECT extracted, extracted_at, message_count FROM sessions WHERE session_id = ?",
+        (metadata.session_id,),
+    ).fetchone()
+
+    assert extracted_metadata.extracted is True
+    assert extracted_metadata.extracted_at == "2026-05-18T17:45:00+02:00"
+    assert loaded_metadata.extracted is True
+    assert loaded_metadata.extracted_at == "2026-05-18T17:45:00+02:00"
+    assert messages == [ChatMessage(role="user", timestamp="17:30:01", content="hello")]
+    assert row == (1, "2026-05-18T17:45:00+02:00", 1)
+
+
 def test_session_store_stores_asset_and_updates_image_count(tmp_path: Path) -> None:
     connection = sqlite3.connect(":memory:")
     initialize_database(connection)

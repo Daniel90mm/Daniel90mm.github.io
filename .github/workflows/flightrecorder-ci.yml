@@ -1,0 +1,37 @@
+name: Flightrecorder CI
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "flightrecorder/**"
+      - ".github/workflows/flightrecorder-ci.yml"
+  pull_request:
+    paths:
+      - "flightrecorder/**"
+      - ".github/workflows/flightrecorder-ci.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+      - name: Setup Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+      - name: Install Flightrecorder
+        working-directory: ./flightrecorder
+        run: pip install -e ".[dev]"
+      - name: Run tests
+        working-directory: ./flightrecorder
+        run: pytest tests/ -v
