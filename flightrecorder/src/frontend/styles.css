@@ -672,6 +672,10 @@ body {
   gap: 8px;
   margin-bottom: 8px;
 }
+.fr-read-actions {
+  margin-top: 8px;
+  margin-bottom: 0;
+}
 
 /* ─── Rail blocks ─────────────────────────────────────────────── */
 .fr-rail-block { min-width: 0; }
