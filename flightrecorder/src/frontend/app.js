@@ -224,9 +224,40 @@
     return amount.toFixed(2) + " " + currency;
   }
 
+  function friendlyModelName(option) {
+    var provider = String(option.provider || "");
+    var model = String(option.model || "");
+    var known = {
+      "deepseek-chat": "DeepSeek Chat",
+      "deepseek-reasoner": "DeepSeek Reasoner",
+      "prototype-brainstorm": "Prototype Brainstorm",
+      "prototype-idea-capture": "Prototype Idea Capture",
+    };
+    if (known[model]) return known[model];
+    return (provider ? provider + " " : "") + model
+      .replace(/[-_]+/g, " ")
+      .replace(/\b\w/g, function (char) { return char.toUpperCase(); });
+  }
+
+  function reasoningMode(option) {
+    var model = String(option.model || "").toLowerCase();
+    if (model.indexOf("reasoner") !== -1 || model.indexOf("thinking") !== -1) {
+      return "thinking";
+    }
+    return "standard";
+  }
+
   function routeLabel(option) {
     var configured = option.configured ? "" : " !";
-    return String(option.provider) + "/" + String(option.model) + configured;
+    return friendlyModelName(option) + " · " + reasoningMode(option) + configured;
+  }
+
+  function appendModelCardText(parent, className, text) {
+    var el = document.createElement("span");
+    el.className = className;
+    el.textContent = text;
+    parent.appendChild(el);
+    return el;
   }
 
   function renderModelOptions(preferredProvider, preferredModel) {
@@ -275,10 +306,31 @@
     DOM.modelInput.value = selected.model;
     var input = formatPerMillion(selected.input_per_1m_dkk, "DKK");
     var output = formatPerMillion(selected.output_per_1m_dkk, "DKK");
-    var sourceInput = formatPerMillion(selected.input_per_1m, selected.currency);
-    var sourceOutput = formatPerMillion(selected.output_per_1m, selected.currency);
-    DOM.modelPrice.textContent = "input " + input + " / 1M · output " + output
-      + " / 1M · source " + sourceInput + " in, " + sourceOutput + " out";
+    DOM.modelPrice.replaceChildren();
+
+    var head = document.createElement("div");
+    head.className = "fr-model-card-head";
+    var title = document.createElement("div");
+    title.className = "fr-model-card-title";
+    title.textContent = friendlyModelName(selected);
+    var mode = document.createElement("div");
+    mode.className = "fr-model-card-mode mode-" + reasoningMode(selected);
+    mode.textContent = reasoningMode(selected);
+    head.appendChild(title);
+    head.appendChild(mode);
+
+    var meta = document.createElement("div");
+    meta.className = "fr-model-card-meta";
+    meta.textContent = String(selected.provider) + "/" + String(selected.model);
+
+    var prices = document.createElement("div");
+    prices.className = "fr-model-price-row";
+    appendModelCardText(prices, "fr-price-chip", "in " + input + " / 1M");
+    appendModelCardText(prices, "fr-price-chip", "out " + output + " / 1M");
+
+    DOM.modelPrice.appendChild(head);
+    DOM.modelPrice.appendChild(meta);
+    DOM.modelPrice.appendChild(prices);
     return selected;
   }
 

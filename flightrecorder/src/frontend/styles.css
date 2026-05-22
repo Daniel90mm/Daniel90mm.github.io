@@ -565,14 +565,58 @@ body {
   grid-template-columns: minmax(0, 1fr);
   gap: 8px;
 }
-.fr-model-price {
+.fr-model-card {
   border: 1px solid var(--line2);
   background: var(--bg2);
   color: var(--fg2);
   border-radius: var(--radius);
-  padding: 7px 8px;
+  padding: 8px;
   font-size: 11px;
   line-height: 1.45;
+}
+.fr-model-card-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 2px;
+}
+.fr-model-card-title {
+  color: var(--fg);
+  font-size: 12px;
+  font-weight: 500;
+  min-width: 0;
+}
+.fr-model-card-mode {
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  color: var(--fg2);
+  flex: 0 0 auto;
+  padding: 1px 6px;
+  text-transform: uppercase;
+}
+.fr-model-card-mode.mode-thinking {
+  border-color: color-mix(in srgb, var(--accent) 45%, var(--line));
+  color: var(--accent);
+}
+.fr-model-card-meta {
+  color: var(--muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.fr-model-price-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 7px;
+}
+.fr-price-chip {
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  color: var(--fg2);
+  padding: 2px 6px;
+  white-space: nowrap;
 }
 
 .fr-primary-btn {
