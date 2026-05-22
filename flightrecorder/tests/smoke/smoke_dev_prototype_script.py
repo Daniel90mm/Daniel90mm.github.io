@@ -23,9 +23,10 @@ def main() -> None:
 
     assert "config.prototype.toml" in text, "script must reference config.prototype.toml"
     assert "uvicorn" in text, "script must reference uvicorn"
+    assert ".venv/bin/uvicorn" in text, "script must prefer the local virtualenv uvicorn"
     assert "FLIGHTRECORDER_CONFIG" in text, "script must set FLIGHTRECORDER_CONFIG"
     assert 'cd "$ROOT"' in text, "script must run from the flightrecorder root"
-    assert "exec uvicorn" in text, "script must use exec uvicorn"
+    assert 'exec "$UVICORN"' in text, "script must exec the resolved uvicorn"
 
     assert text.strip().startswith("#!/"), "script must have a shebang"
 
