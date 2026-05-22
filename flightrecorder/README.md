@@ -15,6 +15,12 @@ pytest tests/ -v
 scripts/dev-backend.sh
 ```
 
+For a no-key local prototype, use the prototype config and launcher:
+
+```sh
+scripts/dev-prototype.sh
+```
+
 ## Status
 
 Backend skeleton, session storage, approved `/api/sessions*` routes, chat SSE,
@@ -74,13 +80,29 @@ FLIGHTRECORDER_CONFIG=$PWD/config.prototype.toml scripts/dev-backend.sh
 Then open `http://127.0.0.1:8000/`, create a session, chat, extract, and
 inspect the generated document/spaghetti panels.
 
-Copy `config.example.toml` and `pricing.example.toml` as starting points,
-set `FLIGHTRECORDER_CONFIG` to your config path, and replace the placeholder
-API key with a real one.
-
-For the offline prototype (no API keys): `scripts/dev-prototype.sh`.
+Copy `config.example.toml` and `pricing.example.toml` as starting points for
+real providers, set `FLIGHTRECORDER_CONFIG` to your config path, and replace
+placeholder API keys. Keep local configs named `*.local.toml` or outside the
+repo so they stay ignored.
 
 Full walkthrough: [docs/PROTOTYPE_WALKTHROUGH.md](docs/PROTOTYPE_WALKTHROUGH.md).
+
+## Verification
+
+Run the full test suite:
+
+```sh
+pytest tests/ -v
+```
+
+Run the docs/navigation smoke checks:
+
+```sh
+python tests/smoke/smoke_docs_navigation.py
+python tests/smoke/smoke_docs_navigation_consistency.py
+```
+
+Run all smoke scripts with the loop in [docs/SMOKE_COMMANDS.md](docs/SMOKE_COMMANDS.md).
 
 ## Layout
 

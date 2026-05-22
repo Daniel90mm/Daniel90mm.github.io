@@ -8,6 +8,7 @@
 !.gitmodules
 !.github/
 !.github/**
+!AGENTS.md
 !README.md
 !flightrecorder/
 !flightrecorder/**
@@ -31,6 +32,8 @@ __pycache__/
 *.pyc
 .DS_Store
 artifacts/
+.agent-delegation/
+.agent-tasks/
 flightrecorder/.env*
 flightrecorder/config*.local.toml
 flightrecorder/pricing*.local.toml
