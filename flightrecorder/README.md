@@ -15,6 +15,11 @@ pytest tests/ -v
 scripts/dev-backend.sh
 ```
 
+`scripts/dev-backend.sh` starts the app on `http://127.0.0.1:8000/` and
+automatically uses a real local config when one exists. Precedence is:
+`FLIGHTRECORDER_CONFIG`, `config.local.toml`, `config.toml`, then a single
+`config.*.local.toml` file.
+
 For a no-key local prototype, use the prototype config and launcher:
 
 ```sh
@@ -81,9 +86,9 @@ Then open `http://127.0.0.1:8000/`, create a session, chat, extract, and
 inspect the generated document/spaghetti panels.
 
 Copy `config.example.toml` and `pricing.example.toml` as starting points for
-real providers, set `FLIGHTRECORDER_CONFIG` to your config path, and replace
-placeholder API keys. Keep local configs named `*.local.toml` or outside the
-repo so they stay ignored.
+real providers, then create `config.local.toml`, `config.toml`, or one
+provider-specific `config.*.local.toml`. Keep local configs named `*.local.toml`
+or outside the repo so they stay ignored.
 
 Full walkthrough: [docs/PROTOTYPE_WALKTHROUGH.md](docs/PROTOTYPE_WALKTHROUGH.md).
 
