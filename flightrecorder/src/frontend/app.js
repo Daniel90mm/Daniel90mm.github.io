@@ -12,6 +12,7 @@
     sessions: [],
     spaghetti: [],
     budget: null,
+    modelOptions: [],
   };
 
   var STICKY_COLORS = ["#e8a04a", "#6aa3ff", "#8fb84a", "#5fb7c7", "#e36363"];
@@ -25,6 +26,8 @@
     sessionDeleteBtn: document.getElementById("session-delete-btn"),
     providerInput: document.getElementById("provider"),
     modelInput: document.getElementById("model"),
+    modelRouteSelect: document.getElementById("model-route"),
+    modelPrice: document.getElementById("model-price"),
     sessionList: document.getElementById("session-list"),
     sessionSummary: document.getElementById("session-summary"),
     assetList: document.getElementById("asset-list"),
@@ -203,16 +206,92 @@
     return api("/api/runtime").then(function (res) { return res.json(); });
   }
 
+  function modelOptionValue(option) {
+    return String(option.provider || "") + "\u0000" + String(option.model || "");
+  }
+
+  function findModelOption(provider, model) {
+    return state.modelOptions.find(function (option) {
+      return option.provider === provider && option.model === model;
+    }) || null;
+  }
+
+  function formatPerMillion(value, currency) {
+    var amount = Number(value || 0);
+    if (amount === 0) return "0 " + currency;
+    if (amount < 0.01) return amount.toFixed(4) + " " + currency;
+    if (amount < 1) return amount.toFixed(3) + " " + currency;
+    return amount.toFixed(2) + " " + currency;
+  }
+
+  function routeLabel(option) {
+    var configured = option.configured ? "" : " !";
+    return String(option.provider) + "/" + String(option.model) + configured;
+  }
+
+  function renderModelOptions(preferredProvider, preferredModel) {
+    if (!DOM.modelRouteSelect) return;
+    DOM.modelRouteSelect.innerHTML = "";
+    if (!state.modelOptions.length) {
+      var empty = document.createElement("option");
+      empty.value = "";
+      empty.textContent = "no priced models configured";
+      DOM.modelRouteSelect.appendChild(empty);
+      DOM.modelRouteSelect.disabled = true;
+      DOM.modelPrice.textContent = "No pricing table entries available.";
+      return;
+    }
+
+    DOM.modelRouteSelect.disabled = false;
+    state.modelOptions.forEach(function (option) {
+      var el = document.createElement("option");
+      el.value = modelOptionValue(option);
+      el.textContent = routeLabel(option);
+      if (!option.configured) el.disabled = true;
+      DOM.modelRouteSelect.appendChild(el);
+    });
+
+    var preferred = findModelOption(preferredProvider, preferredModel);
+    if (!preferred || !preferred.configured) {
+      preferred = state.modelOptions.find(function (option) { return option.configured; }) || state.modelOptions[0];
+    }
+    DOM.modelRouteSelect.value = modelOptionValue(preferred);
+    applySelectedModelRoute();
+  }
+
+  function applySelectedModelRoute() {
+    if (!DOM.modelRouteSelect) return null;
+    var selected = state.modelOptions.find(function (option) {
+      return modelOptionValue(option) === DOM.modelRouteSelect.value;
+    }) || null;
+    if (!selected) {
+      DOM.providerInput.value = "";
+      DOM.modelInput.value = "";
+      DOM.modelPrice.textContent = "No model selected.";
+      return null;
+    }
+
+    DOM.providerInput.value = selected.provider;
+    DOM.modelInput.value = selected.model;
+    var input = formatPerMillion(selected.input_per_1m_dkk, "DKK");
+    var output = formatPerMillion(selected.output_per_1m_dkk, "DKK");
+    var sourceInput = formatPerMillion(selected.input_per_1m, selected.currency);
+    var sourceOutput = formatPerMillion(selected.output_per_1m, selected.currency);
+    DOM.modelPrice.textContent = "input " + input + " / 1M · output " + output
+      + " / 1M · source " + sourceInput + " in, " + sourceOutput + " out";
+    return selected;
+  }
+
   function refreshRuntime() {
     loadRuntime().then(function (status) {
       var roles = status.roles || {};
+      state.modelOptions = status.model_options || [];
       state.runtimeReady = Boolean(
         roles.brainstorm && roles.brainstorm.configured &&
         roles.idea_capture && roles.idea_capture.configured
       );
       if (roles.brainstorm && roles.brainstorm.provider !== "none") {
-        DOM.providerInput.value = roles.brainstorm.provider;
-        DOM.modelInput.value = roles.brainstorm.model;
+        renderModelOptions(roles.brainstorm.provider, roles.brainstorm.model);
         DOM.composerProvider.textContent = roles.brainstorm.provider + "/" + roles.brainstorm.model;
       }
       setChatEnabled(Boolean(state.currentSessionId));
@@ -981,8 +1060,9 @@
 
   DOM.sessionForm.addEventListener("submit", function (e) {
     e.preventDefault();
-    var provider = document.getElementById("provider").value.trim();
-    var model = document.getElementById("model").value.trim();
+    var selected = applySelectedModelRoute();
+    var provider = selected ? selected.provider : document.getElementById("provider").value.trim();
+    var model = selected ? selected.model : document.getElementById("model").value.trim();
     var slug = document.getElementById("slug").value.trim();
     if (!provider || !model) {
       setStatus("Provider and model are required", "status-error");
@@ -996,6 +1076,10 @@
       setStatus("Failed to create session: " + err.message, "status-error");
     });
   });
+
+  if (DOM.modelRouteSelect) {
+    DOM.modelRouteSelect.addEventListener("change", applySelectedModelRoute);
+  }
 
   DOM.sessionNameForm.addEventListener("submit", function (e) {
     e.preventDefault();

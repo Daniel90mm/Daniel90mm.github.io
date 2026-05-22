@@ -517,7 +517,8 @@ body {
 .fr-field-primary {
   flex: 999 1 220px;
 }
-.fr-field input {
+.fr-field input,
+.fr-field select {
   padding: 6px 8px;
   background: var(--bg2);
   border: 1px solid var(--line);
@@ -525,10 +526,19 @@ body {
   color: var(--fg);
   font-family: inherit;
   font-size: 12.5px;
+  width: 100%;
 }
-.fr-field input:focus {
+.fr-field select {
+  min-height: 34px;
+}
+.fr-field input:focus,
+.fr-field select:focus {
   outline: none;
   border-color: color-mix(in srgb, var(--accent) 55%, var(--line));
+}
+.fr-field select:disabled {
+  color: var(--muted);
+  opacity: 0.7;
 }
 .fr-field-primary input {
   min-height: 34px;
@@ -550,10 +560,19 @@ body {
 .fr-advanced-session[open] summary {
   margin-bottom: 8px;
 }
-.fr-advanced-session-grid {
+.fr-model-route {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  grid-template-columns: minmax(0, 1fr);
   gap: 8px;
+}
+.fr-model-price {
+  border: 1px solid var(--line2);
+  background: var(--bg2);
+  color: var(--fg2);
+  border-radius: var(--radius);
+  padding: 7px 8px;
+  font-size: 11px;
+  line-height: 1.45;
 }
 
 .fr-primary-btn {
@@ -571,7 +590,7 @@ body {
 .fr-primary-btn:hover { filter: brightness(1.08); }
 
 @media (max-width: 720px) {
-  .fr-advanced-session-grid {
+  .fr-model-route {
     grid-template-columns: 1fr;
   }
 }

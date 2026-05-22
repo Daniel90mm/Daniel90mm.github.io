@@ -27,6 +27,8 @@ def main() -> None:
 
         assert "runtime_home" in body
         assert "roles" in body
+        assert "model_options" in body
+        assert isinstance(body["model_options"], list)
         assert "brainstorm" in body["roles"]
         assert "idea_capture" in body["roles"]
 

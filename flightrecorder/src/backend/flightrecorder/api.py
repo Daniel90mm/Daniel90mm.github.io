@@ -84,6 +84,20 @@ BRAINSTORM_SYSTEM_PROMPT = _load_prompt_text("brainstorm-system.md")
 MAX_TOOL_ROUNDS = 4
 
 
+def _brainstorm_system_prompt(provider: str, model: str) -> str:
+    """Return the brainstorm prompt with runtime model identity attached."""
+
+    return (
+        BRAINSTORM_SYSTEM_PROMPT
+        + "\n\nRuntime identity:\n"
+        + f"- Provider: {provider}\n"
+        + f"- Model: {model}\n"
+        + "If the user asks what model or provider you are, answer from this "
+        + "runtime identity. Do not claim to be Claude, Opus, Sonnet, GPT, or "
+        + "any other model unless the runtime identity says so."
+    )
+
+
 WEB_SEARCH_TOOL: dict[str, Any] = {
     "type": "function",
     "function": {
@@ -444,7 +458,10 @@ async def send_message(
 
                 async for event in runtime.brainstorm_provider.chat(
                     messages=provider_messages,
-                    system=BRAINSTORM_SYSTEM_PROMPT,
+                    system=_brainstorm_system_prompt(
+                        runtime.brainstorm_provider.name,
+                        runtime.brainstorm_provider.model,
+                    ),
                     tools=tools_arg,
                 ):
                     if isinstance(event, TokenEvent):
@@ -820,12 +837,42 @@ async def get_runtime_status(request: Request) -> dict[str, object]:
             "issues": issues,
         }
 
+    model_options = []
+    for model_name, pricing in sorted(runtime.pricing.models.items()):
+        provider_config = runtime.config.providers.get(pricing.provider)
+        has_key = pricing.provider == "prototype" or (
+            provider_config is not None
+            and bool(provider_config.api_key.strip())
+            and "CHANGEME" not in provider_config.api_key
+        )
+        implemented = pricing.provider in {"anthropic", "deepseek", "prototype"}
+        exchange_rate = runtime.pricing.exchange_rates_to_dkk.get(pricing.currency, 0.0)
+        model_options.append(
+            {
+                "provider": pricing.provider,
+                "model": model_name,
+                "currency": pricing.currency,
+                "input_per_1m": pricing.input_per_1k * 1000,
+                "output_per_1m": pricing.output_per_1k * 1000,
+                "cached_per_1m": pricing.cached_per_1k * 1000,
+                "input_per_1m_dkk": pricing.input_per_1k * 1000 * exchange_rate,
+                "output_per_1m_dkk": pricing.output_per_1k * 1000 * exchange_rate,
+                "configured": provider_config is not None and has_key and implemented,
+                "issues": (
+                    ([] if provider_config is not None else ["provider_missing"])
+                    + ([] if has_key else ["api_key_missing"])
+                    + ([] if implemented else ["provider_not_implemented"])
+                ),
+            }
+        )
+
     return {
         "runtime_home": str(runtime.config.paths.runtime_home),
         "roles": {
             "brainstorm": role_status("brainstorm"),
             "idea_capture": role_status("idea_capture"),
         },
+        "model_options": model_options,
     }
 
 

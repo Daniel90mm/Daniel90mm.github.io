@@ -10,7 +10,7 @@
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css" integrity="sha384-n8MVd4RsNIU0tAv4ct0nTaAbDJwPJzDEaqSD1odI+WdtXRGWt2kTvGFasHpSy3SV" crossorigin="anonymous">
   <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js" integrity="sha384-XjKyOOlGwcjNTAIQHIpgOno0Hl1YQqzUOEleOLALmuqehneUG+vnGctmUb0ZY0l8" crossorigin="anonymous"></script>
   <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js" integrity="sha384-+VBxd3r6XgURycqtZ117nYw44OOcIax56Z4dCRWbxyPt0Koah1uHoK0o4+/RRE05" crossorigin="anonymous"></script>
-  <link rel="stylesheet" href="/assets/styles.css">
+  <link rel="stylesheet" href="/assets/styles.css?v=20260522-model-route">
 </head>
 <body class="fr-theme-dark fr-accent-amber fr-density-comfortable">
   <div class="fr-page">
@@ -187,15 +187,14 @@
             <button type="submit" id="create-btn" class="fr-primary-btn">create</button>
             <details class="fr-advanced-session">
               <summary>advanced model route</summary>
-              <div class="fr-advanced-session-grid">
-                <label class="fr-field">
-                  <span>provider</span>
-                  <input type="text" id="provider" placeholder="anthropic" value="anthropic">
-                </label>
+              <input type="hidden" id="provider" value="">
+              <input type="hidden" id="model" value="">
+              <div class="fr-model-route">
                 <label class="fr-field">
                   <span>model</span>
-                  <input type="text" id="model" placeholder="claude-sonnet-4-5" value="claude-sonnet-4-5">
+                  <select id="model-route"></select>
                 </label>
+                <div id="model-price" class="fr-model-price">loading model prices</div>
               </div>
             </details>
           </form>
@@ -228,6 +227,6 @@
     </main>
   </div>
 
-  <script src="/assets/app.js"></script>
+  <script src="/assets/app.js?v=20260522-model-route"></script>
 </body>
 </html>
